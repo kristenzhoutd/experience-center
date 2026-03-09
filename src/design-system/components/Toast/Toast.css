@@ -1,0 +1,122 @@
+/* Base */
+.toast {
+  display: flex;
+  align-items: stretch;
+  max-width: 403px;
+  background-color: var(--surface-default);
+  border-radius: 4px;
+  box-shadow: var(--elevation-toast);
+  overflow: clip;
+  font-family: var(--font-primary);
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+/* ========== Accent strip (left border) ========== */
+
+.toast__accent {
+  flex-shrink: 0;
+  width: 4px;
+  align-self: stretch;
+}
+
+/* ========== Body ========== */
+
+.toast__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px;
+  padding-left: 12px;
+}
+
+/* ========== Header (icon + title) ========== */
+
+.toast__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toast__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.toast__icon > svg {
+  width: 16px;
+  height: 16px;
+}
+
+.toast__title {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* ========== Content ========== */
+
+.toast__content {
+  color: var(--text-default);
+  font-weight: 400;
+}
+
+.toast__content--indented {
+  padding-left: 24px;
+}
+
+/* ========== Close button ========== */
+
+.toast__close {
+  display: inline-flex;
+  align-items: flex-start;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 16px 16px 0 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: color 0.15s ease;
+}
+
+.toast__close:hover {
+  color: var(--text-default);
+}
+
+.toast__close > svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ========== Variant colors ========== */
+
+/* Default */
+.toast--default .toast__accent { background-color: var(--neutral-5); }
+.toast--default .toast__icon { color: var(--neutral-5); }
+.toast--default .toast__title { color: var(--neutral-7); }
+
+/* Info */
+.toast--info .toast__accent { background-color: var(--primary-5); }
+.toast--info .toast__icon { color: var(--primary-5); }
+.toast--info .toast__title { color: var(--primary-5); }
+
+/* Success */
+.toast--success .toast__accent { background-color: var(--success-6); }
+.toast--success .toast__icon { color: var(--success-6); }
+.toast--success .toast__title { color: var(--success-6); }
+
+/* Warning */
+.toast--warning .toast__accent { background-color: var(--warning-6); }
+.toast--warning .toast__icon { color: var(--warning-6); }
+.toast--warning .toast__title { color: var(--warning-7); }
+
+/* Error */
+.toast--error .toast__accent { background-color: var(--error-6); }
+.toast--error .toast__icon { color: var(--error-6); }
+.toast--error .toast__title { color: var(--error-6); }

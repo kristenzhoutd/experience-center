@@ -1,0 +1,203 @@
+/* Base */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 8px;
+  border: none;
+  font-family: var(--font-primary);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  overflow: clip;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--primary-3);
+  outline-offset: 0;
+}
+
+/* Icon sizing */
+.button__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.button__icon > svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* ========== Sizes ========== */
+
+.button--md {
+  height: 36px;
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.button--sm {
+  height: 32px;
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.button--xs {
+  height: 24px;
+  padding: 10px 8px;
+  font-size: 12px;
+  line-height: 1;
+  gap: 4px;
+}
+
+.button--xs .button__icon > svg {
+  width: 10px;
+  height: 10px;
+}
+
+/* Icon only */
+.button--icon-only.button--md {
+  width: 36px;
+  padding: 0;
+}
+
+.button--icon-only.button--sm {
+  width: 32px;
+  padding: 0;
+}
+
+.button--icon-only.button--xs {
+  width: 24px;
+  padding: 0;
+}
+
+/* ========== Primary ========== */
+
+.button--primary {
+  background-color: var(--neutral-11);
+  color: var(--neutral-0);
+}
+
+.button--primary:hover:not(:disabled) {
+  background-color: var(--neutral-9);
+}
+
+.button--primary:active:not(:disabled) {
+  background-color: var(--neutral-11);
+}
+
+.button--primary:disabled {
+  background-color: var(--neutral-6);
+  color: var(--neutral-5);
+  cursor: not-allowed;
+}
+
+/* ========== Secondary ========== */
+
+.button--secondary {
+  background-color: var(--neutral-1);
+  color: var(--neutral-11);
+}
+
+.button--secondary:hover:not(:disabled) {
+  background-color: var(--neutral-2);
+}
+
+.button--secondary:active:not(:disabled) {
+  background-color: var(--neutral-3);
+  border: 1px solid var(--neutral-2);
+}
+
+.button--secondary:disabled {
+  background-color: var(--neutral-0);
+  color: var(--neutral-4);
+  cursor: not-allowed;
+}
+
+/* ========== Outline ========== */
+
+.button--outline {
+  background-color: transparent;
+  color: var(--neutral-11);
+  border: 1px solid var(--neutral-2);
+}
+
+.button--outline:hover:not(:disabled) {
+  background-color: var(--neutral-1);
+}
+
+.button--outline:active:not(:disabled) {
+  background-color: var(--neutral-2);
+}
+
+.button--outline:disabled {
+  border-color: rgba(230, 230, 231, 0.5);
+  color: var(--neutral-4);
+  cursor: not-allowed;
+}
+
+/* ========== Ghost ========== */
+
+.button--ghost {
+  background-color: transparent;
+  color: var(--neutral-11);
+}
+
+.button--ghost:hover:not(:disabled) {
+  background-color: var(--neutral-1);
+}
+
+.button--ghost:active:not(:disabled) {
+  background-color: var(--neutral-2);
+  border: 1px solid var(--neutral-2);
+}
+
+.button--ghost:disabled {
+  color: var(--neutral-4);
+  cursor: not-allowed;
+}
+
+/* ========== Link ========== */
+
+.button--link {
+  background-color: transparent;
+  color: var(--neutral-11);
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.button--link:hover:not(:disabled) {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.button--link:disabled {
+  color: var(--neutral-4);
+  cursor: not-allowed;
+}
+
+/* ========== Destructive ========== */
+
+.button--destructive {
+  background-color: var(--error-6);
+  color: var(--neutral-0);
+}
+
+.button--destructive:hover:not(:disabled) {
+  background-color: var(--error-7);
+}
+
+.button--destructive:active:not(:disabled) {
+  background-color: var(--error-8);
+}
+
+.button--destructive:disabled {
+  background-color: var(--error-3);
+  color: var(--error-2);
+  cursor: not-allowed;
+}

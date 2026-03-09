@@ -1,0 +1,376 @@
+/* ===== Shared Field Wrapper ===== */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+}
+
+.field__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.75;
+  color: var(--neutral-11);
+}
+
+.field__label-required {
+  color: var(--error-6);
+}
+
+.field__label-help {
+  display: inline-flex;
+  color: var(--neutral-6);
+  cursor: help;
+}
+
+.field__help-text {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.75;
+  color: var(--neutral-6);
+}
+
+.field--error .field__help-text {
+  color: #af4a45;
+}
+
+.field--warning .field__help-text {
+  color: #816c3f;
+}
+
+.field--success .field__help-text {
+  color: var(--success-6);
+}
+
+/* ===== Warning Icon Wrapper ===== */
+.field__input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.field__input-wrapper .input,
+.field__input-wrapper .select-wrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+.field__warning-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--warning-6);
+}
+
+/* ===== Text Input (shared for TextField, TextArea, Select) ===== */
+.input {
+  width: 100%;
+  height: 40px;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.75;
+  color: var(--neutral-11);
+  background-color: var(--neutral-0);
+  border: 1px solid var(--neutral-2);
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    background-color 0.15s ease;
+  box-sizing: border-box;
+}
+
+.input::placeholder {
+  color: var(--neutral-6);
+}
+
+.input:focus {
+  box-shadow: 0 0 0 2px #879cda;
+}
+
+.input:disabled {
+  background-color: var(--neutral-1);
+  border-color: var(--neutral-2);
+  color: var(--neutral-7);
+  cursor: not-allowed;
+}
+
+.input:read-only:not(:disabled) {
+  background-color: transparent;
+  border-color: transparent;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Status variants */
+.input--error {
+  background-color: var(--error-0);
+  border-color: var(--error-5);
+}
+
+.input--error:focus {
+  box-shadow: 0 0 0 2px var(--error-5);
+}
+
+.input--warning {
+  background-color: var(--warning-0);
+  border-color: var(--warning-6);
+}
+
+.input--warning:focus {
+  box-shadow: 0 0 0 2px var(--warning-6);
+}
+
+/* ===== TextArea ===== */
+.input--textarea {
+  height: 72px;
+  resize: vertical;
+}
+
+/* ===== Select / Combobox ===== */
+.select-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.select-wrapper .input {
+  appearance: none;
+  padding-right: 36px;
+  cursor: pointer;
+}
+
+.select-wrapper .input:disabled {
+  cursor: not-allowed;
+}
+
+.select__icon {
+  position: absolute;
+  right: 12px;
+  pointer-events: none;
+  color: var(--neutral-6);
+  width: 16px;
+  height: 16px;
+}
+
+/* ===== Checkbox ===== */
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.75;
+  color: var(--neutral-11);
+}
+
+.checkbox__input {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid #878f9e;
+  border-radius: 4px;
+  background-color: var(--neutral-0);
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.checkbox__input:checked {
+  background-color: #3348bd;
+  border-color: #3348bd;
+}
+
+.checkbox__input:checked::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: translate(-50%, -60%) rotate(45deg);
+}
+
+.checkbox__input:focus-visible {
+  box-shadow: 0 0 0 2px #879cda;
+}
+
+.checkbox__input:disabled {
+  background-color: #e8ecf3;
+  border-color: #cbd1db;
+  cursor: not-allowed;
+}
+
+.checkbox__input:disabled + .checkbox__label {
+  color: var(--neutral-7);
+  cursor: not-allowed;
+}
+
+.checkbox--readonly {
+  pointer-events: none;
+}
+
+.checkbox--readonly .checkbox__input {
+  opacity: 0;
+}
+
+.checkbox--readonly .checkbox__input:checked {
+  opacity: 1;
+  background-color: transparent;
+  border-color: transparent;
+}
+
+.checkbox--readonly .checkbox__input:checked::after {
+  border-color: var(--neutral-3);
+}
+
+.checkbox--error .checkbox__input {
+  border-color: #be1b29;
+}
+
+.checkbox--error .checkbox__input:checked {
+  background-color: #be1b29;
+  border-color: #be1b29;
+}
+
+/* ===== Radio ===== */
+.radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.75;
+  color: var(--neutral-11);
+}
+
+.radio__input {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid #878f9e;
+  border-radius: 50%;
+  background-color: var(--neutral-0);
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+  transition: border-color 0.15s ease;
+}
+
+.radio__input:checked {
+  border-color: #3348bd;
+  border-width: 5px;
+}
+
+.radio__input:focus-visible {
+  box-shadow: 0 0 0 2px #879cda;
+}
+
+.radio__input:disabled {
+  border-color: #cbd1db;
+  background-color: #e8ecf3;
+  cursor: not-allowed;
+}
+
+.radio__input:disabled:checked {
+  border-color: #b0b8cc;
+}
+
+.radio__input:disabled + .radio__label {
+  color: var(--neutral-7);
+  cursor: not-allowed;
+}
+
+/* ===== Toggle ===== */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.75;
+  color: var(--neutral-11);
+}
+
+.toggle__track {
+  position: relative;
+  width: 32px;
+  height: 16px;
+  border-radius: 8px;
+  background-color: #c4c7cc;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.toggle__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: white;
+  transition: transform 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.toggle__input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle__input:checked + .toggle__track {
+  background-color: #3348bd;
+}
+
+.toggle__input:checked + .toggle__track .toggle__thumb {
+  transform: translateX(16px);
+}
+
+.toggle__input:focus-visible + .toggle__track {
+  box-shadow: 0 0 0 2px #879cda;
+}
+
+.toggle__input:disabled + .toggle__track {
+  background-color: #e0e3e8;
+  cursor: not-allowed;
+}
+
+.toggle__input:disabled + .toggle__track .toggle__thumb {
+  background-color: #f0f1f3;
+}
+
+.toggle__input:disabled ~ .toggle__label {
+  color: var(--neutral-7);
+  cursor: not-allowed;
+}
+
+/* ===== Composite Field ===== */
+.composite-field {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.composite-field > .field {
+  flex: 1;
+}

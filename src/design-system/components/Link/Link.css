@@ -1,0 +1,77 @@
+.link {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  transition: color 0.15s ease;
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--primary-5);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Variants */
+.link--primary {
+  color: var(--primary-6);
+}
+
+.link--primary:hover {
+  color: var(--primary-7);
+}
+
+.link--primary:active {
+  color: var(--primary-8);
+}
+
+.link--secondary {
+  color: var(--neutral-7);
+}
+
+.link--secondary:hover {
+  color: var(--neutral-9);
+}
+
+.link--secondary:active {
+  color: var(--neutral-10);
+}
+
+.link--danger {
+  color: var(--error-6);
+}
+
+.link--danger:hover {
+  color: var(--error-7);
+}
+
+.link--danger:active {
+  color: var(--error-8);
+}
+
+/* Sizes */
+.link--sm {
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.link--md {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.link--lg {
+  font-size: 16px;
+  line-height: 24px;
+}
+
+/* Disabled */
+.link--disabled {
+  color: var(--neutral-4);
+  cursor: not-allowed;
+  pointer-events: none;
+}

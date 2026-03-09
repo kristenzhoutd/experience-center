@@ -1,0 +1,263 @@
+/* ===== Tooltip ===== */
+.tooltip {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  width: 280px;
+  font-family: var(--font-primary, 'Manrope', sans-serif);
+}
+
+/* ===== Tooltip Body ===== */
+.tooltip__body {
+  background-color: var(--neutral-0, #ffffff);
+  border: 1px solid var(--neutral-2, #e6e6e7);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: var(--elevation-tooltip, 0px 4px 8px 0px rgba(135, 143, 158, 0.12),
+    0px 8px 12px 0px rgba(135, 143, 158, 0.08));
+  overflow: clip;
+  position: relative;
+  z-index: 1;
+}
+
+/* ===== Arrow ===== */
+.tooltip__arrow {
+  position: absolute;
+  width: 10px;
+  height: 7px;
+  z-index: 2;
+}
+
+.tooltip__arrow::before {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.tooltip__arrow::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+/* --- Arrow: Top (arrow points up, tooltip below trigger) --- */
+.tooltip--arrow-top {
+  flex-direction: column;
+}
+
+.tooltip--arrow-top .tooltip__arrow {
+  top: 0;
+  margin-bottom: -1px;
+}
+
+.tooltip--arrow-top .tooltip__arrow::before {
+  bottom: 0;
+  left: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 7px solid var(--neutral-2, #e6e6e7);
+}
+
+.tooltip--arrow-top .tooltip__arrow::after {
+  bottom: 0;
+  left: 1px;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 6px solid var(--neutral-0, #ffffff);
+}
+
+/* Arrow horizontal alignment for top variants */
+.tooltip--top .tooltip__arrow {
+  align-self: center;
+}
+
+.tooltip--top-start .tooltip__arrow {
+  align-self: flex-end;
+  margin-right: 24px;
+}
+
+.tooltip--top-end .tooltip__arrow {
+  align-self: flex-start;
+  margin-left: 24px;
+}
+
+/* --- Arrow: Bottom (arrow points down, tooltip above trigger) --- */
+.tooltip--arrow-bottom {
+  flex-direction: column-reverse;
+}
+
+.tooltip--arrow-bottom .tooltip__arrow {
+  bottom: 0;
+  margin-top: -1px;
+}
+
+.tooltip--arrow-bottom .tooltip__arrow::before {
+  top: 0;
+  left: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 7px solid var(--neutral-2, #e6e6e7);
+}
+
+.tooltip--arrow-bottom .tooltip__arrow::after {
+  top: 0;
+  left: 1px;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 6px solid var(--neutral-0, #ffffff);
+}
+
+/* Arrow horizontal alignment for bottom variants */
+.tooltip--bottom .tooltip__arrow {
+  align-self: center;
+}
+
+.tooltip--bottom-start .tooltip__arrow {
+  align-self: flex-end;
+  margin-right: 24px;
+}
+
+.tooltip--bottom-end .tooltip__arrow {
+  align-self: flex-start;
+  margin-left: 24px;
+}
+
+/* --- Arrow: Left (arrow points left, tooltip right of trigger) --- */
+.tooltip--arrow-left {
+  flex-direction: row;
+  align-items: center;
+}
+
+.tooltip--arrow-left .tooltip__arrow {
+  left: 0;
+  width: 7px;
+  height: 10px;
+  margin-right: -1px;
+}
+
+.tooltip--arrow-left .tooltip__arrow::before {
+  right: 0;
+  top: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-right: 7px solid var(--neutral-2, #e6e6e7);
+}
+
+.tooltip--arrow-left .tooltip__arrow::after {
+  right: 0;
+  top: 1px;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-right: 6px solid var(--neutral-0, #ffffff);
+}
+
+/* Arrow vertical alignment for left variants */
+.tooltip--left .tooltip__arrow {
+  align-self: center;
+}
+
+.tooltip--left-start .tooltip__arrow {
+  align-self: flex-end;
+  margin-bottom: 24px;
+}
+
+.tooltip--left-end .tooltip__arrow {
+  align-self: flex-start;
+  margin-top: 24px;
+}
+
+/* --- Arrow: Right (arrow points right, tooltip left of trigger) --- */
+.tooltip--arrow-right {
+  flex-direction: row-reverse;
+  align-items: center;
+}
+
+.tooltip--arrow-right .tooltip__arrow {
+  right: 0;
+  width: 7px;
+  height: 10px;
+  margin-left: -1px;
+}
+
+.tooltip--arrow-right .tooltip__arrow::before {
+  left: 0;
+  top: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 7px solid var(--neutral-2, #e6e6e7);
+}
+
+.tooltip--arrow-right .tooltip__arrow::after {
+  left: 0;
+  top: 1px;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid var(--neutral-0, #ffffff);
+}
+
+/* Arrow vertical alignment for right variants */
+.tooltip--right .tooltip__arrow {
+  align-self: center;
+}
+
+.tooltip--right-start .tooltip__arrow {
+  align-self: flex-end;
+  margin-bottom: 24px;
+}
+
+.tooltip--right-end .tooltip__arrow {
+  align-self: flex-start;
+  margin-top: 24px;
+}
+
+/* ===== Tooltip Content ===== */
+.tooltip-content {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.tooltip-content__text {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.75;
+  color: #272727;
+  margin: 0;
+}
+
+/* Bullet list */
+.tooltip-content__bullets {
+  list-style: disc;
+  padding-left: 21px;
+  margin: 0;
+  width: 100%;
+}
+
+.tooltip-content__bullets li {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.75;
+  color: #272727;
+}
+
+/* Icon list */
+.tooltip-content--icon-list {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+}
+
+.tooltip-content__icon-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 8px;
+  width: 100%;
+}
+
+.tooltip-content__check-icon {
+  flex-shrink: 0;
+}

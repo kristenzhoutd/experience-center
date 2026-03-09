@@ -1,0 +1,136 @@
+/* Base */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  border-radius: 8px;
+  font-family: var(--font-primary);
+  font-weight: 600;
+  font-size: 10px;
+  line-height: 1.75;
+  white-space: nowrap;
+  cursor: default;
+}
+
+/* ========== Sizes ========== */
+
+.tag--default {
+  height: 24px;
+}
+
+.tag--mini {
+  height: 20px;
+}
+
+/* ========== Icon / Close ========== */
+
+.tag__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+}
+
+.tag__icon > svg {
+  width: 8px;
+  height: 8px;
+}
+
+.tag__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+}
+
+.tag__close:hover {
+  opacity: 1;
+}
+
+.tag__close > svg {
+  width: 6px;
+  height: 6px;
+}
+
+/* ========== Variants ========== */
+
+.tag--success {
+  background-color: var(--surface-tag-success);
+  color: var(--text-tag-success);
+}
+
+.tag--success .tag__icon,
+.tag--success .tag__close {
+  color: var(--icon-tag-success);
+}
+
+.tag--warning {
+  background-color: var(--surface-tag-warning);
+  color: var(--text-tag-warning);
+}
+
+.tag--warning .tag__icon,
+.tag--warning .tag__close {
+  color: var(--icon-tag-warning);
+}
+
+.tag--error {
+  background-color: var(--surface-tag-error);
+  color: var(--text-tag-error);
+}
+
+.tag--error .tag__icon,
+.tag--error .tag__close {
+  color: var(--icon-tag-error);
+}
+
+.tag--neutral {
+  background-color: var(--surface-tag-neutral);
+  color: var(--text-tag-text);
+}
+
+.tag--neutral .tag__icon,
+.tag--neutral .tag__close {
+  color: var(--icon-tag);
+}
+
+.tag--primary {
+  background-color: var(--surface-tag-primary);
+  color: var(--text-tag-primary);
+}
+
+.tag--primary .tag__icon,
+.tag--primary .tag__close {
+  color: var(--icon-tag-primary);
+}
+
+.tag--purple {
+  background-color: var(--surface-tag-purple);
+  color: var(--text-tag-purple);
+}
+
+.tag--purple .tag__icon,
+.tag--purple .tag__close {
+  color: var(--icon-tag-purple);
+}
+
+.tag--teal {
+  background-color: var(--surface-tag-teal);
+  color: var(--text-tag-teal);
+}
+
+.tag--teal .tag__icon,
+.tag--teal .tag__close {
+  color: var(--icon-tag-teal);
+}

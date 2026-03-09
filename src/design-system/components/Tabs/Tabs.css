@@ -1,0 +1,92 @@
+/* Base */
+.tabs {
+  display: flex;
+  align-items: flex-start;
+  font-family: var(--font-primary);
+  font-size: 14px;
+}
+
+/* ========== Tab item (shared) ========== */
+
+.tabs__tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  font-size: 14px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.tabs__label {
+  line-height: normal;
+}
+
+/* ========== Icon ========== */
+
+.tabs__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.tabs__icon > svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ========== Primary variant ========== */
+
+.tabs--primary .tabs__tab {
+  height: 32px;
+  padding: 0 16px;
+  border-radius: 4px;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.tabs--primary .tabs__tab:hover {
+  color: var(--text-default);
+}
+
+.tabs--primary .tabs__tab--selected {
+  background-color: var(--surface-tab-selected);
+  font-weight: 600;
+  color: var(--text-default);
+}
+
+/* ========== Secondary variant ========== */
+
+.tabs--secondary .tabs__tab {
+  height: 32px;
+  padding: 8px 24px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  border-bottom: 1px solid #dce1ea;
+}
+
+.tabs--secondary .tabs__tab:hover {
+  font-weight: 600;
+  color: var(--text-default);
+}
+
+.tabs--secondary .tabs__tab--selected {
+  font-weight: 600;
+  color: var(--text-default);
+  border-bottom: 2px solid var(--border-tab-selected);
+}
+
+/* Spacer fills remaining width with the bottom border line */
+.tabs__spacer {
+  flex: 1;
+  height: 32px;
+  border-bottom: 1px solid #dce1ea;
+}

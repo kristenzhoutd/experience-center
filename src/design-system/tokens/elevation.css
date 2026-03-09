@@ -1,0 +1,20 @@
+:root {
+  /* Card Shadows */
+  --elevation-1: 0px 2px 4px 0px rgba(135, 143, 158, 0.25);
+  --elevation-2: 0px 4px 8px 0px rgba(135, 143, 158, 0.25);
+  --elevation-3: 0px 8px 12px 0px rgba(135, 143, 158, 0.25);
+  --elevation-4: 0px 12px 16px 0px rgba(135, 143, 158, 0.25);
+  --elevation-5: 0px 16px 20px 0px rgba(135, 143, 158, 0.25);
+  --elevation-6: 0px 16px 24px 0px rgba(135, 143, 158, 0.25);
+  --elevation-7: 0px 20px 32px 0px rgba(135, 143, 158, 0.25);
+
+  /* Toast Shadow */
+  --elevation-toast: 0px 2px 12px 0px rgba(135, 143, 158, 0.2),
+                     0px 4px 16px 0px rgba(135, 143, 158, 0.12),
+                     0px 8px 24px 0px rgba(135, 143, 158, 0.12),
+                     0px 24px 64px 0px rgba(135, 143, 158, 0.12);
+
+  /* Tooltip Shadow */
+  --elevation-tooltip: 0px 4px 8px 0px rgba(135, 143, 158, 0.12),
+                       0px 8px 12px 0px rgba(135, 143, 158, 0.08);
+}

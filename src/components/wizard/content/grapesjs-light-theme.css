@@ -1,0 +1,233 @@
+/**
+ * GrapesJS Light Theme Override
+ *
+ * Overrides the default dark GrapesJS UI to match the app's light theme.
+ * Targets the component toolbar, RTE toolbar, badges, and field inputs.
+ */
+
+/* ── CSS Custom Property overrides ──────────────────────────────── */
+
+.gjs-canvas-wrapper {
+  --gjs-primary-color: #f9fafb;
+  --gjs-main-color: #f9fafb;
+  --gjs-secondary-color: #e5e7eb;
+  --gjs-tertiary-color: #6366f1;
+  --gjs-quaternary-color: #818cf8;
+  --gjs-font-color: #374151;
+  --gjs-font-color-active: #111827;
+  --gjs-main-dark-color: rgba(0, 0, 0, 0.06);
+  --gjs-secondary-dark-color: rgba(0, 0, 0, 0.04);
+  --gjs-main-light-color: rgba(0, 0, 0, 0.04);
+  --gjs-secondary-light-color: #6b7280;
+  --gjs-soft-light-color: rgba(0, 0, 0, 0.02);
+  --gjs-color-blue: #6366f1;
+  --gjs-light-border: rgba(0, 0, 0, 0.08);
+  --gjs-arrow-color: #9ca3af;
+  --gjs-dark-text-shadow: none;
+  --gjs-canvas-top: 0px;
+}
+
+/* ── Component Toolbar (move/duplicate/delete icons above selection) ── */
+
+.gjs-canvas-wrapper .gjs-toolbar {
+  background-color: #ffffff;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  padding: 2px;
+}
+
+.gjs-canvas-wrapper .gjs-toolbar-item {
+  color: #6b7280;
+  border-radius: 4px;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.gjs-canvas-wrapper .gjs-toolbar-item:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+.gjs-canvas-wrapper .gjs-toolbar-item svg {
+  fill: currentColor;
+}
+
+/* ── RTE Toolbar (bold/italic/etc. bar when editing text) ── */
+
+.gjs-canvas-wrapper .gjs-rte-toolbar {
+  background-color: transparent;
+}
+
+.gjs-canvas-wrapper .gjs-rte-toolbar-ui {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.gjs-canvas-wrapper .gjs-rte-action {
+  color: #6b7280;
+  border-right-color: #e5e7eb;
+  transition: background-color 0.15s, color 0.15s;
+  position: relative;
+}
+
+.gjs-canvas-wrapper .gjs-rte-action:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+.gjs-canvas-wrapper .gjs-rte-active {
+  background-color: #eef2ff;
+  color: #4f46e5;
+}
+
+/* Allow dropdown menus and color pickers to overflow the RTE toolbar */
+.gjs-canvas-wrapper .gjs-rte-toolbar-ui {
+  overflow: visible;
+}
+
+.gjs-canvas-wrapper .gjs-rte-actionbar {
+  overflow: visible;
+}
+
+.gjs-canvas-wrapper .gjs-rte-action:has(> span[style*="position:relative"]) {
+  overflow: visible;
+  width: auto;
+  padding: 5px 6px;
+}
+
+.gjs-canvas-wrapper .gjs-rte-disabled {
+  color: #d1d5db;
+}
+
+/* ── Component Badge (label showing component type) ── */
+
+.gjs-canvas-wrapper .gjs-badge,
+.gjs-canvas-wrapper .gjs-com-badge {
+  background-color: #6366f1;
+  color: #ffffff;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: Inter, system-ui, sans-serif;
+  padding: 2px 6px;
+}
+
+/* ── Selection Highlight ── */
+
+.gjs-canvas-wrapper .gjs-cv-canvas .gjs-highlighter-sel {
+  outline-color: #6366f1;
+}
+
+.gjs-canvas-wrapper .gjs-cv-canvas .gjs-highlighter {
+  outline-color: #818cf8;
+}
+
+/* ── Resize Handles ── */
+
+.gjs-canvas-wrapper .gjs-resizer-h {
+  border-color: #6366f1;
+  background-color: #ffffff;
+  border-radius: 2px;
+}
+
+/* ── Fields & Inputs (trait editors, style panels) ── */
+
+.gjs-canvas-wrapper .gjs-field {
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  color: #374151;
+}
+
+.gjs-canvas-wrapper .gjs-field input,
+.gjs-canvas-wrapper .gjs-field select,
+.gjs-canvas-wrapper .gjs-field textarea {
+  color: #374151;
+}
+
+.gjs-canvas-wrapper .gjs-select option,
+.gjs-canvas-wrapper .gjs-field-select option,
+.gjs-canvas-wrapper .gjs-sm-select option,
+.gjs-canvas-wrapper .gjs-fields option,
+.gjs-canvas-wrapper .gjs-sm-unit option {
+  background-color: #ffffff;
+  color: #374151;
+}
+
+/* ── Panel backgrounds ── */
+
+.gjs-canvas-wrapper .gjs-pn-panel {
+  background-color: #ffffff;
+  color: #374151;
+}
+
+.gjs-canvas-wrapper .gjs-bg-main {
+  background-color: #f9fafb;
+}
+
+.gjs-canvas-wrapper .gjs-color-main {
+  color: #374151;
+  fill: #374151;
+}
+
+/* ── Sector/Category titles ── */
+
+.gjs-canvas-wrapper .gjs-category-title,
+.gjs-canvas-wrapper .gjs-sm-sector-title,
+.gjs-canvas-wrapper .gjs-layer-title,
+.gjs-canvas-wrapper .gjs-block-category .gjs-title,
+.gjs-canvas-wrapper .gjs-trait-category .gjs-title {
+  background-color: #f3f4f6;
+  color: #374151;
+  border-bottom-color: #e5e7eb;
+}
+
+/* ── Buttons ── */
+
+.gjs-canvas-wrapper .gjs-pn-btn {
+  color: #6b7280;
+}
+
+.gjs-canvas-wrapper .gjs-pn-btn:hover {
+  color: #111827;
+}
+
+.gjs-canvas-wrapper .gjs-pn-btn.gjs-pn-active {
+  background-color: #eef2ff;
+  color: #4f46e5;
+  box-shadow: none;
+}
+
+/* ── Traits panel ── */
+
+.gjs-canvas-wrapper .gjs-trt-trait {
+  color: #374151;
+}
+
+.gjs-canvas-wrapper .gjs-trt-header {
+  color: #374151;
+}
+
+.gjs-canvas-wrapper .gjs-traits-label {
+  color: #6b7280;
+  border-bottom-color: #e5e7eb;
+}
+
+/* ── Arrow indicators ── */
+
+.gjs-canvas-wrapper .gjs-d-s-arrow {
+  border-top-color: #9ca3af;
+}
+
+/* ── Modal (if GrapesJS built-in modal ever shows) ── */
+
+.gjs-canvas-wrapper .gjs-mdl-dialog {
+  background-color: #ffffff;
+  color: #374151;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}

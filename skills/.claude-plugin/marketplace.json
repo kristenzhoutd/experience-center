@@ -1,0 +1,26 @@
+{
+  "name": "personalization-skills",
+  "owner": {
+    "name": "Personalization Studio",
+    "email": "personalization-studio@treasure-data.com"
+  },
+  "metadata": {
+    "version": "1.0.0",
+    "description": "AI skills for Personalization Studio — campaign brief generation and web personalization workflows."
+  },
+  "plugins": [
+    {
+      "name": "personalization-skills",
+      "description": "Campaign brief generation for web personalization",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./personalization-skills/campaign-brief",
+        "./personalization-skills/campaign-setup",
+        "./personalization-skills/audience-selection",
+        "./personalization-skills/content-creation",
+        "./personalization-skills/campaign-review"
+      ]
+    }
+  ]
+}
