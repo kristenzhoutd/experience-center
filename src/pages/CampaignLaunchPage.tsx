@@ -8,6 +8,7 @@
  * Google, TikTok, Snapchat, and Pinterest tabs show "Coming Soon" placeholders.
  */
 
+import { Undo2, Redo2 } from 'lucide-react';
 import { useCampaignLaunchPageState } from '../hooks/useCampaignLaunchPageState';
 import PaidMediaStepper from '../components/campaign/PaidMediaStepper';
 import SplitPaneLayout from '../components/campaign/SplitPaneLayout';
@@ -15,7 +16,6 @@ import LaunchChatPanel from '../components/campaign/launch/LaunchChatPanel';
 import LaunchToolbar from '../components/campaign/launch/LaunchToolbar';
 import LaunchFormContent from '../components/campaign/launch/LaunchFormContent';
 import LaunchModals from '../components/campaign/launch/LaunchModals';
-import VariationSwitcher from '../components/campaign/launch/VariationSwitcher';
 import { LAUNCH_SKELETON_SECTIONS } from './campaignLaunch/constants';
 
 // ── Skeleton Loading Component ──────────────────────────────────────────
@@ -53,11 +53,14 @@ export default function CampaignLaunchPage() {
     showSkeleton,
     isInitialized,
     isEditMode,
+    isApproved,
     config,
     isChatCollapsed,
     setIsChatCollapsed,
     activeTab,
     handleBack,
+    handleApprove,
+    handleLaunch,
   } = state;
 
   return (
@@ -67,15 +70,38 @@ export default function CampaignLaunchPage() {
 
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-3 border-b border-[#E8ECF3] flex-shrink-0 bg-white">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 m-0">
-            {showSkeleton ? 'Generating Campaign Configuration...' : isEditMode ? 'Edit Campaign' : 'Review Campaign'}
-          </h1>
-          <p className="text-sm text-[#464B55] m-0 mt-0.5">
-            {showSkeleton ? 'AI is building your Meta ad hierarchy' : config.campaign.name}
-          </p>
+        {/* Left - Program Name */}
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-sm text-[#636A77] flex-shrink-0">Program:</span>
+          <span className="text-sm font-semibold text-[#212327] truncate">
+            {showSkeleton ? 'Generating...' : config.campaign.name || 'Untitled Campaign'}
+          </span>
         </div>
-        <VariationSwitcher />
+
+        {/* Right - Undo/Redo + Primary Action */}
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <button
+            disabled
+            title="Undo"
+            className="flex items-center justify-center w-7 h-7 bg-transparent border-none rounded transition-all duration-200 cursor-default text-[#C5CAD3]"
+          >
+            <Undo2 className="w-3.5 h-3.5" />
+          </button>
+          <button
+            disabled
+            title="Redo"
+            className="flex items-center justify-center w-7 h-7 bg-transparent border-none rounded transition-all duration-200 cursor-default text-[#C5CAD3]"
+          >
+            <Redo2 className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={isApproved ? handleLaunch : handleApprove}
+            disabled={showSkeleton || !isInitialized}
+            className="flex items-center gap-1.5 h-8 px-5 py-2 rounded-lg border-none bg-[#212327] text-sm font-medium text-white cursor-pointer transition-all duration-200 hover:bg-[#3a3d42] disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {isApproved ? 'Launch Campaign' : 'Approve & Launch'}
+          </button>
+        </div>
       </div>
 
       {/* Main content area with chat split pane */}

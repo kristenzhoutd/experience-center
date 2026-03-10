@@ -15,7 +15,6 @@ import SplitPaneLayout from '../../components/campaign/SplitPaneLayout';
 import LaunchChatPanel from '../../components/campaign/launch/LaunchChatPanel';
 import LaunchToolbar from '../../components/campaign/launch/LaunchToolbar';
 import LaunchModals from '../../components/campaign/launch/LaunchModals';
-import VariationSwitcher from '../../components/campaign/launch/VariationSwitcher';
 import CampaignSettingsSection from '../../components/campaign/launch/sections/CampaignSettingsSection';
 import AdSetsSection from '../../components/campaign/launch/sections/AdSetsSection';
 import CreativesSection from '../../components/campaign/launch/sections/CreativesSection';
@@ -194,7 +193,6 @@ export default function CampaignLaunchSidebarAccordionPage() {
             {showSkeleton ? 'AI is building your Meta ad hierarchy' : config.campaign.name}
           </p>
         </div>
-        <VariationSwitcher />
       </div>
 
       <SplitPaneLayout

@@ -329,10 +329,20 @@ export default function SettingsPage() {
               </div>
               <TextField
                 helpText="API key for authenticating with the LLM proxy. May differ from the TDX API key."
-                type="password"
-                value={apiKey}
-                onChange={(e) => { setApiKey(e.target.value); setAiKeyStatus('idle'); }}
-                placeholder={hasStoredApiKey ? '••••/••••••••••••••••••••••••••••••••••••••••' : '1/xxxxxxxxxxxxxxxx'}
+                type={apiKey ? 'password' : 'text'}
+                value={apiKey || (hasStoredApiKey ? '****************************************' : '')}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  // If user starts typing over the mask, clear it first
+                  if (!apiKey && hasStoredApiKey) {
+                    setApiKey(val.replace(/\*/g, ''));
+                  } else {
+                    setApiKey(val);
+                  }
+                  setAiKeyStatus('idle');
+                }}
+                onFocus={() => { if (!apiKey && hasStoredApiKey) setApiKey(''); }}
+                placeholder="1/xxxxxxxxxxxxxxxx"
               />
               <ConnectionStatus status={aiKeyStatus} error={aiKeyError} />
             </div>
@@ -500,10 +510,18 @@ export default function SettingsPage() {
               </div>
               <TextField
                 helpText="Your Treasure Data API master key from TD Console. Used for TDX CLI, segments, and data queries."
-                type="password"
-                value={tdxApiKey}
-                onChange={handleTdxApiKeyChange}
-                placeholder={hasStoredTdxApiKey ? '••••/••••••••••••••••••••••••••••••••••••••••' : '1/xxxxxxxxxxxxxxxx'}
+                type={tdxApiKey ? 'password' : 'text'}
+                value={tdxApiKey || (hasStoredTdxApiKey ? '****************************************' : '')}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (!tdxApiKey && hasStoredTdxApiKey) {
+                    handleTdxApiKeyChange({ target: { value: val.replace(/\*/g, '') } } as React.ChangeEvent<HTMLInputElement>);
+                  } else {
+                    handleTdxApiKeyChange(e);
+                  }
+                }}
+                onFocus={() => { if (!tdxApiKey && hasStoredTdxApiKey) { handleTdxApiKeyChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>); } }}
+                placeholder="1/xxxxxxxxxxxxxxxx"
               />
               <ConnectionStatus status={tdxKeyStatus} error={tdxKeyError} />
             </div>

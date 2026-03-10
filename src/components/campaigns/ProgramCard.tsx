@@ -1,4 +1,4 @@
-import { Settings, FolderKanban, Trash2 } from 'lucide-react';
+import { FolderKanban, Trash2 } from 'lucide-react';
 
 interface Program {
   id: string;
@@ -51,15 +51,6 @@ const ProgramCard: React.FC<ProgramCardProps> = ({ program, onClick, onEdit, onD
     >
       {/* Action buttons */}
       <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-        {onEdit && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onEdit(); }}
-            className="w-7 h-7 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center hover:bg-blue-50 hover:text-blue-600 border-none cursor-pointer"
-            title="Edit program"
-          >
-            <Settings className="w-3.5 h-3.5" />
-          </button>
-        )}
         {onDelete && (
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(); }}

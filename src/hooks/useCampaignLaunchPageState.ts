@@ -84,8 +84,18 @@ export function useCampaignLaunchPageState() {
   const [showSaveToast, setShowSaveToast] = useState(false);
   const saveToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Chat state
-  const [isChatCollapsed, setIsChatCollapsed] = useState(!blueprintId);
+  // Chat state — persist collapsed state across stepper navigation
+  const [isChatCollapsed, _setIsChatCollapsed] = useState(() => {
+    const saved = sessionStorage.getItem('pm-chat-collapsed');
+    return saved !== null ? saved === 'true' : !blueprintId;
+  });
+  const setIsChatCollapsed = (v: boolean | ((prev: boolean) => boolean)) => {
+    _setIsChatCollapsed((prev) => {
+      const next = typeof v === 'function' ? v(prev) : v;
+      sessionStorage.setItem('pm-chat-collapsed', String(next));
+      return next;
+    });
+  };
   const [chatSessionReady, setChatSessionReady] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -100,67 +110,45 @@ export function useCampaignLaunchPageState() {
     }
   }, [savedConfigIdFromNav, initFromSavedConfig]);
 
-  // Init from program when navigating with programId
+  // Init from program when navigating with programId.
+  // Always call openProgram to ensure launch config is hydrated — navigating
+  // away (e.g. to Ideate) resets the launch store via resetProgramStores().
   const programInitRef = useRef<string | null>(null);
   useEffect(() => {
     if (!programIdFromNav) return;
-    // Skip if already initialized for this exact program
     if (programInitRef.current === programIdFromNav) return;
     programInitRef.current = programIdFromNav;
 
-    // Reset stale state from any previous program
-    reset();
-
-    useProgramStore.getState().setActiveProgram(programIdFromNav);
-    const program = useProgramStore.getState().activeProgram;
-    if (!program) return;
-
-    // Restore brief data from program snapshot so stepper/header shows correct campaign
-    if (program.briefSnapshot) {
-      try {
-        const briefData = JSON.parse(program.briefSnapshot);
-        useBriefEditorStore.getState().setBriefData(briefData);
-      } catch {
-        // Corrupt snapshot — ignore
+    useProgramStore.getState().openProgram(programIdFromNav, { targetStep: 3 }).then((result) => {
+      if (!result) return;
+      const program = result.program;
+      const enabledWithConfigs = program.channels.find((ch) => ch.enabled && ch.launchConfigIds.length > 0);
+      if (enabledWithConfigs) {
+        setActiveChannel(enabledWithConfigs.platform);
+        setActiveCampaignConfigId(enabledWithConfigs.launchConfigIds[0]);
+      } else {
+        setActiveChannel('meta');
       }
-    }
-
-    // Restore blueprint state from program
-    if (program.blueprintIds.length > 0) {
-      useBlueprintStore.getState().loadBlueprints().then(() => {
-        useBlueprintStore.getState().setHasGeneratedPlan(true);
-        if (program.approvedBlueprintId) {
-          useBlueprintStore.getState().setApprovedBlueprintId(program.approvedBlueprintId);
-          useBlueprintStore.getState().selectBlueprint(program.approvedBlueprintId);
-        }
-      });
-    } else {
-      useBlueprintStore.getState().setHasGeneratedPlan(false);
-      useBlueprintStore.getState().setApprovedBlueprintId(null);
-      useBlueprintStore.getState().selectBlueprint(null);
-    }
-
-    const enabledWithConfigs = program.channels.find((ch) => ch.enabled && ch.launchConfigIds.length > 0);
-    if (enabledWithConfigs) {
-      setActiveChannel(enabledWithConfigs.platform);
-      const firstConfigId = enabledWithConfigs.launchConfigIds[0];
-      setActiveCampaignConfigId(firstConfigId);
-      initFromSavedConfig(firstConfigId);
-    } else {
-      setActiveChannel('meta');
-    }
-  }, [programIdFromNav, initFromSavedConfig, reset]);
+    });
+  }, [programIdFromNav]);
 
   // ---- Initialize chat session ----
   useEffect(() => {
     if (chatSessionReady) return;
 
-    const program = useProgramStore.getState().activeProgram;
-    const historyKey = program?.chatHistoryKey || (program ? `program-launch:${program.id}` : null);
-    const savedMessages = historyKey ? chatHistoryStorage.getMessages(historyKey) : [];
+    // Preserve messages already loaded by openProgram; only load from
+    // storage if the store is empty (e.g. direct navigation without program).
+    const currentMessages = useChatStore.getState().messages;
+    if (currentMessages.length === 0) {
+      const program = useProgramStore.getState().activeProgram;
+      const historyKey = program?.chatHistoryKey || (program ? `program-launch:${program.id}` : null);
+      const savedMessages = historyKey ? chatHistoryStorage.getMessages(historyKey) : [];
+      if (savedMessages.length > 0) {
+        useChatStore.getState().loadMessages(savedMessages);
+      }
+    }
 
     useChatStore.setState({
-      messages: savedMessages,
       streamingSegments: [],
       isStreaming: false,
       isWaitingForResponse: false,
@@ -246,7 +234,10 @@ export function useCampaignLaunchPageState() {
   const prevInit = useRef(isInitialized);
   useEffect(() => {
     if (isInitialized && !prevInit.current) {
-      setIsChatCollapsed(true);
+      // Only auto-collapse if user hasn't explicitly set a preference
+      if (sessionStorage.getItem('pm-chat-collapsed') === null) {
+        setIsChatCollapsed(true);
+      }
     }
     prevInit.current = isInitialized;
   }, [isInitialized]);

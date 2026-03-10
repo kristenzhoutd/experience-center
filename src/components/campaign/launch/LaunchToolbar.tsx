@@ -80,13 +80,6 @@ export default function LaunchToolbar({ state, extraActions }: Props) {
         {!isApproved ? (
           <>
             <button
-              onClick={handleBack}
-              className="px-4 py-2 bg-white border border-[#E8ECF3] rounded-lg text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors flex items-center gap-1.5"
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M8.5 2.5L4 7l4.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              Back
-            </button>
-            <button
               onClick={handleSave}
               disabled={!isInitialized}
               className="px-4 py-2 bg-white border border-[#E8ECF3] rounded-lg text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -110,13 +103,6 @@ export default function LaunchToolbar({ state, extraActions }: Props) {
               </svg>
               Approved
             </span>
-            <button
-              onClick={handleBack}
-              className="px-4 py-2 bg-white border border-[#E8ECF3] rounded-lg text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors flex items-center gap-1.5"
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M8.5 2.5L4 7l4.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              Back
-            </button>
             <button
               onClick={handleSave}
               className="px-4 py-2 bg-white border border-[#E8ECF3] rounded-lg text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors flex items-center gap-1.5"
