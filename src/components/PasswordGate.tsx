@@ -14,7 +14,7 @@ export default function PasswordGate({ children }: PasswordGateProps) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const storedAuth = sessionStorage.getItem(SESSION_KEY)
+    const storedAuth = localStorage.getItem(SESSION_KEY)
     if (storedAuth === 'true') {
       setIsAuthenticated(true)
     }
@@ -24,7 +24,7 @@ export default function PasswordGate({ children }: PasswordGateProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (password === APP_PASSWORD) {
-      sessionStorage.setItem(SESSION_KEY, 'true')
+      localStorage.setItem(SESSION_KEY, 'true')
       setIsAuthenticated(true)
       setError('')
     } else {

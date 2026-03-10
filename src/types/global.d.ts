@@ -1,7 +1,8 @@
-import type { AISuitesAPI } from '../../electron/preload';
-
 declare global {
   interface Window {
-    aiSuites: AISuitesAPI;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    aiSuites: any;
   }
 }
+
+export {};

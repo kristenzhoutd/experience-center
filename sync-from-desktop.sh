@@ -44,7 +44,9 @@ fi
 echo "Syncing from $SOURCE_DIR → $SCRIPT_DIR"
 echo ""
 
-# Files/dirs that are WEB-ONLY and should NEVER be overwritten
+# Files that are WEB-ONLY and should NEVER be overwritten.
+# Paths are relative to the project root. The script extracts the filename
+# and uses rsync --filter to both exclude from copy and protect from deletion.
 EXCLUDE_LIST=(
   "src/main.tsx"
   "src/services/backend.ts"
@@ -53,18 +55,21 @@ EXCLUDE_LIST=(
   "src/components/PasswordGate.tsx"
 )
 
-# Build rsync exclude and protect args
-# --exclude prevents copying FROM source, --filter='P ...' prevents deleting FROM destination
-EXCLUDES=""
-for item in "${EXCLUDE_LIST[@]}"; do
-  EXCLUDES="$EXCLUDES --exclude=$item"
-done
-PROTECTS=""
-for item in "${EXCLUDE_LIST[@]}"; do
-  # Extract just the filename for protection (rsync filters match relative paths)
-  basename=$(basename "$item")
-  PROTECTS="$PROTECTS --filter=P_${basename}"
-done
+# Build rsync filter args — protect files by basename within each synced directory
+# We use --filter='P filename' (protect from delete) and --exclude='filename' (skip from source)
+build_filters_for_dir() {
+  local dir="$1"
+  local filters=""
+  for item in "${EXCLUDE_LIST[@]}"; do
+    # Check if this exclude belongs to the directory being synced
+    local item_dir=$(dirname "$item")
+    if [ "$item_dir" = "$dir" ]; then
+      local basename=$(basename "$item")
+      filters="$filters --filter=P_${basename} --exclude=${basename}"
+    fi
+  done
+  echo "$filters"
+}
 
 # Sync shared directories
 SHARED_DIRS=(
@@ -87,7 +92,8 @@ SHARED_DIRS=(
 for dir in "${SHARED_DIRS[@]}"; do
   if [ -d "$SOURCE_DIR/$dir" ]; then
     echo "  Syncing $dir/"
-    rsync -av --delete $DRY_RUN $EXCLUDES $PROTECTS "$SOURCE_DIR/$dir/" "$SCRIPT_DIR/$dir/"
+    DIR_FILTERS=$(build_filters_for_dir "$dir")
+    rsync -av --delete $DRY_RUN $DIR_FILTERS "$SOURCE_DIR/$dir/" "$SCRIPT_DIR/$dir/"
   fi
 done
 
