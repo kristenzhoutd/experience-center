@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { CheckCircle2, XCircle, X, Pencil, Loader2, Sparkles } from 'lucide-react';
+import { CheckCircle2, XCircle, X, Loader2, Sparkles } from 'lucide-react';
 import { useBriefEditorStore } from '../../../stores/briefEditorStore';
 import { useChatStore } from '../../../stores/chatStore';
 import { useTraceStore } from '../../../stores/traceStore';
@@ -83,6 +83,11 @@ const AD_PLATFORMS = [
 // Input class shared by all editable fields
 const inputClassName =
   'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-[#212327] outline-none focus:border-[#6F2EFF] placeholder:text-[#9BA2AF]';
+// Inline input: borderless until hover/focus (looks like static text by default)
+const inlineInputClassName =
+  'w-full px-3 py-2 border border-transparent bg-transparent rounded-lg text-sm text-[#212327] outline-none hover:border-gray-200 hover:bg-white focus:border-[#6F2EFF] focus:bg-white focus:shadow-sm placeholder:text-[#9BA2AF] transition-colors duration-150';
+const inlineTextareaClassName =
+  'w-full px-3 py-2 border border-transparent bg-transparent rounded-lg text-sm text-[#212327] outline-none resize-none hover:border-gray-200 hover:bg-white focus:border-[#6F2EFF] focus:bg-white focus:shadow-sm placeholder:text-[#9BA2AF] transition-colors duration-150 min-h-[60px]';
 const labelClassName =
   'text-xs font-medium text-[#636A77] uppercase tracking-wide';
 
@@ -95,9 +100,6 @@ export default function BriefSection({ config }: BriefSectionProps) {
     state,
     openAIEditPopover,
     closeAIEditPopover,
-    startEditing,
-    cancelEditing,
-    saveEditing,
     updateBriefData,
     acceptAISuggestion,
     dismissAISuggestion,
@@ -121,12 +123,7 @@ export default function BriefSection({ config }: BriefSectionProps) {
           title={config.title}
           subtitle={config.subtitle}
           sectionState={sectionState}
-          sectionKey={config.key}
-          isEditing={sectionState === 'editing'}
           onAIEdit={() => openAIEditPopover(config.key)}
-          onManualEdit={() => startEditing(config.key)}
-          onCancelEdit={() => cancelEditing(config.key)}
-          onSaveEdit={() => saveEditing(config.key)}
         />
 
         {/* AI Suggestion Card */}
@@ -164,7 +161,6 @@ export default function BriefSection({ config }: BriefSectionProps) {
         {/* Section Content */}
         <SectionContent
           config={config}
-          sectionState={sectionState}
           briefData={state.briefData as unknown as Record<string, unknown>}
           onUpdateData={updateBriefData}
         />
@@ -418,22 +414,12 @@ function SectionHeader({
   title,
   subtitle,
   sectionState,
-  sectionKey: _sectionKey,
-  isEditing,
   onAIEdit,
-  onManualEdit,
-  onCancelEdit,
-  onSaveEdit,
 }: {
   title: string;
   subtitle: string;
   sectionState: string;
-  sectionKey: SectionKey;
-  isEditing: boolean;
   onAIEdit: () => void;
-  onManualEdit: () => void;
-  onCancelEdit: () => void;
-  onSaveEdit: () => void;
 }) {
   return (
     <div className="flex justify-between items-center w-full">
@@ -450,50 +436,16 @@ function SectionHeader({
         <span className="text-sm text-[#636A77]">{subtitle}</span>
       </div>
 
-      {/* Action Buttons */}
-      {isEditing ? (
-        <div className="flex gap-2">
-          <button
-            onClick={onCancelEdit}
-            className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-700 cursor-pointer transition-colors duration-200 hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onSaveEdit}
-            className="px-3 py-1.5 bg-[#212327] border-none rounded-lg text-xs font-medium text-white cursor-pointer transition-colors duration-200 hover:bg-gray-700"
-          >
-            Save Changes
-          </button>
-        </div>
-      ) : (sectionState === 'default' || sectionState === 'completed' || sectionState === 'empty') ? (
-        <div className="flex gap-1">
-          <button
-            onClick={onAIEdit}
-            className="flex items-center justify-center w-7 h-7 bg-white border-none rounded-lg cursor-pointer transition-colors duration-200 hover:bg-gray-100"
-            title="AI Edit"
-          >
-            <AIEditIcon size={16} color="#6B7280" />
-          </button>
-          <button
-            onClick={onManualEdit}
-            className="flex items-center justify-center w-7 h-7 bg-white border-none rounded-lg cursor-pointer transition-colors duration-200 hover:bg-gray-100"
-            title="Edit"
-          >
-            <Pencil className="w-4 h-4" color="#6B7280" />
-          </button>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-// --- Tag Component ---
-
-function Tag({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-center p-2 bg-[#EFF2F8] rounded">
-      <span className="text-sm text-[#636A77]">{children}</span>
+      {/* AI Edit Button */}
+      {(sectionState === 'default' || sectionState === 'completed' || sectionState === 'empty') && (
+        <button
+          onClick={onAIEdit}
+          className="flex items-center justify-center w-7 h-7 bg-white border-none rounded-lg cursor-pointer transition-colors duration-200 hover:bg-gray-100"
+          title="AI Edit"
+        >
+          <AIEditIcon size={16} color="#6B7280" />
+        </button>
+      )}
     </div>
   );
 }
@@ -545,68 +497,32 @@ function ChannelTag({ name, onRemove }: { name: string; onRemove?: () => void })
 
 function SectionContent({
   config,
-  sectionState,
   briefData,
   onUpdateData,
 }: {
   config: SectionConfig;
-  sectionState: string;
   briefData: Record<string, unknown>;
   onUpdateData: (data: Record<string, unknown>) => void;
 }) {
-  const [editValue, setEditValue] = useState('');
-
-  // Text sections
+  // Text sections — always editable inline
   if (config.type === 'text') {
     const dataKey = config.key === 'campaignDetails' ? 'campaignDetails' : 'brandProduct';
     const value = (briefData[dataKey] as string) || '';
 
-    if (sectionState === 'editing') {
-      return (
-        <textarea
-          value={editValue !== '' ? editValue : value}
-          onChange={(e) => {
-            setEditValue(e.target.value);
-            onUpdateData({ [dataKey]: e.target.value });
-          }}
-          onFocus={() => { if (editValue === '') setEditValue(value); }}
-          rows={3}
-          placeholder={`Add ${config.title.toLowerCase()}...`}
-          className="w-full p-3 border border-gray-200 rounded-lg text-sm text-[#212327] resize-y outline-none focus:border-[#6F2EFF] placeholder:text-[#9BA2AF]"
-        />
-      );
-    }
-
     return (
-      <p
-        className={`text-sm m-0 whitespace-pre-wrap leading-relaxed ${
-          value ? 'text-[#212327]' : 'text-[#9BA2AF] italic'
-        }`}
-      >
-        {value || `Add ${config.title.toLowerCase()}...`}
-      </p>
+      <textarea
+        value={value}
+        onChange={(e) => onUpdateData({ [dataKey]: e.target.value })}
+        placeholder={`Add ${config.title.toLowerCase()}...`}
+        className={inlineTextareaClassName}
+      />
     );
   }
 
-  // Tags sections (Business Objective)
+  // Tags sections (Business Objective) — always editable
   if (config.type === 'tags') {
     const tags = (briefData.businessObjectiveTags as string[]) || [];
-
-    if (sectionState === 'editing') {
-      return <TagEditList tags={tags} onUpdateData={onUpdateData} />;
-    }
-
-    if (tags.length === 0) {
-      return <p className="text-sm text-[#9BA2AF] italic m-0">Add a business objective...</p>;
-    }
-
-    return (
-      <div className="flex flex-wrap gap-2">
-        {tags.map((tag: string, idx: number) => (
-          <Tag key={idx}>{tag}</Tag>
-        ))}
-      </div>
-    );
+    return <TagEditList tags={tags} onUpdateData={onUpdateData} />;
   }
 
   // --- Editable tag list helper ---
@@ -626,24 +542,19 @@ function SectionContent({
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap gap-2">
           {items.map((item: string, idx: number) => (
-            <EditableTag key={idx} onRemove={sectionState === 'editing' ? () => handleRemove(idx) : undefined}>
+            <EditableTag key={idx} onRemove={() => handleRemove(idx)}>
               {item}
             </EditableTag>
           ))}
         </div>
-        {sectionState === 'editing' && (
-          <input
-            type="text"
-            value={newItem}
-            onChange={(e) => setNewItem(e.target.value)}
-            onKeyDown={handleAdd}
-            placeholder={placeholder}
-            className={inputClassName}
-          />
-        )}
-        {sectionState !== 'editing' && items.length === 0 && (
-          <span className="text-sm text-[#9BA2AF] italic">{placeholder}</span>
-        )}
+        <input
+          type="text"
+          value={newItem}
+          onChange={(e) => setNewItem(e.target.value)}
+          onKeyDown={handleAdd}
+          placeholder={placeholder}
+          className={inputClassName}
+        />
       </div>
     );
   };
@@ -696,56 +607,31 @@ function SectionContent({
     );
   }
 
-  // Audience section — text descriptions (not tag chips)
+  // Audience section — always editable inline
   if (config.type === 'audience') {
     const primary = (briefData.primaryAudience as string[]) || [];
     const secondary = (briefData.secondaryAudience as string[]) || [];
 
-    if (sectionState === 'editing') {
-      return (
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <p className="text-sm font-medium text-[#212327] m-0">Primary Persona</p>
-            <textarea
-              value={primary.join('\n')}
-              onChange={(e) => onUpdateData({ primaryAudience: e.target.value.split('\n').filter(Boolean) })}
-              rows={3}
-              placeholder="Describe primary target audience..."
-              className="w-full p-3 border border-gray-200 rounded-lg text-sm text-[#212327] resize-y outline-none focus:border-[#6F2EFF] placeholder:text-[#9BA2AF]"
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <p className="text-sm font-medium text-[#212327] m-0">Secondary</p>
-            <textarea
-              value={secondary.join('\n')}
-              onChange={(e) => onUpdateData({ secondaryAudience: e.target.value.split('\n').filter(Boolean) })}
-              rows={3}
-              placeholder="Describe secondary target audience..."
-              className="w-full p-3 border border-gray-200 rounded-lg text-sm text-[#212327] resize-y outline-none focus:border-[#6F2EFF] placeholder:text-[#9BA2AF]"
-            />
-          </div>
-        </div>
-      );
-    }
-
-    if (primary.length === 0 && secondary.length === 0) {
-      return <p className="text-sm text-[#9BA2AF] italic m-0">Add target audience...</p>;
-    }
-
     return (
       <div className="flex flex-col gap-4">
-        {primary.length > 0 && (
-          <div className="flex flex-col gap-1">
-            <p className="text-sm font-semibold text-[#212327] m-0">Primary Persona</p>
-            <p className="text-sm text-[#464B55] m-0 leading-relaxed whitespace-pre-wrap">{primary.join('\n')}</p>
-          </div>
-        )}
-        {secondary.length > 0 && (
-          <div className="flex flex-col gap-1">
-            <p className="text-sm font-semibold text-[#212327] m-0">Secondary</p>
-            <p className="text-sm text-[#464B55] m-0 leading-relaxed whitespace-pre-wrap">{secondary.join('\n')}</p>
-          </div>
-        )}
+        <div className="flex flex-col gap-1.5">
+          <p className="text-sm font-medium text-[#212327] m-0">Primary Persona</p>
+          <textarea
+            value={primary.join('\n')}
+            onChange={(e) => onUpdateData({ primaryAudience: e.target.value.split('\n').filter(Boolean) })}
+            placeholder="Describe primary target audience..."
+            className={inlineTextareaClassName}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <p className="text-sm font-medium text-[#212327] m-0">Secondary</p>
+          <textarea
+            value={secondary.join('\n')}
+            onChange={(e) => onUpdateData({ secondaryAudience: e.target.value.split('\n').filter(Boolean) })}
+            placeholder="Describe secondary target audience..."
+            className={inlineTextareaClassName}
+          />
+        </div>
       </div>
     );
   }
@@ -755,7 +641,6 @@ function SectionContent({
     return (
       <AudienceSegmentsContent
         briefData={briefData}
-        sectionState={sectionState}
         onUpdateData={onUpdateData}
       />
     );
@@ -771,7 +656,6 @@ function SectionContent({
             items={(briefData.mandatoryChannels as string[]) || []}
             dataKey="mandatoryChannels"
             placeholder="Select channels..."
-            sectionState={sectionState}
             onUpdateData={onUpdateData}
           />
         </div>
@@ -781,7 +665,6 @@ function SectionContent({
             items={(briefData.optionalChannels as string[]) || []}
             dataKey="optionalChannels"
             placeholder="Select optional channels..."
-            sectionState={sectionState}
             onUpdateData={onUpdateData}
           />
         </div>
@@ -789,100 +672,76 @@ function SectionContent({
     );
   }
 
-  // Budget section
+  // Budget section — always editable inline
   if (config.type === 'budget') {
-    if (sectionState === 'editing') {
-      return (
-        <div className="flex flex-col gap-3">
-          <div className="flex gap-3">
-            <div className="flex-1 flex flex-col gap-1">
-              <label className={labelClassName}>Budget Amount</label>
-              <input
-                type="text"
-                value={(briefData.budgetAmount as string) || ''}
-                onChange={(e) => onUpdateData({ budgetAmount: e.target.value })}
-                placeholder="e.g. $25,000"
-                className={inputClassName}
-              />
-            </div>
-            <div className="flex-1 flex flex-col gap-1">
-              <label className={labelClassName}>Pacing</label>
-              <input
-                type="text"
-                value={(briefData.pacing as string) || ''}
-                onChange={(e) => onUpdateData({ pacing: e.target.value })}
-                placeholder="e.g. Even, Front-loaded"
-                className={inputClassName}
-              />
-            </div>
-            <div className="flex-1 flex flex-col gap-1">
-              <label className={labelClassName}>Phases</label>
-              <input
-                type="text"
-                value={(briefData.phases as string) || ''}
-                onChange={(e) => onUpdateData({ phases: e.target.value })}
-                placeholder="e.g. 3 phases"
-                className={inputClassName}
-              />
-            </div>
-          </div>
-        </div>
-      );
-    }
-    if (!(briefData.budgetAmount as string)) {
-      return <p className="text-sm text-[#9BA2AF] italic m-0">No budget defined</p>;
-    }
-    const budgetItems = [
-      { label: 'Budget', value: (briefData.budgetAmount as string) },
-      { label: 'Pacing', value: (briefData.pacing as string) || 'Even' },
-      { label: 'Phases', value: (briefData.phases as string) || '\u2014' },
-    ];
     return (
-      <div className="flex items-stretch">
-        {budgetItems.map((item, idx) => (
-          <div key={item.label} className="flex flex-1 items-stretch">
-            <BudgetCard label={item.label} value={item.value} />
-            {idx < budgetItems.length - 1 && (
-              <div className="w-px bg-[#DCE1EA] self-stretch my-1" />
-            )}
-          </div>
-        ))}
+      <div className="flex gap-3">
+        <div className="flex-1 flex flex-col gap-1">
+          <label className={labelClassName}>Budget Amount</label>
+          <input
+            type="text"
+            value={(briefData.budgetAmount as string) || ''}
+            onChange={(e) => onUpdateData({ budgetAmount: e.target.value })}
+            placeholder="e.g. $25,000"
+            className={inlineInputClassName}
+          />
+        </div>
+        <div className="flex-1 flex flex-col gap-1">
+          <label className={labelClassName}>Pacing</label>
+          <input
+            type="text"
+            value={(briefData.pacing as string) || ''}
+            onChange={(e) => onUpdateData({ pacing: e.target.value })}
+            placeholder="e.g. Even, Front-loaded"
+            className={inlineInputClassName}
+          />
+        </div>
+        <div className="flex-1 flex flex-col gap-1">
+          <label className={labelClassName}>Phases</label>
+          <input
+            type="text"
+            value={(briefData.phases as string) || ''}
+            onChange={(e) => onUpdateData({ phases: e.target.value })}
+            placeholder="e.g. 3 phases"
+            className={inlineInputClassName}
+          />
+        </div>
       </div>
     );
   }
 
-  // Timeline section
+  // Timeline section — always editable inline with visualization
   if (config.type === 'timeline') {
-    if (sectionState === 'editing') {
-      return (
+    const start = (briefData.timelineStart as string) || '';
+    const end = (briefData.timelineEnd as string) || '';
+
+    return (
+      <div className="flex flex-col gap-3">
         <div className="flex gap-3">
           <div className="flex-1 flex flex-col gap-1">
             <label className={labelClassName}>Start Date</label>
             <input
               type="text"
-              value={(briefData.timelineStart as string) || ''}
+              value={start}
               onChange={(e) => onUpdateData({ timelineStart: e.target.value })}
               placeholder="e.g. March 1, 2026"
-              className={inputClassName}
+              className={inlineInputClassName}
             />
           </div>
           <div className="flex-1 flex flex-col gap-1">
             <label className={labelClassName}>End Date</label>
             <input
               type="text"
-              value={(briefData.timelineEnd as string) || ''}
+              value={end}
               onChange={(e) => onUpdateData({ timelineEnd: e.target.value })}
               placeholder="e.g. May 31, 2026"
-              className={inputClassName}
+              className={inlineInputClassName}
             />
           </div>
         </div>
-      );
-    }
-    if (!(briefData.timelineStart as string) && !(briefData.timelineEnd as string)) {
-      return <p className="text-sm text-[#9BA2AF] italic m-0">No timeline defined</p>;
-    }
-    return <TimelineBar start={(briefData.timelineStart as string)} end={(briefData.timelineEnd as string)} />;
+        {start && end && <TimelineBar start={start} end={end} />}
+      </div>
+    );
   }
 
   return null;
@@ -922,17 +781,6 @@ function TagEditList({
         placeholder="Add a business objective..."
         className={inputClassName}
       />
-    </div>
-  );
-}
-
-// --- Budget Card ---
-
-function BudgetCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex-1 px-4 py-3.5 flex flex-col gap-1">
-      <span className="text-xs font-semibold text-[#636A77] uppercase tracking-wide">{label}</span>
-      <span className="text-base font-semibold text-[#212327]">{value}</span>
     </div>
   );
 }
@@ -1002,13 +850,11 @@ function ChannelMultiSelect({
   items,
   dataKey,
   placeholder,
-  sectionState,
   onUpdateData,
 }: {
   items: string[];
   dataKey: string;
   placeholder: string;
-  sectionState: string;
   onUpdateData: (data: Record<string, unknown>) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -1041,11 +887,10 @@ function ChannelMultiSelect({
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap gap-2">
         {items.map((ch: string, idx: number) => (
-          <ChannelTag key={idx} name={ch} onRemove={sectionState === 'editing' ? () => handleRemove(idx) : undefined} />
+          <ChannelTag key={idx} name={ch} onRemove={() => handleRemove(idx)} />
         ))}
       </div>
-      {sectionState === 'editing' && (
-        <div ref={dropdownRef} className="relative">
+      <div ref={dropdownRef} className="relative">
           <button
             onClick={() => setIsOpen(!isOpen)}
             className={`w-full px-3 py-2.5 border rounded-lg text-sm text-[#9BA2AF] bg-white cursor-pointer text-left flex items-center justify-between transition-colors duration-200 ${
@@ -1102,10 +947,6 @@ function ChannelMultiSelect({
             </div>
           )}
         </div>
-      )}
-      {sectionState !== 'editing' && items.length === 0 && (
-        <span className="text-sm text-[#9BA2AF] italic">{placeholder}</span>
-      )}
     </div>
   );
 }
@@ -1131,11 +972,9 @@ function normalizeSegmentItems(items: unknown[]): string[] {
 
 function AudienceSegmentsContent({
   briefData,
-  sectionState,
   onUpdateData,
 }: {
   briefData: Record<string, unknown>;
-  sectionState: string;
   onUpdateData: (data: Record<string, unknown>) => void;
 }) {
   const [segments, setSegments] = useState<TDSegmentOption[]>([]);
@@ -1204,11 +1043,11 @@ function AudienceSegmentsContent({
   }, []);
 
   useEffect(() => {
-    if (sectionState === 'editing' && !segmentsFetched) {
+    if (!segmentsFetched) {
       setSegmentsFetched(true);
       fetchAllSegments();
     }
-  }, [sectionState, segmentsFetched, fetchAllSegments]);
+  }, [segmentsFetched, fetchAllSegments]);
 
   const formatAudienceSize = (size?: number): string => {
     if (!size) return '';
@@ -1236,7 +1075,6 @@ function AudienceSegmentsContent({
           label={cat.label}
           items={cat.items}
           dataKey={cat.dataKey}
-          sectionState={sectionState}
           segments={segments}
           isLoading={isLoadingSegments}
           onUpdateData={onUpdateData}
@@ -1252,7 +1090,6 @@ function SegmentCategoryDropdown({
   label,
   items,
   dataKey,
-  sectionState,
   segments,
   isLoading,
   onUpdateData,
@@ -1262,7 +1099,6 @@ function SegmentCategoryDropdown({
   label: string;
   items: string[];
   dataKey: string;
-  sectionState: string;
   segments: TDSegmentOption[];
   isLoading: boolean;
   onUpdateData: (data: Record<string, unknown>) => void;
@@ -1321,7 +1157,7 @@ function SegmentCategoryDropdown({
                 {segData?.audienceSize && (
                   <span className="text-xs text-[#9BA2AF]">{formatAudienceSize(segData.audienceSize)}</span>
                 )}
-                {!segData && sectionState === 'editing' && (
+                {!segData && (
                   <button
                     onClick={async (e) => {
                       e.stopPropagation();
@@ -1347,14 +1183,12 @@ function SegmentCategoryDropdown({
                     Create
                   </button>
                 )}
-                {sectionState === 'editing' && (
-                  <button
-                    onClick={() => handleRemove(idx)}
-                    className="w-4 h-4 border-none bg-transparent cursor-pointer flex items-center justify-center p-0 rounded-full hover:bg-black/[.08]"
-                  >
-                    <X size={12} color="#636A77" />
-                  </button>
-                )}
+                <button
+                  onClick={() => handleRemove(idx)}
+                  className="w-4 h-4 border-none bg-transparent cursor-pointer flex items-center justify-center p-0 rounded-full hover:bg-black/[.08]"
+                >
+                  <X size={12} color="#636A77" />
+                </button>
               </div>
             );
           })}
@@ -1362,8 +1196,7 @@ function SegmentCategoryDropdown({
       )}
 
       {/* Dropdown + Refresh */}
-      {sectionState === 'editing' && (
-        <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2">
           <div ref={dropdownRef} className="relative flex-1">
             <button
               onClick={() => setIsOpen(!isOpen)}
@@ -1441,11 +1274,6 @@ function SegmentCategoryDropdown({
             </svg>
           </button>
         </div>
-      )}
-
-      {sectionState !== 'editing' && items.length === 0 && (
-        <span className="text-sm text-[#9BA2AF] italic">Select audience segment</span>
-      )}
     </div>
   );
 }

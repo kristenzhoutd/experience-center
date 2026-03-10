@@ -980,69 +980,43 @@ export const BlueprintDetailView: React.FC<BlueprintDetailViewProps> = ({
     <div className="flex flex-col h-full bg-[#F5F7FA] overflow-y-auto rounded-xl">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-[#E8ECF3] rounded-t-xl flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onClose}
-            className="bg-transparent border-none cursor-pointer p-2 flex items-center text-gray-500 hover:text-gray-700"
-          >
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-          <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <rect x="1" y="1" width="6" height="6" rx="1" stroke="#6B7280" strokeWidth="1.5"/>
-              <rect x="9" y="1" width="6" height="6" rx="1" stroke="#6B7280" strokeWidth="1.5"/>
-              <rect x="1" y="9" width="6" height="6" rx="1" stroke="#6B7280" strokeWidth="1.5"/>
-              <rect x="9" y="9" width="6" height="6" rx="1" stroke="#6B7280" strokeWidth="1.5"/>
-            </svg>
-          </div>
-          <span className="text-sm text-gray-500">Campaign Design Blueprints</span>
-          <span className="text-gray-500">/</span>
-          <span className="text-sm font-semibold text-gray-900">{local.name}</span>
+        {/* Left - Program Name */}
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-sm text-[#636A77] flex-shrink-0">Program:</span>
+          <span className="text-sm font-semibold text-[#212327] truncate">{briefData?.campaignDetails || local.name}</span>
         </div>
-        <div className="flex items-center gap-3">
-          {/* Undo/Redo */}
+
+        {/* Right - Undo/Redo + Primary Action */}
+        <div className="flex items-center gap-3 flex-shrink-0">
           <button
             onClick={onUndo}
             disabled={!canUndo}
-            className={`flex items-center justify-center w-9 h-9 bg-white border border-gray-200 rounded-lg ${canUndo ? 'cursor-pointer hover:bg-gray-50' : 'cursor-not-allowed opacity-50'}`}
+            title="Undo"
+            className={`flex items-center justify-center w-7 h-7 bg-transparent border-none rounded transition-all duration-200 ${canUndo ? 'cursor-pointer text-[#636A77] hover:bg-gray-100' : 'cursor-default text-[#C5CAD3]'}`}
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M3.33334 6H10C11.841 6 13.3333 7.49238 13.3333 9.33333C13.3333 11.1743 11.841 12.6667 10 12.6667H6" stroke="#374151" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M5.33334 8L3.33334 6L5.33334 4" stroke="#374151" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path d="M3.33334 6H10C11.841 6 13.3333 7.49238 13.3333 9.33333C13.3333 11.1743 11.841 12.6667 10 12.6667H6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M5.33334 8L3.33334 6L5.33334 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
           <button
             onClick={onRedo}
             disabled={!canRedo}
-            className={`flex items-center justify-center w-9 h-9 bg-white border border-gray-200 rounded-lg ${canRedo ? 'cursor-pointer hover:bg-gray-50' : 'cursor-not-allowed opacity-50'}`}
+            title="Redo"
+            className={`flex items-center justify-center w-7 h-7 bg-transparent border-none rounded transition-all duration-200 ${canRedo ? 'cursor-pointer text-[#636A77] hover:bg-gray-100' : 'cursor-default text-[#C5CAD3]'}`}
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M12.6667 6H6C4.15905 6 2.66667 7.49238 2.66667 9.33333C2.66667 11.1743 4.15905 12.6667 6 12.6667H10" stroke="#374151" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M10.6667 8L12.6667 6L10.6667 4" stroke="#374151" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path d="M12.6667 6H6C4.15905 6 2.66667 7.49238 2.66667 9.33333C2.66667 11.1743 4.15905 12.6667 6 12.6667H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M10.6667 8L12.6667 6L10.6667 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          {/* Save */}
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className={`flex items-center gap-2 px-4 py-2 border-none rounded-lg text-sm font-medium text-white cursor-pointer transition-all duration-200 ${
-              hasChanges ? 'bg-teal-600 hover:bg-teal-700' : 'bg-[#1957DB] hover:bg-[#1449B8]'
-            } ${isSaving ? 'opacity-70' : ''}`}
-          >
-            {isSaving ? 'Saving...' : 'Save'}
-          </button>
-          {/* Create Campaign */}
           <button
             onClick={() => {
+              handleSave();
               navigate('/campaign-launch', { state: { blueprintId: local.id } });
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-[#1877F2] border-none rounded-lg text-sm font-medium text-white cursor-pointer hover:bg-[#1565D8] transition-colors"
+            className="flex items-center gap-1.5 h-8 px-5 py-2 rounded-lg border-none bg-[#212327] text-sm font-medium text-white cursor-pointer transition-all duration-200 hover:bg-[#3a3d42]"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
             Create Campaign
           </button>
         </div>

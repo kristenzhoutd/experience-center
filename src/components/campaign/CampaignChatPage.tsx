@@ -42,6 +42,7 @@ import { useAdSetConfigStore } from '../../stores/adSetConfigStore';
 import { chatHistoryStorage } from '../../services/chatHistoryStorage';
 import PaidMediaStepper from './PaidMediaStepper';
 import { useProgramStore } from '../../stores/programStore';
+import { resetAllProgramState } from '../../utils/resetProgramState';
 
 // Lazy-load heavy right-panel components to isolate import failures
 const CampaignBriefEditorPanel = React.lazy(() => import('./CampaignBriefEditorPanel'));
@@ -369,9 +370,17 @@ const CampaignChatPage = () => {
 
   // Resizable panel state
   const [chatPanelWidth, setChatPanelWidth] = useState(33);
-  const [isChatCollapsed, setIsChatCollapsed] = useState(
-    useBlueprintStore.getState().hasGeneratedPlan
-  );
+  const [isChatCollapsed, _setIsChatCollapsed] = useState(() => {
+    const saved = sessionStorage.getItem('pm-chat-collapsed');
+    return saved !== null ? saved === 'true' : useBlueprintStore.getState().hasGeneratedPlan;
+  });
+  const setIsChatCollapsed = (v: boolean | ((prev: boolean) => boolean)) => {
+    _setIsChatCollapsed((prev) => {
+      const next = typeof v === 'function' ? v(prev) : v;
+      sessionStorage.setItem('pm-chat-collapsed', String(next));
+      return next;
+    });
+  };
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Campaign brief field tracking
@@ -407,7 +416,10 @@ const CampaignChatPage = () => {
 
   useEffect(() => {
     if (hasGeneratedPlan && !prevHasGeneratedPlan.current) {
-      setIsChatCollapsed(true);
+      // Only auto-collapse if user hasn't explicitly set a preference
+      if (sessionStorage.getItem('pm-chat-collapsed') === null) {
+        setIsChatCollapsed(true);
+      }
     }
     prevHasGeneratedPlan.current = hasGeneratedPlan;
   }, [hasGeneratedPlan]);
@@ -422,96 +434,30 @@ const CampaignChatPage = () => {
 
   useEffect(() => {
     if (chatSessionReady) return; // Already initialized
-    // Reset chat state and start a real SDK session
-    useChatStore.setState({ messages: [], streamingSegments: [], isStreaming: false, isWaitingForResponse: false });
+    // Reset streaming state and start a real SDK session.
+    // Preserve messages — openProgram() may have already loaded them before navigation.
+    useChatStore.setState({ streamingSegments: [], isStreaming: false, isWaitingForResponse: false });
     startSession().then(() => {
       setChatSessionReady(true);
     });
   }, []); // Run once on mount only
 
   // ---- Restore program state from location.state ----
-  // MUST run BEFORE auto-send so loadMessages([]) clears stale state
-  // before the auto-send adds the new user message.
 
   const programIdConsumedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!chatSessionReady) return;
     const locState = location.state as { programId?: string; editBrief?: boolean } | null;
     const programId = locState?.programId;
-    const editBrief = locState?.editBrief ?? false;
     if (!programId || programIdConsumedRef.current === programId) return;
     programIdConsumedRef.current = programId;
 
-    useProgramStore.getState().setActiveProgram(programId);
-
-    const program = useProgramStore.getState().activeProgram;
-    if (!program) return;
-
-    const isFresh = !program.briefSnapshot && program.blueprintIds.length === 0;
-
-    if (isFresh) {
-      // New program — clear stale state from previous sessions
-      useChatStore.getState().loadMessages([]);
-      useBriefEditorStore.getState().setBriefData({
-        campaignDetails: '', brandProduct: '', businessObjective: '',
-        businessObjectiveTags: [], primaryGoals: [], secondaryGoals: [],
-        primaryKpis: [], secondaryKpis: [], inScope: [], outOfScope: [],
-        primaryAudience: [], secondaryAudience: [], mandatoryChannels: [],
-        optionalChannels: [], budgetAmount: '', pacing: '', phases: '',
-        prospectingSegments: [], retargetingSegments: [], suppressionSegments: [],
-        timelineStart: '', timelineEnd: '',
-      });
-      useBlueprintStore.getState().setHasGeneratedPlan(false);
-      useBlueprintStore.getState().setApprovedBlueprintId(null);
-      useBlueprintStore.getState().selectBlueprint(null);
-      return;
-    }
-
-    // Restore brief data from snapshot
-    if (program.briefSnapshot) {
-      try {
-        const briefData = JSON.parse(program.briefSnapshot);
-        useBriefEditorStore.getState().setBriefData(briefData);
-      } catch {
-        // Corrupt snapshot
-      }
-    }
-
-    // Restore blueprints (skip when user explicitly chose "Edit Brief")
-    if (program.blueprintIds.length > 0 && !editBrief) {
-      // Load blueprints from disk first so the UI has data to render
-      useBlueprintStore.getState().loadBlueprints().then(() => {
-        useBlueprintStore.getState().setHasGeneratedPlan(true);
-        if (program.approvedBlueprintId) {
-          useBlueprintStore.getState().setApprovedBlueprintId(program.approvedBlueprintId);
-          useBlueprintStore.getState().selectBlueprint(program.approvedBlueprintId);
-        }
-      });
-    } else {
-      // No blueprints — clear stale plan state so brief editor shows
-      useBlueprintStore.getState().setHasGeneratedPlan(false);
-      useBlueprintStore.getState().setApprovedBlueprintId(null);
-      useBlueprintStore.getState().selectBlueprint(null);
-    }
-
-    // Restore chat history
-    const historyKey = program.chatHistoryKey || `program-chat:${program.id}`;
-    const savedMessages = chatHistoryStorage.getMessages(historyKey);
-    if (savedMessages.length > 0) {
-      useChatStore.getState().loadMessages(savedMessages);
-    } else if (program.id.startsWith('demo-prog-') && program.briefSnapshot) {
-      // Seed demo chat history so the chat panel has context
-      const briefData = (() => { try { return JSON.parse(program.briefSnapshot!); } catch { return null; } })();
-      if (briefData) {
-        const demoMessages = [
-          { id: `${program.id}-msg-1`, role: 'user' as const, content: `Create a campaign brief for ${briefData.campaignDetails || program.name}. Business objective: ${briefData.businessObjective || 'Drive awareness and conversions'}. Budget: ${briefData.budgetAmount || 'TBD'}.`, timestamp: new Date(program.createdAt) },
-          { id: `${program.id}-msg-2`, role: 'assistant' as const, content: `I've created your campaign brief for **${briefData.campaignDetails || program.name}**.\n\nHere's what I've set up:\n- **Objective:** ${briefData.businessObjective || 'Drive results'}\n- **Budget:** ${briefData.budgetAmount || 'TBD'}\n- **Channels:** ${(briefData.mandatoryChannels || []).join(', ') || 'To be determined'}\n- **Primary Audience:** ${(briefData.primaryAudience || []).join(', ') || 'To be determined'}\n- **Timeline:** ${briefData.timelineStart || ''} to ${briefData.timelineEnd || ''}\n\nThe brief editor is now open on the right. You can review and edit any field, or click **Generate Plan** when ready.`, timestamp: new Date(program.createdAt) },
-        ];
-        useChatStore.getState().loadMessages(demoMessages);
-      }
-    }
-  }, [chatSessionReady, location.state]);
+    // Always run openProgram — even if the program is already active,
+    // session init may have cleared messages before this effect ran.
+    useProgramStore.getState().openProgram(programId, {
+      editBrief: locState?.editBrief,
+    });
+  }, [location.state]);
 
   // ---- Select blueprint from query param ----
   const blueprintIdConsumedRef = useRef(false);

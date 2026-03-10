@@ -113,42 +113,47 @@ export default function PaidMediaStepper({ overrideStep }: PaidMediaStepperProps
     const isOnLaunchPage = location.pathname === '/campaign-launch';
     const isOnChatPage = location.pathname === '/campaign-chat';
 
-    // Program-aware navigation
+    // Program-aware navigation — adjust store flags directly, no full openProgram reset.
+    // Let the target page handle full restoration via openProgram on mount.
     if (activeProgram) {
-      // Allow navigating to any step ≤ furthestCompletedStep + 1
       const maxAllowed = (activeProgram.furthestCompletedStep + 1) as WizardStep;
       if (step > maxAllowed) return;
-
-      // Persist current step
-      useProgramStore.getState().setCurrentStep(step);
 
       // Auto-save on step transitions
       if (isOnLaunchPage) {
         useCampaignLaunchStore.getState().saveCurrentConfig();
       }
 
-      // Navigate to the right page
-      if (step <= 2) {
-        if (!isOnChatPage) {
-          navigate('/campaign-chat', { state: { programId: activeProgram.id } });
-        } else {
-          // Already on chat page — adjust store state
-          if (step === 1) {
-            useBlueprintStore.getState().setHasGeneratedPlan(false);
-            useBlueprintStore.getState().selectBlueprint(null);
-          }
-          if (step === 2) {
+      // Update step tracking
+      useProgramStore.getState().setCurrentStep(step);
+
+      // Adjust right-panel view for the target step
+      if (step === 1) {
+        useBlueprintStore.getState().setHasGeneratedPlan(false);
+        useBlueprintStore.getState().selectBlueprint(null);
+      } else if (step === 2) {
+        const bpStore = useBlueprintStore.getState();
+        if (bpStore.blueprints.length === 0 && activeProgram.blueprintIds.length > 0) {
+          // Blueprints were cleared — reload from IPC before displaying
+          bpStore.loadBlueprints().then(() => {
             useBlueprintStore.getState().setHasGeneratedPlan(true);
             if (activeProgram.approvedBlueprintId) {
+              useBlueprintStore.getState().setApprovedBlueprintId(activeProgram.approvedBlueprintId);
               useBlueprintStore.getState().selectBlueprint(activeProgram.approvedBlueprintId);
             }
+          });
+        } else {
+          bpStore.setHasGeneratedPlan(true);
+          if (activeProgram.approvedBlueprintId) {
+            bpStore.selectBlueprint(activeProgram.approvedBlueprintId);
           }
         }
-      } else {
-        // Steps 3-4 live on the launch page
-        if (!isOnLaunchPage) {
-          navigate('/campaign-launch', { state: { programId: activeProgram.id } });
-        }
+      }
+
+      // Navigate to the right page if needed
+      const targetRoute = step <= 2 ? '/campaign-chat' : '/campaign-launch';
+      if (location.pathname !== targetRoute) {
+        navigate(targetRoute, { state: { programId: activeProgram.id, editBrief: step === 1 } });
       }
       return;
     }

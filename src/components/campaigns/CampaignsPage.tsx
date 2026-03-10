@@ -11,26 +11,14 @@ import { useBlueprintStore } from '../../stores/blueprintStore';
 import { useCampaignLaunchStore } from '../../stores/campaignLaunchStore';
 import { useBriefStore } from '../../stores/briefStore';
 import { useProgramStore } from '../../stores/programStore';
-import { useBriefEditorStore } from '../../stores/briefEditorStore';
-import { useChatStore } from '../../stores/chatStore';
 import { formatMessaging } from '../../utils/messagingHelpers';
+import { resetAllProgramState } from '../../utils/resetProgramState';
 import type { PaidMediaProgram } from '../../types/program';
 import type { Campaign, CampaignStats, CampaignStatus, CampaignPacing } from '../../types/campaign';
 import type { LiveCampaign } from '../../types/optimize';
 import type { Blueprint } from '../../../electron/utils/ipc-types';
 
 type ViewMode = 'gallery' | 'calendar' | 'gantt';
-
-/**
- * Reset all program-related stores before opening a different program.
- * Prevents stale brief/blueprint/launch data from leaking across programs.
- */
-function resetAllProgramState() {
-  useCampaignLaunchStore.getState().reset();
-  useBlueprintStore.getState().clearAll();
-  useBriefEditorStore.getState().reset();
-  useChatStore.getState().resetChat();
-}
 
 interface CampaignsPageProps {
   onCampaignClick?: (campaign: Campaign) => void;
@@ -347,10 +335,11 @@ const CampaignsPage: React.FC<CampaignsPageProps> = ({ onCampaignClick }) => {
             <h1 className="text-lg font-semibold text-gray-900">Campaigns</h1>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => {
+                onClick={async () => {
                   resetAllProgramState();
                   const program = useProgramStore.getState().createProgram('New Campaign Program');
-                  navigate('/campaign-chat', { state: { programId: program.id } });
+                  const result = await useProgramStore.getState().openProgram(program.id);
+                  if (result) navigate(result.targetRoute, { state: result.navigationState });
                 }}
                 className="px-3 py-1.5 text-xs font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors border-none cursor-pointer"
               >
@@ -419,15 +408,9 @@ const CampaignsPage: React.FC<CampaignsPageProps> = ({ onCampaignClick }) => {
                     return (
                       <div
                         key={program.id}
-                        onClick={() => {
-                          resetAllProgramState();
-                          useProgramStore.getState().setActiveProgram(program.id);
-                          // Navigate to the program's current step
-                          if (program.currentStepId <= 2) {
-                            navigate('/campaign-chat', { state: { programId: program.id } });
-                          } else {
-                            navigate('/campaign-launch', { state: { programId: program.id } });
-                          }
+                        onClick={async () => {
+                          const result = await useProgramStore.getState().openProgram(program.id);
+                          if (result) navigate(result.targetRoute, { state: result.navigationState });
                         }}
                         className="group relative min-w-[280px] max-w-[300px] flex-shrink-0 bg-white rounded-xl border border-gray-200 p-4 cursor-pointer transition-all duration-200 hover:border-gray-400 hover:shadow-md"
                       >
@@ -568,7 +551,7 @@ const CampaignsPage: React.FC<CampaignsPageProps> = ({ onCampaignClick }) => {
                   </button>
                   {menuProgram.briefSnapshot && (
                     <button
-                      onClick={(e) => { e.stopPropagation(); setMenuOpenProgramId(null); setMenuPosition(null); resetAllProgramState(); useProgramStore.getState().setActiveProgram(menuProgram.id); useProgramStore.getState().setCurrentStep(1); navigate('/campaign-chat', { state: { programId: menuProgram.id, editBrief: true } }); }}
+                      onClick={async (e) => { e.stopPropagation(); setMenuOpenProgramId(null); setMenuPosition(null); const result = await useProgramStore.getState().openProgram(menuProgram.id, { targetStep: 1, editBrief: true }); if (result) navigate(result.targetRoute, { state: result.navigationState }); }}
                       className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors border-none bg-transparent cursor-pointer text-left"
                     >
                       <FileText className="w-3.5 h-3.5 text-gray-400" /> Edit Brief
@@ -576,7 +559,7 @@ const CampaignsPage: React.FC<CampaignsPageProps> = ({ onCampaignClick }) => {
                   )}
                   {menuProgram.approvedBlueprintId && (
                     <button
-                      onClick={(e) => { e.stopPropagation(); setMenuOpenProgramId(null); setMenuPosition(null); resetAllProgramState(); useProgramStore.getState().setActiveProgram(menuProgram.id); useProgramStore.getState().setCurrentStep(2); navigate('/campaign-chat', { state: { programId: menuProgram.id } }); }}
+                      onClick={async (e) => { e.stopPropagation(); setMenuOpenProgramId(null); setMenuPosition(null); const result = await useProgramStore.getState().openProgram(menuProgram.id, { targetStep: 2 }); if (result) navigate(result.targetRoute, { state: result.navigationState }); }}
                       className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors border-none bg-transparent cursor-pointer text-left"
                     >
                       <Layers className="w-3.5 h-3.5 text-gray-400" /> Edit Campaign Plan
@@ -584,7 +567,7 @@ const CampaignsPage: React.FC<CampaignsPageProps> = ({ onCampaignClick }) => {
                   )}
                   {menuHasLaunchConfigs && (
                     <button
-                      onClick={(e) => { e.stopPropagation(); setMenuOpenProgramId(null); setMenuPosition(null); resetAllProgramState(); useProgramStore.getState().setActiveProgram(menuProgram.id); navigate('/campaign-launch', { state: { programId: menuProgram.id } }); }}
+                      onClick={async (e) => { e.stopPropagation(); setMenuOpenProgramId(null); setMenuPosition(null); const result = await useProgramStore.getState().openProgram(menuProgram.id, { targetStep: 3 }); if (result) navigate(result.targetRoute, { state: result.navigationState }); }}
                       className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors border-none bg-transparent cursor-pointer text-left"
                     >
                       <Settings className="w-3.5 h-3.5 text-gray-400" /> Edit Campaign Config

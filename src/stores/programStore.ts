@@ -16,6 +16,12 @@ import type {
 } from '../types/program';
 import { programStorage } from '../services/programStorage';
 import { launchConfigStorage } from '../services/launchConfigStorage';
+import { chatHistoryStorage } from '../services/chatHistoryStorage';
+import { resetProgramStores } from '../utils/resetProgramState';
+import { useBriefEditorStore } from './briefEditorStore';
+import { useBlueprintStore } from './blueprintStore';
+import { useCampaignLaunchStore } from './campaignLaunchStore';
+import { useChatStore } from './chatStore';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -242,7 +248,128 @@ export const DEMO_BLUEPRINTS = [
       refreshPlan: ['Customer testimonial content at week 3', 'Case study series at week 5'],
     },
   },
+  {
+    id: 'demo-bp-summer',
+    name: 'Summer Campaign 2026 — Balanced',
+    variant: 'balanced' as const,
+    confidence: 'High' as const,
+    channels: ['Meta', 'Google', 'TikTok', 'Pinterest'],
+    channelAllocations: [
+      { name: 'Meta Ads', budgetPercent: 40, budgetAmount: '$80,000', role: 'Primary conversion driver', formats: ['Carousel', 'Video', 'Stories'] },
+      { name: 'Google Ads', budgetPercent: 30, budgetAmount: '$60,000', role: 'Search capture + Shopping', formats: ['Search', 'Shopping', 'YouTube'] },
+      { name: 'TikTok', budgetPercent: 20, budgetAmount: '$40,000', role: 'Gen Z + viral reach', formats: ['In-Feed', 'Spark Ads', 'TopView'] },
+      { name: 'Pinterest', budgetPercent: 10, budgetAmount: '$20,000', role: 'Inspiration + discovery', formats: ['Standard Pins', 'Shopping Pins'] },
+    ],
+    audiences: ['Summer shoppers 18-55', 'Outdoor enthusiasts', 'Travel planners', 'Family decision-makers'],
+    budget: { amount: '$200,000', pacing: 'Ramp up May, peak June-July' },
+    metrics: { reach: '10.2M', ctr: '2.8%', roas: '3.6x', conversions: '28,500' },
+    messaging: 'Make this summer unforgettable. Shop the hottest deals, gear up for adventure, and discover what\'s new.',
+    cta: 'Shop Summer',
+    creativeBrief: {
+      primaryAngle: 'Seasonal urgency with lifestyle aspiration',
+      confidence: 'High',
+      supportingMessages: ['Limited-time summer pricing', 'Free shipping on orders over $50', 'New arrivals weekly'],
+      recommendedFormats: ['Video (lifestyle montage)', 'Carousel (product showcase)', 'Stories (behind-the-scenes)'],
+      fatigueRisk: ['High frequency on Meta after week 6'],
+      refreshPlan: ['Rotate creative bi-weekly', 'Introduce UGC content in June', 'Back-to-school pivot in late July'],
+    },
+  },
 ];
+
+// ── Demo chat history builder ────────────────────────────────────────────────
+// Generates a realistic multi-step conversation that mirrors the full workflow:
+// Step 1 (Ideate) → Step 2 (Campaign Plan) → Step 3 (Configure) → Step 4 (Launch)
+
+function buildDemoChatHistory(program: PaidMediaProgram, briefData: Record<string, unknown>): Array<{id: string; role: 'user' | 'assistant'; content: string; timestamp: Date}> {
+  const name = (briefData.campaignDetails as string) || program.name;
+  const objective = (briefData.businessObjective as string) || 'Drive results';
+  const budget = (briefData.budgetAmount as string) || 'TBD';
+  const mandatoryChannels = (briefData.mandatoryChannels as string[]) || [];
+  const optionalChannels = (briefData.optionalChannels as string[]) || [];
+  const allChannels = [...mandatoryChannels, ...optionalChannels].join(', ') || 'Meta, Google';
+  const primaryAudience = (briefData.primaryAudience as string[]) || [];
+  const secondaryAudience = (briefData.secondaryAudience as string[]) || [];
+  const primaryGoals = (briefData.primaryGoals as string[]) || [];
+  const primaryKpis = (briefData.primaryKpis as string[]) || [];
+  const timelineStart = (briefData.timelineStart as string) || '';
+  const timelineEnd = (briefData.timelineEnd as string) || '';
+  const pacing = (briefData.pacing as string) || '';
+  const base = new Date(program.createdAt).getTime();
+  const t = (minutesOffset: number) => new Date(base + minutesOffset * 60_000);
+  let i = 0;
+  const msg = (role: 'user' | 'assistant', content: string, mins: number) => ({
+    id: `${program.id}-msg-${++i}`,
+    role,
+    content,
+    timestamp: t(mins),
+  });
+
+  return [
+    // ── Step 1: Ideate — Brief Creation ──
+    msg('user',
+      `I need to create a paid media campaign for "${name}". Here are the key details:\n\n- **Business objective:** ${objective}\n- **Budget:** ${budget}\n- **Mandatory channels:** ${mandatoryChannels.join(', ') || 'TBD'}\n- **Primary audience:** ${primaryAudience.join('; ') || 'TBD'}\n- **Timeline:** ${timelineStart} to ${timelineEnd}`,
+      0),
+    msg('assistant',
+      `I've created your campaign brief for **${name}** and populated the brief editor on the right.\n\nHere's a summary of what I've captured:\n\n| Section | Details |\n|---|---|\n| **Objective** | ${objective} |\n| **Budget** | ${budget} |\n| **Channels** | ${allChannels} |\n| **Primary Audience** | ${primaryAudience.join(', ') || 'To be defined'} |\n| **Timeline** | ${timelineStart} — ${timelineEnd} |\n${pacing ? `| **Pacing** | ${pacing} |` : ''}\n\nPlease review each section in the editor and let me know if you'd like to adjust anything before we move on.`,
+      1),
+    msg('user',
+      `Can you refine the audience targeting? I want to make sure we have clear prospecting and retargeting segments.`,
+      4),
+    msg('assistant',
+      `I've updated the audience strategy with distinct prospecting and retargeting tiers:\n\n**Prospecting (new customers):**\n${primaryAudience.map(a => `- ${a}`).join('\n') || '- Broad interest-based targeting'}\n${secondaryAudience.length > 0 ? `\n**Secondary / Expansion:**\n${secondaryAudience.map(a => `- ${a}`).join('\n')}` : ''}\n\n**Retargeting (warm audiences):**\n- Site visitors (30-day window)\n- Engaged social followers\n- Cart/form abandoners\n\n**Suppression:**\n- Recent converters (14 days)\n\nThe brief editor has been updated. ${primaryGoals.length > 0 ? `This targeting aligns with your primary goals of ${primaryGoals.slice(0, 2).join(' and ')}.` : ''} Click **Generate Plan** when ready.`,
+      6),
+
+    // ── Step 2: Campaign Plan — Blueprint Generation ──
+    msg('user',
+      `The brief looks solid. Generate the campaign plan.`,
+      12),
+    msg('assistant',
+      `I've generated an optimized campaign blueprint for **${name}**.\n\n**Channel Strategy:**\n${mandatoryChannels.map((ch, idx) => `${idx + 1}. **${ch}** — ${idx === 0 ? 'Primary conversion driver' : idx === 1 ? 'Search capture & remarketing' : 'Incremental reach & awareness'}`).join('\n') || '1. **Meta** — Primary driver\n2. **Google** — Search capture'}\n${optionalChannels.length > 0 ? `\n**Optional channels included:** ${optionalChannels.join(', ')}` : ''}\n\n**Predicted Performance:**\n${primaryKpis.length > 0 ? `- Key metrics: ${primaryKpis.join(', ')}` : '- ROAS: 3.5x+ projected'}\n- Estimated reach: 2M+ unique users\n- Budget efficiency: optimized across ${mandatoryChannels.length + optionalChannels.length || 2} channels\n\nReview the blueprint in the panel on the right. You can adjust channel allocations, audience splits, and creative recommendations before approving.`,
+      14),
+    msg('user',
+      `The channel mix looks good. I'd like to increase the Meta allocation slightly — they've been our strongest performer. Then approve.`,
+      20),
+    msg('assistant',
+      `I've adjusted the Meta allocation up by 5 percentage points and rebalanced the remaining channels proportionally. The updated split is reflected in the blueprint.\n\nBlueprint has been **approved** and locked. We're ready to move to campaign configuration.\n\nNext step: I'll generate the Meta Ads configuration with:\n- Campaign structure (objective, budget, buying type)\n- Ad sets with audience targeting & optimization goals\n- Creative variants with headlines and copy\n- Ad combinations mapping creatives to ad sets`,
+      22),
+
+    // ── Step 3: Configure & Launch ──
+    msg('user',
+      `Generate the ad configuration and set everything up for launch.`,
+      30),
+    msg('assistant',
+      `The Meta Ads configuration has been generated from the approved blueprint.\n\n**Campaign:** ${name}\n- Objective: Awareness\n- Daily budget: ${budget ? `based on ${budget} total` : '$500/day'}\n- Buying type: Auction\n\n**Ad Sets (2):**\n1. ${primaryAudience[0] || 'Primary Audience'} — ${pacing || 'Even pacing'}\n2. ${primaryAudience[1] || secondaryAudience[0] || 'Retargeting'} — Optimized delivery\n\n**Creatives (2):**\n- Hero image with primary CTA\n- Carousel showcasing key value props\n\n**Ads (2):**\n- Each creative paired with its target ad set\n\nAll sections are configured and ready. Review the details on the configuration page and click **Launch** when approved.`,
+      32),
+    msg('user',
+      `Looks great — everything checks out. Launch the campaign.`,
+      40),
+
+    // ── Step 4: Launched ──
+    msg('assistant',
+      `**${name}** has been successfully launched! :rocket:\n\n**Launch Summary:**\n- **Status:** Live on Meta\n- **Ad Sets:** 2 active, targeting ${primaryAudience.slice(0, 2).join(' and ') || 'configured audiences'}\n- **Creatives:** 2 active with optimized copy\n- **Ads:** 2 live combinations\n- **Budget:** ${budget} across ${timelineStart} — ${timelineEnd}\n\nYou can track performance in real-time from the **Campaigns** dashboard. I'll monitor key metrics and flag any optimization opportunities as data comes in.`,
+      42),
+  ];
+}
+
+// ── Demo creative placeholder images ─────────────────────────────────────────
+// Each generates a 400x400 SVG data-URI with a gradient background,
+// icon, headline, and tagline so creatives look realistic in the UI.
+
+function demoCreativeFile(label: string, tagline: string, colors: [string, string]): import('../types/campaignLaunch').CreativeFile {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="${colors[0]}"/><stop offset="100%" stop-color="${colors[1]}"/></linearGradient></defs><rect width="400" height="400" rx="12" fill="url(#g)"/><circle cx="200" cy="140" r="40" fill="white" opacity="0.15"/><circle cx="200" cy="140" r="24" fill="white" opacity="0.2"/><text x="200" y="230" text-anchor="middle" font-family="system-ui,sans-serif" font-size="22" font-weight="700" fill="white">${label}</text><text x="200" y="262" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" fill="white" opacity="0.8">${tagline}</text><rect x="140" y="290" width="120" height="36" rx="18" fill="white" opacity="0.2"/><text x="200" y="314" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="white">Shop Now</text></svg>`;
+  const encoded = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+  return { fileName: `${label.toLowerCase().replace(/\s+/g, '-')}.svg`, filePath: '', fileSize: svg.length, mimeType: 'image/svg+xml', previewUrl: encoded };
+}
+
+const DEMO_FILES = {
+  springHero:      demoCreativeFile('Spring Collection', 'Refresh your wardrobe', ['#E879A4', '#F4A261']),
+  springCarousel:  demoCreativeFile('New Arrivals', 'Premium fabrics', ['#F4A261', '#E76F51']),
+  brandTrust:      demoCreativeFile('Brand Trust', 'Quality you can trust', ['#264653', '#2A9D8F']),
+  productHero:     demoCreativeFile('Product V2', 'The next generation', ['#3A0CA3', '#4361EE']),
+  productCompare:  demoCreativeFile('2x Faster', 'See the comparison', ['#4361EE', '#4CC9F0']),
+  summerHero:      demoCreativeFile('Summer 2026', 'Hottest deals', ['#F77F00', '#FCBF49']),
+  summerOutdoor:   demoCreativeFile('Adventure Awaits', 'Gear up for summer', ['#06D6A0', '#118AB2']),
+};
 
 /** Demo launch config data for seeding into launchConfigStorage */
 export const DEMO_LAUNCH_CONFIGS: import('../types/campaignLaunch').SavedLaunchConfig[] = [
@@ -258,8 +385,8 @@ export const DEMO_LAUNCH_CONFIGS: import('../types/campaignLaunch').SavedLaunchC
         { localId: 'demo-as-2', name: 'Previous Customers', dailyBudget: 35700, optimizationGoal: 'REACH', billingEvent: 'IMPRESSIONS', targeting: { geoLocations: { countries: ['US'] }, ageMin: 18, ageMax: 65 }, status: 'ACTIVE', audienceLabel: 'Previous customers' },
       ],
       creatives: [
-        { localId: 'demo-cr-1', name: 'Spring Hero', headline: 'Shop the Spring Collection', bodyText: 'Refresh your wardrobe with our new arrivals', ctaType: 'SHOP_NOW', linkUrl: 'https://example.com/spring', pageId: '' },
-        { localId: 'demo-cr-2', name: 'New Arrivals Carousel', headline: 'New Arrivals Are Here', bodyText: 'Premium fabrics, modern silhouettes', ctaType: 'LEARN_MORE', linkUrl: 'https://example.com/new', pageId: '' },
+        { localId: 'demo-cr-1', name: 'Spring Hero', headline: 'Shop the Spring Collection', bodyText: 'Refresh your wardrobe with our new arrivals', ctaType: 'SHOP_NOW', linkUrl: 'https://example.com/spring', pageId: 'demo-page-1', file: DEMO_FILES.springHero },
+        { localId: 'demo-cr-2', name: 'New Arrivals Carousel', headline: 'New Arrivals Are Here', bodyText: 'Premium fabrics, modern silhouettes', ctaType: 'LEARN_MORE', linkUrl: 'https://example.com/new', pageId: 'demo-page-1', file: DEMO_FILES.springCarousel },
       ],
       ads: [
         { localId: 'demo-ad-1', name: 'Spring Hero - Women 25-44', adSetLocalId: 'demo-as-1', creativeLocalId: 'demo-cr-1', status: 'ACTIVE' },
@@ -284,7 +411,7 @@ export const DEMO_LAUNCH_CONFIGS: import('../types/campaignLaunch').SavedLaunchC
         { localId: 'demo-as-4', name: 'Category Buyers', dailyBudget: 53550, optimizationGoal: 'REACH', billingEvent: 'IMPRESSIONS', targeting: { geoLocations: { countries: ['US'] }, ageMin: 25, ageMax: 55 }, status: 'ACTIVE', audienceLabel: 'Category buyers' },
       ],
       creatives: [
-        { localId: 'demo-cr-3', name: 'Brand Trust', headline: 'Quality You Can Trust', bodyText: 'Discover what sets us apart', ctaType: 'LEARN_MORE', linkUrl: 'https://example.com/brand', pageId: '' },
+        { localId: 'demo-cr-3', name: 'Brand Trust', headline: 'Quality You Can Trust', bodyText: 'Discover what sets us apart', ctaType: 'LEARN_MORE', linkUrl: 'https://example.com/brand', pageId: 'demo-page-1', file: DEMO_FILES.brandTrust },
       ],
       ads: [
         { localId: 'demo-ad-3', name: 'Brand Trust - Adults', adSetLocalId: 'demo-as-3', creativeLocalId: 'demo-cr-3', status: 'ACTIVE' },
@@ -303,23 +430,50 @@ export const DEMO_LAUNCH_CONFIGS: import('../types/campaignLaunch').SavedLaunchC
     createdAt: '2026-03-01T10:00:00Z',
     updatedAt: '2026-03-01T16:00:00Z',
     config: {
-      campaign: { name: 'Product V2 Launch', objective: 'OUTCOME_AWARENESS', dailyBudget: 214200, status: 'PAUSED', specialAdCategories: [], buyingType: 'AUCTION' },
+      campaign: { name: 'Product V2 Launch', objective: 'OUTCOME_AWARENESS', dailyBudget: 214200, status: 'ACTIVE', specialAdCategories: [], buyingType: 'AUCTION' },
       adSets: [
-        { localId: 'demo-as-5', name: 'Early Adopters', dailyBudget: 107100, optimizationGoal: 'REACH', billingEvent: 'IMPRESSIONS', targeting: { geoLocations: { countries: ['US'] }, ageMin: 25, ageMax: 40 }, status: 'PAUSED', audienceLabel: 'Early adopters 25-40' },
-        { localId: 'demo-as-6', name: 'Tech Professionals', dailyBudget: 107100, optimizationGoal: 'REACH', billingEvent: 'IMPRESSIONS', targeting: { geoLocations: { countries: ['US'] }, ageMin: 28, ageMax: 50 }, status: 'PAUSED', audienceLabel: 'Tech-savvy professionals' },
+        { localId: 'demo-as-5', name: 'Early Adopters', dailyBudget: 107100, optimizationGoal: 'REACH', billingEvent: 'IMPRESSIONS', targeting: { geoLocations: { countries: ['US'] }, ageMin: 25, ageMax: 40 }, status: 'ACTIVE', audienceLabel: 'Early adopters 25-40' },
+        { localId: 'demo-as-6', name: 'Tech Professionals', dailyBudget: 107100, optimizationGoal: 'REACH', billingEvent: 'IMPRESSIONS', targeting: { geoLocations: { countries: ['US'] }, ageMin: 28, ageMax: 50 }, status: 'ACTIVE', audienceLabel: 'Tech-savvy professionals' },
       ],
       creatives: [
-        { localId: 'demo-cr-4', name: 'Product Launch Hero', headline: 'The Next Generation Is Here', bodyText: 'Faster, smarter, built for what\'s next', ctaType: 'LEARN_MORE', linkUrl: 'https://example.com/v2', pageId: '' },
-        { localId: 'demo-cr-5', name: 'Feature Comparison', headline: '2x Faster Performance', bodyText: 'See how V2 compares', ctaType: 'LEARN_MORE', linkUrl: 'https://example.com/compare', pageId: '' },
+        { localId: 'demo-cr-4', name: 'Product Launch Hero', headline: 'The Next Generation Is Here', bodyText: 'Faster, smarter, built for what\'s next', ctaType: 'LEARN_MORE', linkUrl: 'https://example.com/v2', pageId: 'demo-page-1', file: DEMO_FILES.productHero },
+        { localId: 'demo-cr-5', name: 'Feature Comparison', headline: '2x Faster Performance', bodyText: 'See how V2 compares', ctaType: 'LEARN_MORE', linkUrl: 'https://example.com/compare', pageId: 'demo-page-1', file: DEMO_FILES.productCompare },
       ],
       ads: [
-        { localId: 'demo-ad-5', name: 'Launch Hero - Early Adopters', adSetLocalId: 'demo-as-5', creativeLocalId: 'demo-cr-4', status: 'PAUSED' },
-        { localId: 'demo-ad-6', name: 'Comparison - Tech Pros', adSetLocalId: 'demo-as-6', creativeLocalId: 'demo-cr-5', status: 'PAUSED' },
+        { localId: 'demo-ad-5', name: 'Launch Hero - Early Adopters', adSetLocalId: 'demo-as-5', creativeLocalId: 'demo-cr-4', status: 'ACTIVE' },
+        { localId: 'demo-ad-6', name: 'Comparison - Tech Pros', adSetLocalId: 'demo-as-6', creativeLocalId: 'demo-cr-5', status: 'ACTIVE' },
       ],
       facebookPages: [],
     },
-    isEditMode: false,
+    platformCampaignId: 'demo-meta-product',
+    isEditMode: true,
     programId: 'demo-prog-3',
+    channelPlatform: 'meta',
+  },
+  {
+    id: 'demo-4',
+    name: 'Summer Campaign 2026',
+    createdAt: '2026-03-05T10:00:00Z',
+    updatedAt: '2026-03-05T14:00:00Z',
+    config: {
+      campaign: { name: 'Summer Campaign 2026', objective: 'OUTCOME_AWARENESS', dailyBudget: 285700, status: 'ACTIVE', specialAdCategories: [], buyingType: 'AUCTION' },
+      adSets: [
+        { localId: 'demo-as-7', name: 'Summer Shoppers 18-55', dailyBudget: 142850, optimizationGoal: 'REACH', billingEvent: 'IMPRESSIONS', targeting: { geoLocations: { countries: ['US'] }, ageMin: 18, ageMax: 55 }, status: 'ACTIVE', audienceLabel: 'Summer shoppers 18-55' },
+        { localId: 'demo-as-8', name: 'Outdoor Enthusiasts', dailyBudget: 142850, optimizationGoal: 'REACH', billingEvent: 'IMPRESSIONS', targeting: { geoLocations: { countries: ['US'] }, ageMin: 25, ageMax: 50 }, status: 'ACTIVE', audienceLabel: 'Outdoor enthusiasts' },
+      ],
+      creatives: [
+        { localId: 'demo-cr-6', name: 'Summer Hero', headline: 'Summer Is Here', bodyText: 'Shop the hottest deals of the season', ctaType: 'SHOP_NOW', linkUrl: 'https://example.com/summer', pageId: 'demo-page-1', file: DEMO_FILES.summerHero },
+        { localId: 'demo-cr-7', name: 'Outdoor Collection', headline: 'Adventure Awaits', bodyText: 'Gear up for summer adventures', ctaType: 'LEARN_MORE', linkUrl: 'https://example.com/outdoor', pageId: 'demo-page-1', file: DEMO_FILES.summerOutdoor },
+      ],
+      ads: [
+        { localId: 'demo-ad-7', name: 'Summer Hero - Shoppers', adSetLocalId: 'demo-as-7', creativeLocalId: 'demo-cr-6', status: 'ACTIVE' },
+        { localId: 'demo-ad-8', name: 'Outdoor - Enthusiasts', adSetLocalId: 'demo-as-8', creativeLocalId: 'demo-cr-7', status: 'ACTIVE' },
+      ],
+      facebookPages: [],
+    },
+    platformCampaignId: 'demo-meta-summer',
+    isEditMode: true,
+    programId: 'demo-prog-4',
     channelPlatform: 'meta',
   },
 ];
@@ -379,16 +533,16 @@ function buildDemoPrograms(): PaidMediaProgram[] {
     {
       id: 'demo-prog-3',
       name: 'Product V2 Launch',
-      status: 'ready_to_launch',
+      status: 'launched',
       createdAt: '2026-02-20T08:00:00Z',
       updatedAt: '2026-03-01T16:00:00Z',
-      currentStepId: 3,
-      furthestCompletedStep: 2,
+      currentStepId: 4,
+      furthestCompletedStep: 4,
       steps: [
         { stepId: 1, label: 'Campaign Brief', status: 'completed' },
         { stepId: 2, label: 'Blueprint', status: 'completed' },
-        { stepId: 3, label: 'Campaign Configuration', status: 'in_progress' },
-        { stepId: 4, label: 'Review & Launch', status: 'pending' },
+        { stepId: 3, label: 'Campaign Configuration', status: 'completed' },
+        { stepId: 4, label: 'Review & Launch', status: 'completed' },
       ],
       blueprintIds: ['demo-bp-product'],
       approvedBlueprintId: 'demo-bp-product',
@@ -404,24 +558,25 @@ function buildDemoPrograms(): PaidMediaProgram[] {
     {
       id: 'demo-prog-4',
       name: 'Summer Campaign 2026',
-      status: 'draft',
+      status: 'launched',
       createdAt: '2026-03-05T10:00:00Z',
-      updatedAt: '2026-03-05T10:00:00Z',
-      currentStepId: 1,
-      furthestCompletedStep: 0,
+      updatedAt: '2026-03-05T14:00:00Z',
+      currentStepId: 4,
+      furthestCompletedStep: 4,
       steps: [
-        { stepId: 1, label: 'Campaign Brief', status: 'in_progress' },
-        { stepId: 2, label: 'Blueprint', status: 'pending' },
-        { stepId: 3, label: 'Campaign Configuration', status: 'pending' },
-        { stepId: 4, label: 'Review & Launch', status: 'pending' },
+        { stepId: 1, label: 'Campaign Brief', status: 'completed' },
+        { stepId: 2, label: 'Blueprint', status: 'completed' },
+        { stepId: 3, label: 'Campaign Configuration', status: 'completed' },
+        { stepId: 4, label: 'Review & Launch', status: 'completed' },
       ],
-      blueprintIds: [],
+      blueprintIds: ['demo-bp-summer'],
+      approvedBlueprintId: 'demo-bp-summer',
       channels: [
-        { platform: 'meta', enabled: true, launchConfigIds: [], isConfigured: false },
-        { platform: 'google', enabled: true, launchConfigIds: [], isConfigured: false },
-        { platform: 'tiktok', enabled: true, launchConfigIds: [], isConfigured: false },
+        { platform: 'meta', enabled: true, launchConfigIds: ['demo-4'], isConfigured: true },
+        { platform: 'google', enabled: true, launchConfigIds: [], isConfigured: true },
+        { platform: 'tiktok', enabled: true, launchConfigIds: [], isConfigured: true },
         { platform: 'snapchat', enabled: false, launchConfigIds: [], isConfigured: false },
-        { platform: 'pinterest', enabled: true, launchConfigIds: [], isConfigured: false },
+        { platform: 'pinterest', enabled: true, launchConfigIds: [], isConfigured: true },
       ],
       briefSnapshot: JSON.stringify(DEMO_BRIEF_SUMMER),
     },
@@ -468,6 +623,17 @@ interface ProgramState {
   // Chat
   linkChatSession: (sessionId: string, historyKey?: string) => void;
 
+  // Open program — single entry point for switching to a program
+  openProgram: (programId: string, options?: {
+    targetStep?: ProgramStepId;
+    editBrief?: boolean;
+    skipChatRestore?: boolean;
+  }) => Promise<{
+    program: PaidMediaProgram;
+    targetRoute: '/campaign-chat' | '/campaign-launch';
+    navigationState: Record<string, unknown>;
+  } | null>;
+
   // Internal
   _persist: () => void;
 }
@@ -482,25 +648,22 @@ export const useProgramStore = create<ProgramState>((set, get) => ({
   // ── Load ─────────────────────────────────────────────────────────────────
 
   loadPrograms: () => {
-    // Seed demo programs only if missing (skip redundant writes on every load)
+    // Seed demo programs — insert if missing, update if step data is stale
     const existingPrograms = programStorage.listPrograms();
-    const existingIds = new Set(existingPrograms.map((p) => p.id));
+    const existingById = new Map(existingPrograms.map((p) => [p.id, p]));
     const demos = buildDemoPrograms();
     let seeded = false;
     for (const demo of demos) {
-      if (!existingIds.has(demo.id)) {
-        programStorage.saveProgram(demo);
-        seeded = true;
-      }
+      // Always overwrite demo programs from canonical definition
+      programStorage.saveProgram(demo);
+      if (!existingById.has(demo.id)) seeded = true;
     }
+    // Force reload if any new demos were added
+    if (seeded) { /* will reload below */ }
 
-    // Seed demo launch configs only if missing
-    const existingConfigs = launchConfigStorage.listConfigs();
-    const existingConfigIds = new Set(existingConfigs.map((c) => c.id));
+    // Seed demo launch configs — always overwrite from canonical definition
     for (const config of DEMO_LAUNCH_CONFIGS) {
-      if (!existingConfigIds.has(config.id)) {
-        launchConfigStorage.saveConfig(config);
-      }
+      launchConfigStorage.saveConfig(config);
     }
 
     // Seed demo blueprints via IPC (async, non-blocking)
@@ -659,17 +822,28 @@ export const useProgramStore = create<ProgramState>((set, get) => ({
 
     const now = new Date().toISOString();
 
-    // Mark the target step as in_progress if it's pending
-    const steps = activeProgram.steps.map((s) =>
-      s.stepId === stepId && s.status === 'pending'
-        ? { ...s, status: 'in_progress' as const }
-        : s
-    );
+    // Mark all steps before the target as completed, target as in_progress
+    const steps = activeProgram.steps.map((s) => {
+      if (s.stepId < stepId && s.status !== 'completed') {
+        return { ...s, status: 'completed' as const, completedAt: now };
+      }
+      if (s.stepId === stepId && s.status === 'pending') {
+        return { ...s, status: 'in_progress' as const };
+      }
+      return s;
+    });
+
+    // Update furthestCompletedStep if we're jumping ahead
+    const furthest = Math.max(
+      activeProgram.furthestCompletedStep,
+      stepId - 1,
+    ) as ProgramStepId;
 
     set({
       activeProgram: {
         ...activeProgram,
         currentStepId: stepId,
+        furthestCompletedStep: furthest,
         steps,
         updatedAt: now,
       },
@@ -833,6 +1007,121 @@ export const useProgramStore = create<ProgramState>((set, get) => ({
       },
     });
     get()._persist();
+  },
+
+  // ── Open Program ─────────────────────────────────────────────────────────
+
+  openProgram: async (programId, options) => {
+    const targetStep = options?.targetStep;
+    const editBrief = options?.editBrief ?? false;
+    const skipChatRestore = options?.skipChatRestore ?? false;
+
+    // 1. Chat-safe reset — preserves IPC stream listener
+    resetProgramStores();
+
+    // 2. Load program from storage
+    const program = programStorage.getProgram(programId);
+    if (!program) {
+      console.warn('[ProgramStore] openProgram: program not found:', programId);
+      return null;
+    }
+
+    // 3. Set active program
+    set({ activeProgramId: programId, activeProgram: program });
+
+    // 4. Determine and set target step
+    const step = targetStep ?? (program.currentStepId as ProgramStepId);
+    get().setCurrentStep(step);
+
+    // 5. Hydrate brief data from snapshot (synchronous — first render shows data)
+    const isFresh = !program.briefSnapshot && program.blueprintIds.length === 0;
+    if (program.briefSnapshot) {
+      try {
+        const briefData = JSON.parse(program.briefSnapshot);
+        useBriefEditorStore.getState().setBriefData(briefData);
+      } catch {
+        // Corrupt snapshot — ignore
+      }
+    } else if (isFresh) {
+      // New program — ensure brief editor is clean
+      useBriefEditorStore.getState().setBriefData({
+        campaignDetails: '', brandProduct: '', businessObjective: '',
+        businessObjectiveTags: [], primaryGoals: [], secondaryGoals: [],
+        primaryKpis: [], secondaryKpis: [], inScope: [], outOfScope: [],
+        primaryAudience: [], secondaryAudience: [], mandatoryChannels: [],
+        optionalChannels: [], budgetAmount: '', pacing: '', phases: '',
+        prospectingSegments: [], retargetingSegments: [], suppressionSegments: [],
+        timelineStart: '', timelineEnd: '',
+      });
+    }
+
+    // 6. Hydrate blueprint state
+    // Step 1 always shows the brief editor, not blueprints
+    if (editBrief || step === 1) {
+      // Editing brief / step 1 — clear blueprint flags so brief editor shows
+      useBlueprintStore.getState().setHasGeneratedPlan(false);
+      useBlueprintStore.getState().setApprovedBlueprintId(null);
+      useBlueprintStore.getState().selectBlueprint(null);
+    } else if (program.blueprintIds.length > 0) {
+      // Load blueprints from IPC (async)
+      await useBlueprintStore.getState().loadBlueprints();
+      useBlueprintStore.getState().setHasGeneratedPlan(true);
+      if (program.approvedBlueprintId) {
+        useBlueprintStore.getState().setApprovedBlueprintId(program.approvedBlueprintId);
+        useBlueprintStore.getState().selectBlueprint(program.approvedBlueprintId);
+      }
+    } else {
+      // No blueprints — clear stale plan state
+      useBlueprintStore.getState().setHasGeneratedPlan(false);
+      useBlueprintStore.getState().setApprovedBlueprintId(null);
+      useBlueprintStore.getState().selectBlueprint(null);
+    }
+
+    // 7. Hydrate launch config if step >= 3 and configs exist
+    if (step >= 3) {
+      const enabledWithConfigs = program.channels.find(
+        (ch) => ch.enabled && ch.launchConfigIds.length > 0
+      );
+      if (enabledWithConfigs) {
+        const firstConfigId = enabledWithConfigs.launchConfigIds[0];
+        useCampaignLaunchStore.getState().initFromSavedConfig(firstConfigId);
+      }
+    }
+
+    // 8. Restore chat history (unless caller says skip)
+    if (!skipChatRestore) {
+      const chatKey = program.chatHistoryKey || `program-chat:${program.id}`;
+      const launchKey = `program-launch:${program.id}`;
+
+      if (program.id.startsWith('demo-prog-') && program.briefSnapshot) {
+        // Demo programs: always regenerate from builder to pick up code changes
+        try {
+          const briefData = JSON.parse(program.briefSnapshot);
+          const demoMessages = buildDemoChatHistory(program, briefData);
+          useChatStore.getState().loadMessages(demoMessages);
+          chatHistoryStorage.saveMessages(chatKey, demoMessages as any);
+          chatHistoryStorage.saveMessages(launchKey, demoMessages as any);
+        } catch {
+          // Corrupt snapshot
+        }
+      } else {
+        // User programs: restore from storage
+        const savedMessages = chatHistoryStorage.getMessages(chatKey).length > 0
+          ? chatHistoryStorage.getMessages(chatKey)
+          : chatHistoryStorage.getMessages(launchKey);
+        if (savedMessages.length > 0) {
+          useChatStore.getState().loadMessages(savedMessages);
+        }
+      }
+    }
+
+    // 10. Determine target route and return navigation info
+    const effectiveStep = targetStep ?? step;
+    const targetRoute = effectiveStep <= 2 ? '/campaign-chat' as const : '/campaign-launch' as const;
+    const navigationState: Record<string, unknown> = { programId: program.id };
+    if (editBrief) navigationState.editBrief = true;
+
+    return { program, targetRoute, navigationState };
   },
 
   // ── Internal ─────────────────────────────────────────────────────────────
