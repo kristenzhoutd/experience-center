@@ -22,6 +22,7 @@ import { useBriefEditorStore } from './briefEditorStore';
 import { useBlueprintStore } from './blueprintStore';
 import { useCampaignLaunchStore } from './campaignLaunchStore';
 import { useChatStore } from './chatStore';
+import { normalizeForEditor } from '../utils/normalizeBrief';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -52,6 +53,11 @@ function defaultChannels(): ProgramChannelConfig[] {
 function deriveProgramName(snapshotJson: string): string | undefined {
   try {
     const data = JSON.parse(snapshotJson) as Record<string, unknown>;
+    // Check for dedicated programName first
+    if (typeof data.programName === 'string' && data.programName.trim()) {
+      return data.programName.trim().slice(0, 80);
+    }
+    // Then fall back to existing campaignDetails logic
     const cd = data.campaignDetails;
     if (typeof cd === 'object' && cd !== null && 'campaignName' in cd) {
       const name = (cd as Record<string, string>).campaignName;
@@ -1038,7 +1044,10 @@ export const useProgramStore = create<ProgramState>((set, get) => ({
     if (program.briefSnapshot) {
       try {
         const briefData = JSON.parse(program.briefSnapshot);
-        useBriefEditorStore.getState().setBriefData(briefData);
+        // Normalize legacy snapshots that may contain raw AI output (objects where
+        // the editor expects strings). New snapshots are already normalized.
+        const normalized = normalizeForEditor(briefData) as any;
+        useBriefEditorStore.getState().setBriefData(normalized);
       } catch {
         // Corrupt snapshot — ignore
       }
@@ -1065,6 +1074,9 @@ export const useProgramStore = create<ProgramState>((set, get) => ({
     } else if (program.blueprintIds.length > 0) {
       // Load blueprints from IPC (async)
       await useBlueprintStore.getState().loadBlueprints();
+      // Guard: only apply blueprint state if this program is still active
+      // (user may have switched programs during the async IPC call)
+      if (get().activeProgramId !== programId) return null;
       useBlueprintStore.getState().setHasGeneratedPlan(true);
       if (program.approvedBlueprintId) {
         useBlueprintStore.getState().setApprovedBlueprintId(program.approvedBlueprintId);

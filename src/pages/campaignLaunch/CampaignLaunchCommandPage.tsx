@@ -351,7 +351,7 @@ export default function CampaignLaunchCommandPage() {
                 : 'Review Campaign'}
           </h1>
           <p className="text-sm text-[#464B55] m-0 mt-0.5">
-            {showSkeleton ? 'AI is building your Meta ad hierarchy' : config.campaign.name}
+            {showSkeleton ? 'AI is building your Campaign hierarchy' : config.campaign.name}
           </p>
         </div>
         <VariationSwitcher />

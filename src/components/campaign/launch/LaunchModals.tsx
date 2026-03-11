@@ -4,6 +4,7 @@
 
 import { AlertTriangle, Check, ChevronDown, HelpCircle, Loader2, Sparkles } from 'lucide-react';
 import LaunchProgressModal from './LaunchProgressModal';
+import DAMAssetBrowser from './DAMAssetBrowser';
 import type { CampaignLaunchPageState } from '../../../hooks/useCampaignLaunchPageState';
 
 interface Props {
@@ -401,6 +402,9 @@ export default function LaunchModals({ state }: Props) {
           Configuration saved
         </div>
       )}
+
+      {/* DAM Asset Browser */}
+      <DAMAssetBrowser />
     </>
   );
 }

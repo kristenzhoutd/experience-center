@@ -64,6 +64,6 @@ export const selectStyle = {
 
 export const inputClass = 'w-full px-3 py-2.5 border border-[#E8ECF3] rounded-lg text-sm text-gray-900 outline-none focus:border-[#1877F2] focus:ring-2 focus:ring-[#1877F2]/10 transition-all bg-white';
 export const selectClass = `${inputClass} cursor-pointer appearance-none`;
-export const labelClass = 'block text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5';
+export const labelClass = 'block text-[13px] font-medium text-gray-500 mb-1.5';
 
 export type PlatformTab = 'meta' | 'google' | 'tiktok' | 'snapchat' | 'pinterest';

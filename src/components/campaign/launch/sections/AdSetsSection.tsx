@@ -19,8 +19,8 @@ export default function AdSetsSection({ state }: Props) {
   const { config, updateAdSet, addAdSet, removeAdSet } = state;
 
   return (
-    <section id="section-adSets" className="bg-white rounded-xl shadow-sm overflow-hidden">
-      <div className="px-6 py-4 border-b border-[#E8ECF3] flex items-center justify-between">
+    <section id="section-adSets" className="w-full">
+      <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold text-gray-900 m-0 uppercase tracking-wide">
           Ad Sets ({config.adSets.length})
         </h2>
@@ -34,9 +34,9 @@ export default function AdSetsSection({ state }: Props) {
           Add Ad Set
         </button>
       </div>
-      <div className="divide-y divide-[#E8ECF3]">
+      <div className="flex flex-col gap-3">
         {config.adSets.map((adSet) => (
-          <div key={adSet.localId} className="px-6 py-5">
+          <div key={adSet.localId} className="bg-white rounded-xl shadow-sm px-6 py-5">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-gray-400 uppercase">{adSet.audienceLabel}</span>

@@ -211,7 +211,7 @@ export function useCampaignLaunchPageState() {
       if (!program.chatHistoryKey) {
         useProgramStore.getState().linkChatSession(program.chatSessionId || '', historyKey);
       }
-    }, 500);
+    }, 1000);
     return () => clearTimeout(timer);
   }, [storeMessages, isStreaming]);
 
@@ -242,13 +242,13 @@ export function useCampaignLaunchPageState() {
     prevInit.current = isInitialized;
   }, [isInitialized]);
 
-  // Debounced auto-save on config changes (2s)
+  // Debounced auto-save on config changes (1s)
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const debouncedSave = useCallback(() => {
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     autoSaveTimerRef.current = setTimeout(() => {
       saveCurrentConfig();
-    }, 2000);
+    }, 1000);
   }, [saveCurrentConfig]);
 
   useEffect(() => {

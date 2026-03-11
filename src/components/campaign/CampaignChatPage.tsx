@@ -96,7 +96,6 @@ function RightPanel({
     briefData.primaryGoals.length > 0 ||
     briefData.mandatoryChannels.length > 0
   );
-
   // When workflow transitions from 'generating' back to 'editing', blueprints are ready
   const prevWorkflow = React.useRef(workflowState);
   React.useEffect(() => {
@@ -220,7 +219,7 @@ function RightPanel({
     return (
       <ErrorBoundary>
         <Suspense fallback={suspenseFallback}>
-          <div className="flex flex-col h-full bg-[#F7F8FB] rounded-2xl overflow-y-auto">
+          <div className="flex flex-col h-full overflow-y-auto">
             <CampaignBriefEditorPanel onGeneratePlan={onGeneratePlan} />
           </div>
         </Suspense>
@@ -236,7 +235,7 @@ function RightPanel({
     return (
       <ErrorBoundary>
         <Suspense fallback={suspenseFallback}>
-          <div className="flex flex-col h-full bg-[#F7F8FB] rounded-2xl overflow-y-auto">
+          <div className="flex flex-col h-full overflow-y-auto">
             <BlueprintDetailView
               blueprint={blueprint}
               onClose={() => { useBlueprintStore.getState().setHasGeneratedPlan(false); selectBlueprint(null); }}
@@ -299,7 +298,7 @@ function RightPanel({
 
   // Placeholder
   return (
-    <div className="flex flex-col h-full bg-gray-50 border-l border-gray-200">
+    <div className="flex flex-col h-full bg-[#F5F7FA] rounded-xl">
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="text-center max-w-xs">
           <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-4">
@@ -796,7 +795,7 @@ const CampaignChatPage = () => {
     if (storeMessages.length > 0 && !isStreaming) {
       const timer = setTimeout(() => {
         updateCurrentSession(storeMessages);
-      }, 500);
+      }, 1000);
       return () => clearTimeout(timer);
     }
   }, [storeMessages, isStreaming, updateCurrentSession]);
@@ -810,13 +809,18 @@ const CampaignChatPage = () => {
     if (storeMessages.length === 0 || isStreaming) return;
     const program = useProgramStore.getState().activeProgram;
     if (!program) return;
-    const historyKey = program.chatHistoryKey || `program-chat:${program.id}`;
+    // Capture program id to prevent cross-program contamination if the active
+    // program changes during the debounce window.
+    const programId = program.id;
+    const historyKey = program.chatHistoryKey || `program-chat:${programId}`;
     const timer = setTimeout(() => {
       chatHistoryStorage.saveMessages(historyKey, storeMessages);
-      if (!program.chatHistoryKey) {
-        useProgramStore.getState().linkChatSession(program.chatSessionId || '', historyKey);
+      // Only link if this is still the active program
+      const current = useProgramStore.getState().activeProgram;
+      if (current?.id === programId && !current.chatHistoryKey) {
+        useProgramStore.getState().linkChatSession(current.chatSessionId || '', historyKey);
       }
-    }, 500);
+    }, 1000);
     return () => clearTimeout(timer);
   }, [storeMessages, isStreaming]);
 
@@ -832,6 +836,48 @@ const CampaignChatPage = () => {
       if (!program.chatHistoryKey) {
         useProgramStore.getState().linkChatSession(program.chatSessionId || '', historyKey);
       }
+    };
+  }, []);
+
+  // ---- Auto-save brief data to active program ----
+
+  const briefEditorData = useBriefEditorStore((s) => s.state.briefData);
+  const latestBriefRef = useRef(briefEditorData);
+  useEffect(() => { latestBriefRef.current = briefEditorData; }, [briefEditorData]);
+
+  useEffect(() => {
+    if (!briefEditorData || isStreaming) return;
+    const program = useProgramStore.getState().activeProgram;
+    if (!program || program.id.startsWith('demo-prog-')) return;
+    // Only save when there's meaningful data
+    const hasMeaningfulData = briefEditorData.campaignDetails ||
+      briefEditorData.businessObjective ||
+      briefEditorData.primaryGoals.length > 0 ||
+      briefEditorData.mandatoryChannels.length > 0;
+    if (!hasMeaningfulData) return;
+    const programId = program.id;
+    const timer = setTimeout(() => {
+      const current = useProgramStore.getState().activeProgram;
+      if (current?.id === programId) {
+        useProgramStore.getState().saveBriefSnapshot(briefEditorData);
+      }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [briefEditorData, isStreaming]);
+
+  // Flush brief data on unmount
+  useEffect(() => {
+    return () => {
+      const data = latestBriefRef.current;
+      if (!data) return;
+      const program = useProgramStore.getState().activeProgram;
+      if (!program || program.id.startsWith('demo-prog-')) return;
+      const hasMeaningfulData = data.campaignDetails ||
+        data.businessObjective ||
+        data.primaryGoals.length > 0 ||
+        data.mandatoryChannels.length > 0;
+      if (!hasMeaningfulData) return;
+      useProgramStore.getState().saveBriefSnapshot(data);
     };
   }, []);
 
@@ -1353,7 +1399,7 @@ ${sections}`;
             onToggleCollapse={() => setIsChatCollapsed(prev => !prev)}
           >
             {/* Left Panel - Chat */}
-            <div className="flex flex-col h-full bg-white">
+            <div className="flex flex-col h-full bg-white relative">
               {/* Chat Utility Buttons */}
               <div className="flex items-center justify-end px-4 pt-3 shrink-0">
                 <div className="flex items-center gap-1.5">
@@ -1405,6 +1451,10 @@ ${sections}`;
                 ref={messagesContainerRef}
                 onScroll={handleMessagesScroll}
                 className="flex-1 overflow-y-auto"
+                style={{
+                  maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.3), black 20px, black calc(100% - 20px), rgba(0,0,0,0.3))',
+                  WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.3), black 20px, black calc(100% - 20px), rgba(0,0,0,0.3))',
+                }}
               >
                 {isLoadingHistory ? (
                   <div className="flex-1 flex items-center justify-center">
@@ -1442,26 +1492,16 @@ ${sections}`;
                 )}
               </div>
 
-              {/* Scroll Buttons */}
-              {showScrollTop && (
-                <button
-                  onClick={handleScrollToTop}
-                  className="absolute top-20 right-4 w-8 h-8 rounded-full bg-white border border-gray-200 shadow-md flex items-center justify-center cursor-pointer hover:bg-gray-50 z-10"
-                >
-                  <ChevronUp className="w-4 h-4 text-gray-500" />
-                </button>
-              )}
-              {showScrollBottom && (
-                <button
-                  onClick={handleScrollToBottom}
-                  className="absolute bottom-24 right-4 w-8 h-8 rounded-full bg-white border border-gray-200 shadow-md flex items-center justify-center cursor-pointer hover:bg-gray-50 z-10"
-                >
-                  <ChevronDown className="w-4 h-4 text-gray-500" />
-                </button>
-              )}
-
               {/* Input Area */}
-              <div className="p-4 shrink-0">
+              <div className="p-4 shrink-0 relative">
+                {showScrollBottom && (
+                  <button
+                    onClick={handleScrollToBottom}
+                    className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-white border border-gray-200 shadow-md flex items-center justify-center cursor-pointer hover:bg-gray-50 z-10"
+                  >
+                    <ChevronDown className="w-4 h-4 text-gray-500" />
+                  </button>
+                )}
                 <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                   {/* Attached Files */}
                   {attachedFiles.length > 0 && (
@@ -1570,7 +1610,7 @@ ${sections}`;
             </div>
 
             {/* Right Panel - Stepper + Brief Editor / Blueprint / Placeholder */}
-            <div className="flex flex-col h-full overflow-hidden p-4">
+            <div className="flex flex-col h-full overflow-hidden px-4 pb-4 pt-2">
               <PaidMediaStepper />
               <RightPanel
                 isStreaming={isStreaming}

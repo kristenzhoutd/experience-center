@@ -21,7 +21,7 @@ interface WizardStepperProps {
 
 export default function WizardStepper({ currentStep, onStepClick, steps = DEFAULT_STEPS, stepStatuses, maxClickableStep }: WizardStepperProps) {
   return (
-    <div className="px-4 py-3 bg-white">
+    <div className="px-4 pt-2 pb-3 bg-white">
       <div className="flex items-center justify-center gap-2">
         {steps.map((step, idx) => {
           const isActive = currentStep === step.id;
@@ -51,16 +51,16 @@ export default function WizardStepper({ currentStep, onStepClick, steps = DEFAUL
               >
                 <span
                   className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium transition-transform ${
-                    isActive
-                      ? 'bg-black text-white'
-                      : isCompleted
-                        ? `bg-green-500 text-white ${isClickable ? 'group-hover:scale-110' : ''}`
+                    isCompleted
+                      ? 'bg-[#34D399] text-white'
+                      : isActive
+                        ? 'bg-black text-white'
                         : 'bg-black/5 text-black'
                   }`}
                 >
                   {isCompleted ? (
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                     </svg>
                   ) : (
                     step.id
@@ -79,7 +79,7 @@ export default function WizardStepper({ currentStep, onStepClick, steps = DEFAUL
                 </span>
               </button>
               {idx < steps.length - 1 && (
-                <svg className={`w-4 h-4 mx-1 flex-shrink-0 ${isCompleted ? 'text-green-400' : 'text-gray-300'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 mx-1 flex-shrink-0 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               )}

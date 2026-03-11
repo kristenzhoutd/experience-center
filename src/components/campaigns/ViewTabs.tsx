@@ -47,35 +47,26 @@ export default function ViewTabs({ activeTab, onTabChange, campaignView, onCampa
   return (
     <div className="flex items-center justify-between">
       {/* Main Tabs - Left */}
-      <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-200 p-1">
+      <div className="flex items-center gap-1">
         <button
           onClick={() => onTabChange('programs')}
-          className={`
-            flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer border-none
-            ${
-              activeTab === 'programs'
-                ? 'bg-gray-900 text-white shadow-sm'
-                : 'bg-transparent text-gray-600 hover:bg-gray-50'
-            }
-          `}
+          className={`px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer rounded-lg ${
+            activeTab === 'programs'
+              ? 'bg-blue-50 text-blue-600'
+              : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+          }`}
         >
-          <FolderKanban className="w-4 h-4" />
-          <span>Programs</span>
+          Programs
         </button>
-
         <button
           onClick={() => onTabChange('campaigns')}
-          className={`
-            flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer border-none
-            ${
-              activeTab === 'campaigns'
-                ? 'bg-gray-900 text-white shadow-sm'
-                : 'bg-transparent text-gray-600 hover:bg-gray-50'
-            }
-          `}
+          className={`px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer rounded-lg ${
+            activeTab === 'campaigns'
+              ? 'bg-blue-50 text-blue-600'
+              : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+          }`}
         >
-          <LayoutGrid className="w-4 h-4" />
-          <span>Campaigns</span>
+          Campaigns
         </button>
       </div>
 

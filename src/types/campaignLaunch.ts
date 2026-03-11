@@ -24,6 +24,10 @@ export interface CreativeFile {
   previewUrl: string;
   /** Hash returned by Meta after upload */
   imageHash?: string;
+  /** DAM asset ID if sourced from a DAM provider */
+  damAssetId?: string;
+  /** DAM provider name if sourced from a DAM */
+  damProvider?: 'aem' | 'bynder';
 }
 
 // ── Campaign ─────────────────────────────────────────────────────────────────

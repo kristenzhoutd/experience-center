@@ -50,6 +50,7 @@ use an empty string `""` or empty array `[]` when no value can be inferred.
 
 ```jsonc
 {
+  "programName": "string — concise program name (max 40 chars). AI-generated unless the user explicitly provides one.",
   "campaignDetails": {
     "campaignName": "string — descriptive campaign name (max 80 chars)",
     "campaignType": "Awareness | Consideration | Conversion | Retention | Full-Funnel",
@@ -115,6 +116,12 @@ use an empty string `""` or empty array `[]` when no value can be inferred.
 ## Extraction Guidelines
 
 Follow these rules when populating the brief from the user's message:
+
+### Program Name
+- If the user explicitly states a program name (e.g., "call it Summer Push"), use that exactly.
+- Otherwise, generate a short, descriptive name (max 40 chars) from the brand/product + objective.
+- Should be shorter and more scannable than `campaignName` (e.g., "Summer Shoes Launch" not "Summer Shoe Collection — Google + Meta Conversion Campaign").
+- Avoid generic names like "New Campaign", "Campaign 1", or leading verbs ("Create...", "Plan...").
 
 ### Campaign Details
 - **campaignName**: Derive from the product, event, or objective. Use a clear,
@@ -237,6 +244,7 @@ application will extract only the JSON block.
 
 ```campaign-brief-json
 {
+  "programName": "Summer Shoes Launch",
   "campaignDetails": {
     "campaignName": "Summer Shoe Collection — Google + Meta Conversion Campaign",
     "campaignType": "Conversion",
@@ -324,6 +332,7 @@ If the user insists on a brief without details, generate with reasonable B2B Saa
 
 ```campaign-brief-json
 {
+  "programName": "SaaS Product Launch",
   "campaignDetails": {
     "campaignName": "SaaS Product Launch — Google + LinkedIn Campaign",
     "campaignType": "Conversion",
@@ -386,6 +395,7 @@ If the user insists on a brief without details, generate with reasonable B2B Saa
 
 ```campaign-brief-json
 {
+  "programName": "Electronics Full-Funnel",
   "campaignDetails": {
     "campaignName": "Electronics Full-Funnel Campaign — US Market",
     "campaignType": "Full-Funnel",

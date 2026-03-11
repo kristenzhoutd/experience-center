@@ -176,8 +176,8 @@ const generateOutcomes = (blueprint: Blueprint) => {
   };
 };
 
-// Section Actions toolbar
-function SectionActions({ sectionName, onChat, onAIEdit, onEdit, isEditing, isAILoading }: {
+// Section Actions — sparkle edit button (absolute top-right corner of card)
+function SectionActions({ sectionName, onAIEdit, isAILoading }: {
   sectionName: string;
   onChat?: (question: string) => void;
   onAIEdit?: () => void;
@@ -186,53 +186,22 @@ function SectionActions({ sectionName, onChat, onAIEdit, onEdit, isEditing, isAI
   isAILoading?: boolean;
 }) {
   return (
-    <div className="bg-white border border-[#EFF2F8] rounded-xl shadow-sm flex items-center px-4 py-2.5 gap-4 overflow-hidden">
-      <button
-        onClick={() => onChat?.(`Why did you choose this ${sectionName.toLowerCase()} approach?`)}
-        className="bg-transparent border-none px-2 py-2 text-base font-normal text-[#212327] cursor-pointer whitespace-nowrap rounded-lg transition-colors duration-200 hover:text-[#3B6FD4]"
-      >
-        Why this?
-      </button>
-      <div className="w-px h-8 bg-[#DCE1EA] flex-shrink-0" />
-      <button
-        onClick={() => onChat?.(`Tell me more about the ${sectionName.toLowerCase()} section`)}
-        className="w-8 h-8 p-0 bg-white border-none rounded-lg cursor-pointer flex items-center justify-center text-[#212327] flex-shrink-0 transition-all duration-200 hover:text-[#3B6FD4] hover:bg-gray-100"
-        title="Ask AI about this section"
-      >
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <path d="M17.5 9.58C17.5 10.68 17.25 11.77 16.75 12.75C16.16 13.93 15.26 14.92 14.14 15.61C13.02 16.3 11.73 16.67 10.42 16.67C9.32 16.67 8.23 16.41 7.25 15.92L2.5 17.5L4.08 12.75C3.59 11.77 3.33 10.68 3.33 9.58C3.33 8.27 3.7 6.98 4.39 5.86C5.08 4.74 6.07 3.84 7.25 3.25C8.23 2.75 9.32 2.5 10.42 2.5H10.83C12.57 2.6 14.21 3.33 15.44 4.56C16.67 5.79 17.4 7.43 17.5 9.17V9.58Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <button
+      onClick={onAIEdit}
+      disabled={isAILoading}
+      className={`absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors cursor-pointer bg-white z-10 ${
+        isAILoading ? 'border-blue-300 bg-blue-50' : ''
+      }`}
+      title={`AI edit ${sectionName}`}
+    >
+      {isAILoading ? (
+        <div className="w-3.5 h-3.5 border-2 border-gray-200 border-t-[#3B6FD4] rounded-full animate-spin" />
+      ) : (
+        <svg className="w-3.5 h-3.5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+          <path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6Z" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-      </button>
-      <div className="w-px h-8 bg-[#DCE1EA] flex-shrink-0" />
-      <button
-        onClick={onAIEdit}
-        disabled={isAILoading}
-        className={`w-8 h-8 p-0 bg-white border-none rounded-lg cursor-pointer flex items-center justify-center text-[#212327] flex-shrink-0 transition-all duration-200 hover:text-[#3B6FD4] hover:bg-gray-100 ${
-          isAILoading ? 'text-[#3B6FD4] bg-[#EEF2FF]' : ''
-        }`}
-        title="AI Edit"
-      >
-        {isAILoading ? (
-          <div className="w-4 h-4 border-2 border-gray-200 border-t-[#3B6FD4] rounded-full animate-spin" />
-        ) : (
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="M14.167 2.5L17.5 5.833L6.667 16.667H3.333V13.333L14.167 2.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M12 5L15 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        )}
-      </button>
-      <button
-        onClick={onEdit}
-        className={`w-8 h-8 p-0 bg-white border-none rounded-lg cursor-pointer flex items-center justify-center text-[#212327] flex-shrink-0 transition-all duration-200 hover:text-[#3B6FD4] hover:bg-gray-100 ${
-          isEditing ? 'text-[#3B6FD4] bg-[#EEF2FF]' : ''
-        }`}
-        title={isEditing ? 'Stop editing' : 'Edit'}
-      >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-          <path d="M11.333 2L14 4.667L5.333 13.333H2.667V10.667L11.333 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </button>
-    </div>
+      )}
+    </button>
   );
 }
 
@@ -977,13 +946,13 @@ export const BlueprintDetailView: React.FC<BlueprintDetailViewProps> = ({
   const hasBudget = budgetNum > 0;
 
   return (
-    <div className="flex flex-col h-full bg-[#F5F7FA] overflow-y-auto rounded-xl">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-[#E8ECF3] rounded-t-xl flex-shrink-0">
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Header — outside the gray canvas */}
+      <div className="flex items-center justify-between px-4 py-3 flex-shrink-0">
         {/* Left - Program Name */}
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-sm text-[#636A77] flex-shrink-0">Program:</span>
-          <span className="text-sm font-semibold text-[#212327] truncate">{briefData?.campaignDetails || local.name}</span>
+        <div className="flex flex-col min-w-0">
+          <span className="text-[10px] font-medium uppercase tracking-wider text-[#9CA3AF]">Program</span>
+          <span className="text-base font-semibold text-[#212327] truncate">{briefData?.campaignDetails || local.name}</span>
         </div>
 
         {/* Right - Undo/Redo + Primary Action */}
@@ -1022,6 +991,8 @@ export const BlueprintDetailView: React.FC<BlueprintDetailViewProps> = ({
         </div>
       </div>
 
+      {/* Gray canvas */}
+      <div className="flex-1 overflow-y-auto bg-[#F5F7FA] rounded-xl mx-3 mb-3">
       {/* Main Content */}
       <div className="grid gap-5 p-5" style={{ gridTemplateColumns: '240px 1fr' }}>
         {/* Left Sidebar */}
@@ -1035,7 +1006,7 @@ export const BlueprintDetailView: React.FC<BlueprintDetailViewProps> = ({
           )}
 
           {/* Confidence Score */}
-          <div className={`bg-white rounded-xl p-5 shadow-sm transition-opacity duration-300 ${isRecalculating ? 'opacity-50 mt-12' : ''}`}>
+          <div className={`bg-white rounded-xl px-5 py-4 shadow-sm relative transition-opacity duration-300 ${isRecalculating ? 'opacity-50 mt-12' : ''}`}>
             <div className="flex items-center gap-4 mb-4">
               <div className="relative w-[60px] h-[60px]">
                 <svg viewBox="0 0 36 36" className="w-[60px] h-[60px] -rotate-90">
@@ -1069,7 +1040,7 @@ export const BlueprintDetailView: React.FC<BlueprintDetailViewProps> = ({
           </div>
 
           {/* Blueprint Health */}
-          <div className="bg-white rounded-xl p-5 shadow-sm">
+          <div className="bg-white rounded-xl px-5 py-4 shadow-sm relative">
             <div className="text-[13px] font-semibold text-gray-900 mb-3">Blueprint Health</div>
             <div className="flex flex-col gap-2">
               {[
@@ -1091,20 +1062,16 @@ export const BlueprintDetailView: React.FC<BlueprintDetailViewProps> = ({
         {/* Main Content Area */}
         <div className="flex flex-col gap-6">
           {/* Overview Section */}
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <div className="flex justify-between items-center mb-5">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 m-0">Overview</h2>
-              </div>
-              <SectionActions
-                sectionName="Overview"
-                onChat={handleSectionChat}
-                onAIEdit={() => handleSectionAIEdit('Overview')}
-                onEdit={() => handleSectionEdit('Overview')}
-                isEditing={editingSection === 'Overview'}
-                isAILoading={aiLoadingSection === 'Overview'}
-              />
-            </div>
+          <div className="bg-white rounded-xl px-5 py-4 shadow-sm relative">
+            <SectionActions
+              sectionName="Overview"
+              onChat={handleSectionChat}
+              onAIEdit={() => handleSectionAIEdit('Overview')}
+              onEdit={() => handleSectionEdit('Overview')}
+              isEditing={editingSection === 'Overview'}
+              isAILoading={aiLoadingSection === 'Overview'}
+            />
+            <h2 className="text-sm font-semibold text-gray-900 m-0 pb-3 mb-4 border-b border-gray-100 -mx-5 px-5">Overview</h2>
 
             {/* Campaign snapshot bar — 3 columns */}
             <div className="flex gap-0 mb-6 bg-gray-50 rounded-[10px] overflow-hidden border border-[#F0F1F3]">
@@ -1146,7 +1113,7 @@ export const BlueprintDetailView: React.FC<BlueprintDetailViewProps> = ({
               {/* Left: Objective & KPIs */}
               <div className="flex flex-col gap-6">
                 <div>
-                  <h3 className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide m-0 mb-2.5">Primary Objective</h3>
+                  <h3 className="text-[13px] font-semibold text-gray-700 m-0 mb-2.5">Primary Objective</h3>
                   {editingSection === 'Overview' ? (
                     <textarea
                       value={editDraft.description ?? formatMessaging(local.messaging) ?? ''}
@@ -1163,7 +1130,7 @@ export const BlueprintDetailView: React.FC<BlueprintDetailViewProps> = ({
                   )}
                 </div>
                 <div>
-                  <h3 className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide m-0 mb-3">Key Performance Indicators</h3>
+                  <h3 className="text-[13px] font-semibold text-gray-700 m-0 mb-3">Key Performance Indicators</h3>
                   <div className="flex flex-col gap-2.5">
                     {/* Northstar KPI */}
                     <div className="flex items-center gap-2.5">
@@ -1188,7 +1155,7 @@ export const BlueprintDetailView: React.FC<BlueprintDetailViewProps> = ({
               {/* Right: Attribution & Success */}
               <div className="flex flex-col gap-6">
                 <div>
-                  <h3 className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide m-0 mb-2.5">Attribution Window</h3>
+                  <h3 className="text-[13px] font-semibold text-gray-700 m-0 mb-2.5">Attribution Window</h3>
                   <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg border border-[#F0F1F3]">
                     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="flex-shrink-0">
                       <circle cx="9" cy="9" r="7" stroke="#3B6FD4" strokeWidth="1.4"/>
@@ -1201,7 +1168,7 @@ export const BlueprintDetailView: React.FC<BlueprintDetailViewProps> = ({
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide m-0 mb-3">What success looks like</h3>
+                  <h3 className="text-[13px] font-semibold text-gray-700 m-0 mb-3">What success looks like</h3>
                   <div className="flex flex-col gap-2.5">
                     {(() => {
                       const goals = [...(briefData?.primaryGoals || []), ...(briefData?.secondaryGoals || [])];
@@ -1234,21 +1201,16 @@ export const BlueprintDetailView: React.FC<BlueprintDetailViewProps> = ({
           </div>
 
           {/* Media Mix Section */}
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <div className="flex justify-between items-center mb-2">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 m-0">Media Mix</h2>
-                <p className="text-sm text-[#464B55] m-0 mt-1">Channels, formats, and execution considerations</p>
-              </div>
-              <SectionActions
-                sectionName="Media Mix"
-                onChat={handleSectionChat}
-                onAIEdit={() => handleSectionAIEdit('Media Mix')}
-                onEdit={() => handleSectionEdit('Media Mix')}
-                isEditing={editingSection === 'Media Mix'}
-                isAILoading={aiLoadingSection === 'Media Mix'}
-              />
-            </div>
+          <div className="bg-white rounded-xl px-5 py-4 shadow-sm relative">
+            <SectionActions
+              sectionName="Media Mix"
+              onChat={handleSectionChat}
+              onAIEdit={() => handleSectionAIEdit('Media Mix')}
+              onEdit={() => handleSectionEdit('Media Mix')}
+              isEditing={editingSection === 'Media Mix'}
+              isAILoading={aiLoadingSection === 'Media Mix'}
+            />
+            <h2 className="text-sm font-semibold text-gray-900 m-0 pb-3 mb-4 border-b border-gray-100 -mx-5 px-5">Media Mix</h2>
 
             {/* Table header */}
             <div className="flex items-center gap-4 py-2 mt-4 border-b border-gray-200 text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
@@ -1332,22 +1294,17 @@ export const BlueprintDetailView: React.FC<BlueprintDetailViewProps> = ({
             </div>
           </div>
 
-          {/* Who we're targeting Section */}
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <div className="flex justify-between items-center mb-2">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 m-0">Who we're targeting</h2>
-                <p className="text-sm text-[#464B55] m-0 mt-1">Priority audiences, intent signals, and reach assumptions</p>
-              </div>
-              <SectionActions
-                sectionName="Targeting"
-                onChat={handleSectionChat}
-                onAIEdit={() => handleSectionAIEdit('Targeting')}
-                onEdit={() => handleSectionEdit('Targeting')}
-                isEditing={editingSection === 'Targeting'}
-                isAILoading={aiLoadingSection === 'Targeting'}
-              />
-            </div>
+          {/* Audience Section */}
+          <div className="bg-white rounded-xl px-5 py-4 shadow-sm relative">
+            <SectionActions
+              sectionName="Targeting"
+              onChat={handleSectionChat}
+              onAIEdit={() => handleSectionAIEdit('Targeting')}
+              onEdit={() => handleSectionEdit('Targeting')}
+              isEditing={editingSection === 'Targeting'}
+              isAILoading={aiLoadingSection === 'Targeting'}
+            />
+            <h2 className="text-sm font-semibold text-gray-900 m-0 pb-3 mb-4 border-b border-gray-100 -mx-5 px-5">Audience</h2>
 
             {/* Audience cards */}
             <div className="grid grid-cols-2 gap-4 mt-6">
@@ -1445,21 +1402,16 @@ export const BlueprintDetailView: React.FC<BlueprintDetailViewProps> = ({
           </div>
 
           {/* Creative Brief Section */}
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <div className="flex justify-between items-center mb-2">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 m-0">Creative Brief</h2>
-                <p className="text-sm text-[#464B55] m-0 mt-1">Messaging direction, formats, and execution considerations</p>
-              </div>
-              <SectionActions
-                sectionName="Creative Brief"
-                onChat={handleSectionChat}
-                onAIEdit={() => handleSectionAIEdit('Creative Brief')}
-                onEdit={() => handleSectionEdit('Creative Brief')}
-                isEditing={editingSection === 'Creative Brief'}
-                isAILoading={aiLoadingSection === 'Creative Brief'}
-              />
-            </div>
+          <div className="bg-white rounded-xl px-5 py-4 shadow-sm relative">
+            <SectionActions
+              sectionName="Creative Brief"
+              onChat={handleSectionChat}
+              onAIEdit={() => handleSectionAIEdit('Creative Brief')}
+              onEdit={() => handleSectionEdit('Creative Brief')}
+              isEditing={editingSection === 'Creative Brief'}
+              isAILoading={aiLoadingSection === 'Creative Brief'}
+            />
+            <h2 className="text-sm font-semibold text-gray-900 m-0 pb-3 mb-4 border-b border-gray-100 -mx-5 px-5">Creative Brief</h2>
 
             <div className="flex flex-col gap-6 mt-6">
               {/* Two-column: Primary Angle + Supporting Messages | Recommended Formats */}
@@ -1594,9 +1546,9 @@ export const BlueprintDetailView: React.FC<BlueprintDetailViewProps> = ({
           </div>
 
           {/* Timeline Section */}
-          <div className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="bg-white rounded-xl px-5 py-4 shadow-sm relative">
             <div className="mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 m-0">Timeline</h2>
+              <h2 className="text-sm font-semibold text-gray-900 m-0 pb-3 mb-4 border-b border-gray-100 -mx-5 px-5">Timeline</h2>
               <div className="flex items-center gap-2 mt-2">
                 <span className="text-sm font-medium text-[#212327]">Estimated Time to Launch:</span>
                 <span className="text-sm text-[#464B55]">7-10 business days</span>
@@ -1657,6 +1609,7 @@ export const BlueprintDetailView: React.FC<BlueprintDetailViewProps> = ({
       )}
 
       {/* Launch flow now handled via /campaign-launch route */}
+      </div>
     </div>
   );
 };

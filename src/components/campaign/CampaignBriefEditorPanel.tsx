@@ -53,21 +53,24 @@ export default function CampaignBriefEditorPanel({ onGeneratePlan }: CampaignBri
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#F7F8FB] overflow-hidden relative isolate">
-      {/* Toolbar */}
+    <div className="flex flex-col h-full overflow-hidden relative isolate">
+      {/* Toolbar — outside the gray canvas */}
       <EditorToolbar onGeneratePlan={onGeneratePlan} />
 
-      {/* White content card with scrollable sections */}
-      <div className="flex-1 overflow-y-auto flex justify-center p-4">
-        <div className="w-full max-w-[676px] bg-white rounded-2xl px-6 pt-6 pb-[100px] flex flex-col gap-4 min-h-min">
-          {SECTION_CONFIGS.map((config) => (
-            <BriefSection key={config.key} config={config} />
-          ))}
+      {/* Gray canvas */}
+      <div className="flex-1 flex flex-col overflow-hidden bg-[#F5F7FA] rounded-xl mx-3 mb-3">
+        {/* White content card with scrollable sections */}
+        <div className="flex-1 overflow-y-auto flex justify-center p-4">
+          <div className="w-full max-w-[676px] bg-white rounded-2xl px-6 pt-6 pb-[100px] flex flex-col gap-4 min-h-min">
+            {SECTION_CONFIGS.map((config) => (
+              <BriefSection key={config.key} config={config} />
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Quality Score Bar */}
-      <QualityScoreBar />
+        {/* Quality Score Bar */}
+        <QualityScoreBar />
+      </div>
     </div>
   );
 }

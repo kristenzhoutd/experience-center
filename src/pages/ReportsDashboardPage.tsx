@@ -10,13 +10,12 @@ import {
   Download, Share2, FileText, TrendingUp,
   Zap, BarChart3, ArrowLeft, Eye, Clock,
   Loader2, CheckCircle2, AlertTriangle, ArrowUp, ArrowDown, Minus,
-  Lightbulb, ChevronLeft, Trash2,
+  Lightbulb, ChevronLeft, Trash2, MessageSquare,
 } from 'lucide-react';
 import { useChatStore } from '../stores/chatStore';
 import { useReportStore } from '../stores/reportStore';
 import type { SavedReport } from '../stores/reportStore';
 import type { ReportOutput } from '../services/skillParsers';
-import SplitPaneLayout from '../components/campaign/SplitPaneLayout';
 import StreamingChatView from '../components/StreamingChatView';
 
 // --- Template definitions ---
@@ -315,7 +314,7 @@ export default function ReportsDashboardPage() {
   const [viewMode, setViewMode] = useState<'templates' | 'preview'>('templates');
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [showShareToast, setShowShareToast] = useState(false);
-  const [isChatCollapsed, setIsChatCollapsed] = useState(false);
+  const [isChatCollapsed, setIsChatCollapsed] = useState(true);
   // When viewing a saved report (not generating), we track it here
   const [viewingSavedReport, setViewingSavedReport] = useState<SavedReport | null>(null);
 
@@ -416,7 +415,7 @@ export default function ReportsDashboardPage() {
   const isActiveGeneration = isGenerating || (generatedReport !== null && !viewingSavedReport);
 
   return (
-    <div className="h-full overflow-hidden bg-[#F7F8FB] flex flex-col">
+    <div className="h-full overflow-hidden flex">
       {/* Share toast */}
       {showShareToast && (
         <div className="fixed top-[90px] right-6 z-[1000] px-5 py-3 rounded-xl bg-gray-800 text-white text-sm font-medium shadow-lg flex items-center gap-2">
@@ -424,19 +423,74 @@ export default function ReportsDashboardPage() {
         </div>
       )}
 
+      {/* Slide-in Chat Panel */}
+      <div
+        className={`shrink-0 flex flex-col bg-white rounded-l-2xl border-y border-l border-gray-100 overflow-hidden transition-all duration-300 ease-in-out ${
+          !isChatCollapsed ? 'w-[380px] opacity-100' : 'w-0 opacity-0 border-0 p-0'
+        }`}
+      >
+        {!isChatCollapsed && (
+          <>
+            <div className="shrink-0 flex items-center justify-between px-4 pt-3 mb-3">
+              <span className="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Generation Log</span>
+              <button
+                onClick={() => setIsChatCollapsed(true)}
+                className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full cursor-pointer transition-colors"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {messages.length === 0 && !isStreaming && !isWaitingForResponse ? (
+                <div className="flex-1 flex items-center justify-center h-full">
+                  <div className="text-center px-6">
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="w-6 h-6 text-gray-300 animate-spin mx-auto mb-3" />
+                        <p className="text-xs text-gray-400">Starting report generation...</p>
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="w-6 h-6 text-gray-300 mx-auto mb-3" />
+                        <p className="text-xs text-gray-400">Select a template to generate a report. The generation log will appear here.</p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <StreamingChatView
+                  messages={messages}
+                  streamingSegments={streamingSegments}
+                  isStreaming={isStreaming}
+                  isWaitingForResponse={isWaitingForResponse}
+                />
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Main column */}
+      <div className={`flex-1 flex flex-col overflow-y-auto bg-white border border-gray-100 relative ${!isChatCollapsed ? 'rounded-r-2xl' : 'rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)]'}`}>
+        {/* Chat toggle (shown when collapsed) */}
+        {isChatCollapsed && (
+          <button
+            onClick={() => setIsChatCollapsed(false)}
+            className="absolute top-6 left-6 w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-gray-200 hover:bg-gray-50 transition-all cursor-pointer z-10"
+            title="Open generation log"
+          >
+            <MessageSquare className="w-3.5 h-3.5 text-gray-700" />
+          </button>
+        )}
+
       {viewMode === 'templates' ? (
         /* ======== Templates View ======== */
-        <div className="flex-1 overflow-y-auto">
+        <div className={`flex-1 overflow-y-auto ${isChatCollapsed ? 'ml-10' : ''}`}>
           <div className="px-8 py-6 space-y-5">
             {/* Header */}
-            <div className="bg-white rounded-2xl border border-gray-100 px-6 py-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Reports</span>
-                  <h2 className="text-xl font-semibold text-gray-900 mt-1">Report Generator</h2>
-                  <p className="text-xs text-gray-400 mt-0.5">Generate and export campaign performance reports</p>
-                </div>
-              </div>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">Reports</h2>
+              <p className="text-xs text-gray-400 mt-0.5">Generate and export campaign performance reports</p>
             </div>
 
             {/* Templates Grid */}
@@ -569,145 +623,93 @@ export default function ReportsDashboardPage() {
           </div>
         </div>
       ) : (
-        /* ======== Preview Mode — Split Layout ======== */
-        <div className="flex flex-col flex-1 overflow-hidden">
+        /* ======== Preview Mode ======== */
+        <div className={`flex flex-col flex-1 overflow-hidden ${isChatCollapsed ? 'ml-10' : ''}`}>
           {/* Toolbar */}
-          <div className="shrink-0 px-6 pt-4 pb-2">
-            <div className="bg-white rounded-2xl border border-gray-100 px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={handleBack}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-600 hover:border-gray-300 transition-colors cursor-pointer bg-white"
-                  >
-                    <ArrowLeft className="w-3.5 h-3.5" />
-                    Back
-                  </button>
-                  <div className="h-5 w-px bg-gray-200" />
-                  <div>
-                    <h2 className="text-sm font-semibold text-gray-900">
-                      {displayReport?.title || currentTemplate?.name}
-                    </h2>
-                    <p className="text-[10px] text-gray-400">
-                      {isGenerating
-                        ? 'Generating report...'
-                        : displayReport
-                          ? `Generated ${new Date(displayReport.generatedAt).toLocaleString()} · ${displayReport.sections.length} sections`
-                          : `${currentTemplate?.estimatedPages} pages`
-                      }
-                    </p>
-                  </div>
+          <div className="shrink-0 px-8 pt-6 pb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleBack}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-600 hover:border-gray-300 transition-colors cursor-pointer bg-white"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  Back
+                </button>
+                <div className="h-5 w-px bg-gray-200" />
+                <div>
+                  <h2 className="text-sm font-semibold text-gray-900">
+                    {displayReport?.title || currentTemplate?.name}
+                  </h2>
+                  <p className="text-[10px] text-gray-400">
+                    {isGenerating
+                      ? 'Generating report...'
+                      : displayReport
+                        ? `Generated ${new Date(displayReport.generatedAt).toLocaleString()} · ${displayReport.sections.length} sections`
+                        : `${currentTemplate?.estimatedPages} pages`
+                    }
+                  </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleShare(displayReport)}
-                    disabled={!displayReport}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-600 hover:border-gray-300 transition-colors cursor-pointer bg-white disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <Share2 className="w-3.5 h-3.5" />
-                    Share
-                  </button>
-                  <button
-                    onClick={handleExportPDF}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-900 text-white text-xs font-medium hover:bg-gray-800 transition-colors cursor-pointer border-none"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    Export PDF
-                  </button>
-                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleShare(displayReport)}
+                  disabled={!displayReport}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-600 hover:border-gray-300 transition-colors cursor-pointer bg-white disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  Share
+                </button>
+                <button
+                  onClick={handleExportPDF}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-900 text-white text-xs font-medium hover:bg-gray-800 transition-colors cursor-pointer border-none"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Export PDF
+                </button>
               </div>
             </div>
           </div>
 
-          {/* Split Pane: Chat (left) + Report (right) */}
-          <div className="flex-1 overflow-hidden px-6 pb-4">
-            {isActiveGeneration ? (
-              /* Active generation: show split layout with chat */
-              <SplitPaneLayout
-                initialLeftWidth={33}
-                collapsed={isChatCollapsed}
-                onToggleCollapse={() => setIsChatCollapsed(prev => !prev)}
-              >
-                {/* Left Panel — Chat */}
-                <div className="flex flex-col h-full bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                  {/* Chat utility bar */}
-                  <div className="flex items-center justify-between px-4 pt-3 shrink-0">
-                    <span className="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Generation Log</span>
-                    <button
-                      onClick={() => setIsChatCollapsed(true)}
-                      className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full cursor-pointer transition-colors"
-                      title="Collapse chat"
-                    >
-                      <ChevronLeft className="w-3.5 h-3.5" />
-                    </button>
+          {/* Report content */}
+          <div className="flex-1 overflow-y-auto px-8 pb-6">
+            {isGenerating && !generatedReport ? (
+              /* Loading skeleton */
+              <div className="space-y-6 py-6">
+                <div className="border-b border-gray-100 pb-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <img src="/td-icon.svg" alt="Treasure Data" className="w-5 h-5" />
+                    <span className="text-[10px] font-bold tracking-widest text-gray-300 uppercase">Treasure Data AI Suites</span>
                   </div>
-
-                  {/* Messages */}
-                  <div className="flex-1 overflow-y-auto">
-                    {messages.length === 0 && !isStreaming && !isWaitingForResponse ? (
-                      <div className="flex-1 flex items-center justify-center h-full">
-                        <div className="text-center px-6">
-                          <Loader2 className="w-6 h-6 text-gray-300 animate-spin mx-auto mb-3" />
-                          <p className="text-xs text-gray-400">Starting report generation...</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <StreamingChatView
-                        messages={messages}
-                        streamingSegments={streamingSegments}
-                        isStreaming={isStreaming}
-                        isWaitingForResponse={isWaitingForResponse}
-                      />
-                    )}
-                  </div>
+                  <div className="h-7 bg-gray-100 rounded-lg w-2/3 mb-2 animate-pulse" />
+                  <div className="h-4 bg-gray-100 rounded w-1/3 animate-pulse" />
                 </div>
-
-                {/* Right Panel — Report */}
-                <div className="h-full overflow-y-auto bg-white rounded-2xl border border-gray-100">
-                  <div className="px-8 py-8 space-y-6">
-                    {isGenerating && !generatedReport ? (
-                      /* Loading skeleton */
-                      <div className="space-y-6">
-                        <div className="border-b border-gray-100 pb-6">
-                          <div className="flex items-center gap-2 mb-3">
-                            <img src="/td-icon.svg" alt="Treasure Data" className="w-5 h-5" />
-                            <span className="text-[10px] font-bold tracking-widest text-gray-300 uppercase">Treasure Data AI Suites</span>
-                          </div>
-                          <div className="h-7 bg-gray-100 rounded-lg w-2/3 mb-2 animate-pulse" />
-                          <div className="h-4 bg-gray-100 rounded w-1/3 animate-pulse" />
-                        </div>
-                        {currentTemplate?.sections.map((section, i) => (
-                          <div key={section} className={`pb-6 ${i < (currentTemplate?.sections.length ?? 0) - 1 ? 'border-b border-gray-50' : ''}`}>
-                            <div className="flex items-center gap-2 mb-3">
-                              <span className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-500">
-                                {i + 1}
-                              </span>
-                              <h3 className="text-sm font-semibold text-gray-900">{section}</h3>
-                            </div>
-                            <div className="space-y-2 pl-7">
-                              <div className="h-3 bg-gray-100 rounded-full w-full animate-pulse" />
-                              <div className="h-3 bg-gray-100 rounded-full w-5/6 animate-pulse" />
-                              <div className="h-3 bg-gray-100 rounded-full w-4/6 animate-pulse" />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : generatedReport ? (
-                      <ReportContent report={generatedReport} />
-                    ) : null}
+                {currentTemplate?.sections.map((section, i) => (
+                  <div key={section} className={`pb-6 ${i < (currentTemplate?.sections.length ?? 0) - 1 ? 'border-b border-gray-50' : ''}`}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-500">
+                        {i + 1}
+                      </span>
+                      <h3 className="text-sm font-semibold text-gray-900">{section}</h3>
+                    </div>
+                    <div className="space-y-2 pl-7">
+                      <div className="h-3 bg-gray-100 rounded-full w-full animate-pulse" />
+                      <div className="h-3 bg-gray-100 rounded-full w-5/6 animate-pulse" />
+                      <div className="h-3 bg-gray-100 rounded-full w-4/6 animate-pulse" />
+                    </div>
                   </div>
-                </div>
-              </SplitPaneLayout>
+                ))}
+              </div>
+            ) : generatedReport ? (
+              <div className="py-6 space-y-6">
+                <ReportContent report={generatedReport} />
+              </div>
             ) : viewingSavedReport ? (
-              /* Viewing a saved report: full-width report, no chat panel */
-              <div className="h-full overflow-y-auto bg-white rounded-2xl border border-gray-100">
-                <div className="px-8 py-8 space-y-6">
-                  <ReportContent report={viewingSavedReport.report} />
-                </div>
+              <div className="py-6 space-y-6">
+                <ReportContent report={viewingSavedReport.report} />
               </div>
             ) : (
-              /* Fallback — should not normally show */
-              <div className="h-full flex items-center justify-center bg-white rounded-2xl border border-gray-100">
+              <div className="h-full flex items-center justify-center">
                 <div className="text-center">
                   <FileText className="w-8 h-8 text-gray-200 mx-auto mb-3" />
                   <p className="text-xs text-gray-400">Select a template to generate a report</p>
@@ -717,6 +719,7 @@ export default function ReportsDashboardPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

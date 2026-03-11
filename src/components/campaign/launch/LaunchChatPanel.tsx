@@ -2,7 +2,7 @@
  * Chat panel for the campaign launch page — messages, suggestions, and input.
  */
 
-import { Send, Square, MessageSquare } from 'lucide-react';
+import { Send, Square, MessageSquare, Clock, ChevronLeft } from 'lucide-react';
 import StreamingChatView from '../../StreamingChatView';
 import { useTraceStore } from '../../../stores/traceStore';
 import type { CampaignLaunchPageState } from '../../../hooks/useCampaignLaunchPageState';
@@ -30,33 +30,35 @@ export default function LaunchChatPanel({ state }: Props) {
   } = state;
 
   return (
-    <div className="flex flex-col h-full bg-white border-r border-[#E8ECF3]">
-      {/* Chat Header */}
-      <div className="px-4 py-3 border-b border-[#E8ECF3] flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="w-4 h-4 text-gray-400" />
-          <span className="text-sm font-medium text-gray-700">Campaign Chat</span>
+    <div className="flex flex-col h-full bg-white">
+      {/* Chat Utility Buttons */}
+      <div className="flex items-center justify-end px-4 pt-2 shrink-0">
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setIsChatCollapsed(true)}
+            className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full cursor-pointer transition-colors"
+            title="Collapse chat"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
         </div>
-        <button
-          onClick={() => setIsChatCollapsed(true)}
-          className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors bg-transparent border-none cursor-pointer"
-          title="Close chat"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto">
         {storeMessages.length === 0 && !isStreaming ? (
-          <div className="flex-1 flex items-start justify-center h-full px-4 pt-8">
-            <div className="text-center max-w-xs">
+          <div className="flex-1 flex items-center justify-center h-full">
+            <div className="text-center max-w-sm">
+              <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <MessageSquare className="w-7 h-7 text-blue-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                {showSkeleton ? 'Generating Configuration...' : 'Campaign Chat'}
+              </h3>
               <p className="text-sm text-gray-500 leading-relaxed">
                 {showSkeleton
-                  ? 'AI is creating your Meta ad hierarchy from the blueprint.'
-                  : "Hi! I'm your Ad Config assistant. Ask me anything about your campaign structure, budget allocation, or creative strategy."}
+                  ? 'AI is creating your Campaign hierarchy from the blueprint.'
+                  : 'Ask me anything about your campaign structure, budget allocation, or creative strategy.'}
               </p>
             </div>
           </div>
@@ -105,16 +107,16 @@ export default function LaunchChatPanel({ state }: Props) {
       )}
 
       {/* Chat Input */}
-      <div className="p-3 shrink-0 border-t border-[#E8ECF3]">
-        <div className="bg-white rounded-xl border border-[#E8ECF3] overflow-hidden">
+      <div className="p-4 shrink-0">
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
           <textarea
             ref={textareaRef}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Refine your ad config..."
+            placeholder="Describe your campaign..."
             rows={1}
-            className="w-full px-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 resize-none focus:outline-none"
-            style={{ minHeight: '20px', maxHeight: '100px' }}
+            className="w-full px-4 py-3 text-sm text-gray-700 placeholder-gray-400 resize-none focus:outline-none"
+            style={{ minHeight: '24px', maxHeight: '120px' }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -122,11 +124,11 @@ export default function LaunchChatPanel({ state }: Props) {
               }
             }}
           />
-          <div className="px-2 py-1.5 flex items-center justify-end">
+          <div className="px-3 py-2 flex items-center justify-end">
             {isStreaming ? (
               <button
                 onClick={() => stopStreaming()}
-                className="w-7 h-7 flex items-center justify-center bg-black text-white rounded-full hover:bg-gray-800 cursor-pointer transition-colors"
+                className="w-8 h-8 flex items-center justify-center bg-black text-white rounded-full hover:bg-gray-800 cursor-pointer transition-colors"
                 title="Stop"
               >
                 <Square className="w-3 h-3" />
@@ -135,10 +137,10 @@ export default function LaunchChatPanel({ state }: Props) {
               <button
                 onClick={handleChatSubmit}
                 disabled={!inputValue.trim()}
-                className="w-7 h-7 flex items-center justify-center bg-black text-white rounded-full hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                className="w-8 h-8 flex items-center justify-center bg-black text-white rounded-full hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
                 title="Send"
               >
-                <Send className="w-3 h-3" />
+                <Send className="w-3.5 h-3.5" />
               </button>
             )}
           </div>

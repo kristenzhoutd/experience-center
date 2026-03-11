@@ -43,6 +43,7 @@ extracted from the document.
 
 ```jsonc
 {
+  "programName": "string — concise program name (max 40 chars). Extracted from the document or derived from brand/product + purpose.",
   "campaignDetails": {
     "campaignName": "string — extracted or derived campaign name (max 80 chars)",
     "campaignType": "Awareness | Consideration | Conversion | Retention | Full-Funnel",
@@ -115,6 +116,13 @@ Before the code fence, include a summary of:
 2. What was **inferred** from context
 3. What **could not be found** and was left empty or defaulted
 
+## Extraction Guidelines
+
+### Program Name
+- If the document contains an explicit program or campaign name, use it in concise form.
+- Otherwise, derive a short name from the brand/product + document purpose.
+- Max 40 chars, scannable. Avoid generic names like "New Campaign" or leading verbs.
+
 ## Quality Rules
 
 1. **Extract before inferring.** Always prefer values directly stated in the PDF
@@ -183,6 +191,7 @@ I extracted the following from your media plan:
 
 ```campaign-brief-json
 {
+  "programName": "Luxe Home Holiday 2026",
   "campaignDetails": {
     "campaignName": "Holiday Gift Guide 2026 — Luxe Home",
     "campaignType": "Conversion",

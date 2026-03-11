@@ -30,7 +30,7 @@ interface ChannelTabBarProps {
 
 export default function ChannelTabBar({ channels, activeChannel, onChannelSelect }: ChannelTabBarProps) {
   return (
-    <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+    <div className="flex items-center gap-1">
       {channels.map((ch) => {
         const isActive = ch.platform === activeChannel;
         const isEnabled = ch.enabled;
@@ -41,11 +41,11 @@ export default function ChannelTabBar({ channels, activeChannel, onChannelSelect
             key={ch.platform}
             onClick={() => isEnabled && onChannelSelect(ch.platform)}
             disabled={!isEnabled}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all border-none cursor-pointer ${
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all border-none cursor-pointer ${
               isActive
-                ? 'bg-white text-gray-900 shadow-sm'
+                ? 'bg-black/5 text-[#212327]'
                 : isEnabled
-                  ? 'bg-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  ? 'bg-transparent text-gray-400 hover:text-gray-600'
                   : 'bg-transparent text-gray-300 cursor-not-allowed'
             }`}
           >

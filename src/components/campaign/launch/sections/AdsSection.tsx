@@ -13,8 +13,8 @@ export default function AdsSection({ state }: Props) {
   const { config, updateAd, addAd, removeAd } = state;
 
   return (
-    <section id="section-ads" className="bg-white rounded-xl shadow-sm overflow-hidden">
-      <div className="px-6 py-4 border-b border-[#E8ECF3] flex items-center justify-between">
+    <section id="section-ads" className="w-full">
+      <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold text-gray-900 m-0 uppercase tracking-wide">
           Ads ({config.ads.length})
         </h2>
@@ -28,9 +28,9 @@ export default function AdsSection({ state }: Props) {
           Add Ad
         </button>
       </div>
-      <div className="divide-y divide-[#E8ECF3]">
+      <div className="flex flex-col gap-3">
         {config.ads.map((ad) => (
-          <div key={ad.localId} className="px-6 py-5">
+          <div key={ad.localId} className="bg-white rounded-xl shadow-sm px-6 py-5">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-medium text-gray-400 uppercase">{ad.name}</span>
               {config.ads.length > 1 && (

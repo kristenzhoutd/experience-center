@@ -17,11 +17,11 @@ export default function EditorToolbar({ onGeneratePlan }: EditorToolbarProps) {
   };
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-[#E8ECF3] flex-shrink-0">
+    <div className="flex items-center justify-between px-4 py-3 flex-shrink-0">
       {/* Left - Program Name */}
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="text-sm text-[#636A77] flex-shrink-0">Program:</span>
-        <span className="text-sm font-semibold text-[#212327] truncate">{programName}</span>
+      <div className="flex flex-col min-w-0">
+        <span className="text-[10px] font-medium uppercase tracking-wider text-[#9CA3AF]">Program</span>
+        <span className="text-base font-semibold text-[#212327] truncate">{programName}</span>
       </div>
 
       {/* Right - Undo/Redo + Primary Action */}

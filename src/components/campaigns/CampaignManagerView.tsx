@@ -1,8 +1,7 @@
 /**
- * CombinedCampaignsPage — Unified view for Programs and live Campaigns
- * Programs tab: All campaign programs (draft → ready_to_launch → launched)
- * Campaigns tab: Live campaigns synced from platform (Meta/Google/TikTok)
- * Layout: Collapsible chat on left + campaign content + AI opportunities sidebar on right
+ * CampaignManagerView — Operational view for campaign managers
+ * Shows detailed campaign management tools, chat panel, AI opportunities sidebar
+ * Extracted from CombinedCampaignsPage to support view switching
  */
 
 import { useState, useEffect, useMemo } from 'react';
@@ -17,7 +16,7 @@ import CampaignTreeView from './CampaignTreeView';
 import CampaignGanttView from './CampaignGanttView';
 import CampaignCalendarView from './CampaignCalendarView';
 import CampaignDetailPanel from './CampaignDetailPanel';
-import SplitPaneLayout from '../campaign/SplitPaneLayout';
+import { MessageSquare } from 'lucide-react';
 import AIOpportunitiesSidebar, {
   type OptimizationOpportunity,
 } from '../optimize/AIOpportunitiesSidebar';
@@ -244,7 +243,7 @@ function mapLiveCampaignToCampaign(liveCampaign: LiveCampaign): Campaign {
 
 // ── Main Component ───────────────────────────────────────────────────────────
 
-export default function CombinedCampaignsPage() {
+export default function CampaignManagerView() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<MainTab>('programs');
   const [campaignView, setCampaignView] = useState<CampaignView>('cards');
@@ -274,7 +273,7 @@ export default function CombinedCampaignsPage() {
   };
 
   const handleReview = (id: string) => {
-    console.log('[CombinedCampaignsPage] Review opportunity:', id);
+    console.log('[CampaignManagerView] Review opportunity:', id);
     // TODO: Navigate to detailed review page or show modal
   };
 
@@ -303,17 +302,24 @@ export default function CombinedCampaignsPage() {
 
   return (
     <>
-      <SplitPaneLayout
-        collapsed={isChatCollapsed}
-        onToggleCollapse={() => setIsChatCollapsed(!isChatCollapsed)}
-      >
-        {/* Left Panel - Chat */}
-        <CampaignChatPanel />
+      <div className="flex h-full overflow-hidden">
+        {/* Slide-in Chat Panel */}
+        <CampaignChatPanel isOpen={!isChatCollapsed} onClose={() => setIsChatCollapsed(true)} />
 
-        {/* Right Panel - Campaign Management + AI Sidebar */}
-        <div className={`flex flex-col h-full bg-white rounded-2xl overflow-hidden ${isChatCollapsed ? 'pl-10' : ''}`}>
+        {/* Main column */}
+        <div className={`flex-1 flex flex-col overflow-y-auto bg-white border border-gray-100 relative ${!isChatCollapsed ? 'rounded-r-2xl' : 'rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)]'}`}>
+          {/* Chat toggle (shown when collapsed) */}
+          {isChatCollapsed && (
+            <button
+              onClick={() => setIsChatCollapsed(false)}
+              className="absolute top-6 left-6 w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-gray-200 hover:bg-gray-50 transition-all cursor-pointer z-10"
+              title="Open chat"
+            >
+              <MessageSquare className="w-3.5 h-3.5 text-gray-700" />
+            </button>
+          )}
           {/* Header */}
-          <div className="flex-shrink-0 px-8 py-6">
+          <div className={`flex-shrink-0 px-8 py-6 ${isChatCollapsed ? 'ml-10' : ''}`}>
             <h2 className="text-xl font-semibold text-gray-900">Campaigns</h2>
             <p className="text-xs text-gray-400 mt-0.5 mb-4">
               Monitor performance, optimize campaigns, and analyze AI-driven recommendations
@@ -324,7 +330,7 @@ export default function CombinedCampaignsPage() {
           </div>
 
           {/* Content Row: Main Content + AI Sidebar */}
-          <div className="flex flex-1 overflow-hidden">
+          <div className={`flex flex-1 overflow-hidden ${isChatCollapsed ? 'ml-10' : ''}`}>
             {/* Main Content Area */}
             <div className="flex-1 overflow-auto px-4 pt-4 pb-8">
               {/* View Tabs */}
@@ -362,7 +368,7 @@ export default function CombinedCampaignsPage() {
             </div>
           </div>
         </div>
-      </SplitPaneLayout>
+      </div>
 
       {/* Campaign Detail Panel/Modal */}
       {selectedCampaign && (

@@ -20,7 +20,7 @@ export default function CampaignSettingsSection({ state }: Props) {
   const { config, updateCampaign, isEditMode, dailyBudgetDollars, specialAdCategory } = state;
 
   return (
-    <section id="section-campaign" className="bg-white rounded-xl shadow-sm overflow-hidden">
+    <section id="section-campaign" className="bg-white rounded-xl shadow-sm overflow-hidden w-full">
       <div className="px-6 py-4 border-b border-[#E8ECF3] flex items-center justify-between">
         <h2 className="text-sm font-semibold text-gray-900 m-0 uppercase tracking-wide">Campaign</h2>
       </div>

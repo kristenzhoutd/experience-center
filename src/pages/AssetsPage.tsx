@@ -78,6 +78,23 @@ export default function AssetsPage() {
   const guidelineInputRef = useRef<HTMLInputElement>(null);
   const uploadMenuRef = useRef<HTMLDivElement>(null);
 
+  // AI Image Generation state
+  const [showAiGenModal, setShowAiGenModal] = useState(false);
+  const [aiGenForm, setAiGenForm] = useState({
+    content: '',
+    style: '',
+    aspectRatio: '',
+    purpose: '',
+    negativePrompt: '',
+    imageSize: '',
+    quality: '',
+    advancedOpen: false,
+  });
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiGenError, setAiGenError] = useState<string | null>(null);
+  const [aiGenPreview, setAiGenPreview] = useState<{ previewUrl: string; fileName: string; fileSize: number } | null>(null);
+  const [aiGenName, setAiGenName] = useState('');
+
   const allAssets = uploadedAssets;
 
   const filteredAssets = selectedCategory === 'All' || selectedCategory === 'Images'
@@ -325,6 +342,73 @@ export default function AssetsPage() {
     setShowAemBrowser(false);
   }, [uploadedAssets]);
 
+  // AI Image Generation handlers
+  const handleAiGenerate = useCallback(async () => {
+    const { content, style, aspectRatio, purpose, negativePrompt, imageSize, quality } = aiGenForm;
+    if (!content.trim() || !style || !aspectRatio) return;
+
+    setAiGenerating(true);
+    setAiGenError(null);
+    setAiGenPreview(null);
+
+    const prompt = [
+      content,
+      style && `Style: ${style}`,
+      aspectRatio && `Aspect ratio: ${aspectRatio}`,
+      purpose && `Purpose: ${purpose}`,
+      negativePrompt && `Negative prompt (avoid): ${negativePrompt}`,
+      imageSize && `Image size: ${imageSize}`,
+      quality && `Quality: ${quality}`,
+    ].filter(Boolean).join('\n');
+
+    try {
+      const result = await window.aiSuites.launch.generateImage(prompt);
+      if (result.success && result.file) {
+        setAiGenPreview({
+          previewUrl: result.file.previewUrl,
+          fileName: result.file.fileName,
+          fileSize: result.file.fileSize,
+        });
+        setAiGenName(result.file.fileName.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' '));
+      } else {
+        setAiGenError(result.error || 'Image generation failed');
+      }
+    } catch (err) {
+      setAiGenError(err instanceof Error ? err.message : 'Image generation failed');
+    } finally {
+      setAiGenerating(false);
+    }
+  }, [aiGenForm]);
+
+  const handleSaveAiImage = useCallback(() => {
+    if (!aiGenPreview) return;
+
+    const newAsset: Asset = {
+      id: `ai-gen-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      name: aiGenName.trim() || aiGenPreview.fileName,
+      url: aiGenPreview.previewUrl,
+      type: 'image',
+      category: 'Images',
+    };
+
+    const updated = [...uploadedAssets, newAsset];
+    setUploadedAssets(updated);
+    saveUploadedAssets(updated);
+    setShowAiGenModal(false);
+    setAiGenForm({ content: '', style: '', aspectRatio: '', purpose: '', negativePrompt: '', imageSize: '', quality: '', advancedOpen: false });
+    setAiGenPreview(null);
+    setAiGenName('');
+    setAiGenError(null);
+  }, [aiGenPreview, aiGenName, uploadedAssets]);
+
+  const handleCancelAiGen = useCallback(() => {
+    setShowAiGenModal(false);
+    setAiGenForm({ content: '', style: '', aspectRatio: '', purpose: '', negativePrompt: '', imageSize: '', quality: '', advancedOpen: false });
+    setAiGenPreview(null);
+    setAiGenName('');
+    setAiGenError(null);
+  }, []);
+
   // Close upload menu on outside click
   useEffect(() => {
     if (!showUploadMenu) return;
@@ -339,10 +423,11 @@ export default function AssetsPage() {
 
   // Close modals / lightbox on Escape
   useEffect(() => {
-    if (!showUploadModal && !showGuidelineModal && !lightboxAsset && !editingGuideline && !showAemBrowser) return;
+    if (!showUploadModal && !showGuidelineModal && !lightboxAsset && !editingGuideline && !showAemBrowser && !showAiGenModal) return;
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (showAemBrowser) setShowAemBrowser(false);
+        if (showAiGenModal) handleCancelAiGen();
+        else if (showAemBrowser) setShowAemBrowser(false);
         else if (editingGuideline) handleCancelGuidelineEdit();
         else if (lightboxAsset) setLightboxAsset(null);
         else if (showGuidelineModal) handleCancelGuideline();
@@ -351,7 +436,7 @@ export default function AssetsPage() {
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [showUploadModal, showGuidelineModal, lightboxAsset, editingGuideline, showAemBrowser, handleCancelUpload, handleCancelGuideline, handleCancelGuidelineEdit]);
+  }, [showUploadModal, showGuidelineModal, lightboxAsset, editingGuideline, showAemBrowser, showAiGenModal, handleCancelUpload, handleCancelGuideline, handleCancelGuidelineEdit, handleCancelAiGen]);
 
   return (
     <div className="h-full p-4">
@@ -425,6 +510,23 @@ export default function AssetsPage() {
                     <div>
                       <p className="text-sm font-medium text-gray-900">Image</p>
                       <p className="text-xs text-gray-400">JPG, PNG, WebP</p>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowUploadMenu(false);
+                      setShowAiGenModal(true);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">AI Image Generation</p>
+                      <p className="text-xs text-gray-400">Generate with AI agent</p>
                     </div>
                   </button>
                   <button
@@ -909,6 +1011,261 @@ export default function AssetsPage() {
           </div>
         </div>
       )}
+
+      {/* AI Image Generation Modal */}
+      {showAiGenModal && (() => {
+        const canGenerate = aiGenForm.content.trim() && aiGenForm.style && aiGenForm.aspectRatio;
+        const fieldLabel = "text-sm font-medium text-gray-700 pt-2";
+        const selectClass = "w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-indigo-300 transition-all disabled:opacity-60 cursor-pointer appearance-none";
+        const updateAiField = (field: string, value: string | boolean) =>
+          setAiGenForm((prev) => ({ ...prev, [field]: value }));
+        return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={!aiGenerating ? handleCancelAiGen : undefined} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-[600px] max-h-[90vh] flex flex-col overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                </div>
+                <h3 className="text-base font-semibold text-gray-900">AI Image Generation</h3>
+              </div>
+              <button
+                onClick={handleCancelAiGen}
+                disabled={aiGenerating}
+                className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-40"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-5 overflow-y-auto flex-1 space-y-4">
+              {/* Content */}
+              <div className="grid grid-cols-[120px_1fr] gap-x-4 items-start">
+                <label className={fieldLabel}>Content<span className="text-red-500 ml-0.5">*</span></label>
+                <div>
+                  <textarea
+                    value={aiGenForm.content}
+                    onChange={(e) => updateAiField('content', e.target.value)}
+                    disabled={aiGenerating}
+                    rows={4}
+                    placeholder="Describe the image you want to create as specifically as possible."
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 resize-vertical focus:outline-none focus:ring-1 focus:ring-indigo-300 transition-all disabled:opacity-60"
+                    autoFocus
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Do not infringe on copyrighted material.</p>
+                </div>
+              </div>
+
+              {/* Style */}
+              <div className="grid grid-cols-[120px_1fr] gap-x-4 items-start">
+                <label className={fieldLabel}>Style<span className="text-red-500 ml-0.5">*</span></label>
+                <select
+                  value={aiGenForm.style}
+                  onChange={(e) => updateAiField('style', e.target.value)}
+                  disabled={aiGenerating}
+                  className={selectClass}
+                >
+                  <option value="">Select One</option>
+                  <option value="photorealistic">Photorealistic</option>
+                  <option value="illustration">Illustration</option>
+                  <option value="3d-render">3D Render</option>
+                  <option value="flat-design">Flat Design</option>
+                  <option value="watercolor">Watercolor</option>
+                  <option value="minimalist">Minimalist</option>
+                </select>
+              </div>
+
+              {/* Aspect Ratio */}
+              <div className="grid grid-cols-[120px_1fr] gap-x-4 items-start">
+                <label className={fieldLabel}>Aspect Ratio<span className="text-red-500 ml-0.5">*</span></label>
+                <select
+                  value={aiGenForm.aspectRatio}
+                  onChange={(e) => updateAiField('aspectRatio', e.target.value)}
+                  disabled={aiGenerating}
+                  className={selectClass}
+                >
+                  <option value="">Select One</option>
+                  <option value="1:1">1:1 (Square)</option>
+                  <option value="4:5">4:5 (Portrait)</option>
+                  <option value="9:16">9:16 (Story)</option>
+                  <option value="16:9">16:9 (Landscape)</option>
+                  <option value="1.91:1">1.91:1 (Feed Landscape)</option>
+                </select>
+              </div>
+
+              {/* Purpose */}
+              <div className="grid grid-cols-[120px_1fr] gap-x-4 items-start">
+                <label className={fieldLabel}>Purpose</label>
+                <textarea
+                  value={aiGenForm.purpose}
+                  onChange={(e) => updateAiField('purpose', e.target.value)}
+                  disabled={aiGenerating}
+                  rows={2}
+                  placeholder="Where this image will be used and its purpose"
+                  className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 resize-vertical focus:outline-none focus:ring-1 focus:ring-indigo-300 transition-all disabled:opacity-60"
+                />
+              </div>
+
+              {/* Advanced Settings */}
+              <div className="border border-gray-200 rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => updateAiField('advancedOpen', !aiGenForm.advancedOpen)}
+                  className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 bg-transparent border-none cursor-pointer hover:bg-gray-50 rounded-lg transition-colors"
+                >
+                  Advanced Settings
+                  <svg className={`w-4 h-4 text-gray-400 transition-transform ${aiGenForm.advancedOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {aiGenForm.advancedOpen && (
+                  <div className="px-4 pb-4 space-y-4 border-t border-gray-200 pt-4">
+                    <div className="grid grid-cols-[120px_1fr] gap-x-4 items-start">
+                      <label className={fieldLabel}>Negative Prompt</label>
+                      <textarea
+                        value={aiGenForm.negativePrompt}
+                        onChange={(e) => updateAiField('negativePrompt', e.target.value)}
+                        disabled={aiGenerating}
+                        rows={2}
+                        placeholder="Describe elements to avoid in the image"
+                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 resize-vertical focus:outline-none focus:ring-1 focus:ring-indigo-300 transition-all disabled:opacity-60"
+                      />
+                    </div>
+                    <div className="grid grid-cols-[120px_1fr] gap-x-4 items-start">
+                      <label className={fieldLabel}>Image Size</label>
+                      <input
+                        type="text"
+                        value={aiGenForm.imageSize}
+                        onChange={(e) => updateAiField('imageSize', e.target.value)}
+                        disabled={aiGenerating}
+                        placeholder="Example: 1024 x 1024"
+                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-300 transition-all disabled:opacity-60"
+                      />
+                    </div>
+                    <div className="grid grid-cols-[120px_1fr] gap-x-4 items-start">
+                      <label className={fieldLabel}>Quality</label>
+                      <select
+                        value={aiGenForm.quality}
+                        onChange={(e) => updateAiField('quality', e.target.value)}
+                        disabled={aiGenerating}
+                        className={selectClass}
+                      >
+                        <option value="">Select One</option>
+                        <option value="standard">Standard</option>
+                        <option value="high">High</option>
+                        <option value="ultra">Ultra</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Generated preview */}
+              {aiGenPreview && (
+                <div className="border border-green-200 bg-green-50/50 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="text-sm font-medium text-green-800">Image generated successfully</span>
+                  </div>
+                  <img
+                    src={aiGenPreview.previewUrl}
+                    alt={aiGenPreview.fileName}
+                    className="max-h-64 max-w-full rounded-lg border border-gray-200 shadow-sm mx-auto block"
+                  />
+                  <p className="text-xs text-gray-500 text-center mt-2">
+                    {aiGenPreview.fileName} — {(aiGenPreview.fileSize / 1024).toFixed(1)} KB
+                  </p>
+                  <div className="mt-3">
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Asset Name</label>
+                    <input
+                      type="text"
+                      value={aiGenName}
+                      onChange={(e) => setAiGenName(e.target.value)}
+                      placeholder="Asset name"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Error */}
+              {aiGenError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-3">
+                  <div className="flex items-start gap-2">
+                    <svg className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    <span className="text-xs text-red-700 flex-1 whitespace-pre-line">{aiGenError}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Generating status */}
+              {aiGenerating && (
+                <div className="flex items-center gap-2 text-sm text-indigo-600">
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Generating image with AI agent...
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-gray-100 flex-shrink-0">
+              {aiGenPreview ? (
+                <>
+                  <button
+                    onClick={() => {
+                      setAiGenPreview(null);
+                      setAiGenError(null);
+                      handleAiGenerate();
+                    }}
+                    disabled={aiGenerating}
+                    className="px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors disabled:opacity-40"
+                  >
+                    Regenerate
+                  </button>
+                  <button
+                    onClick={handleSaveAiImage}
+                    className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
+                  >
+                    Save to Library
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={handleCancelAiGen}
+                    disabled={aiGenerating}
+                    className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-40"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAiGenerate}
+                    disabled={!canGenerate || aiGenerating}
+                    className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Generate
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+        );
+      })()}
 
       {/* Guideline Editor Modal */}
       {editingGuideline && (

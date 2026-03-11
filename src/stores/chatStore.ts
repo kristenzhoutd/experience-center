@@ -35,6 +35,7 @@ import { useReportStore } from './reportStore';
 import { useCampaignLaunchStore } from './campaignLaunchStore';
 import { useCampaignAnalysisStore } from './campaignAnalysisStore';
 import { useProgramStore } from './programStore';
+import { normalizeForEditor } from '../utils/normalizeBrief';
 
 interface ChatState {
   // Session
@@ -1575,68 +1576,6 @@ ${enrichedContent}`;
           });
         }
 
-        // Normalize AI skill output (object shapes) to editor store types (flat strings/string[])
-        const normalizeForEditor = (data: Record<string, unknown>): Record<string, unknown> => {
-          const normalized = { ...data };
-
-          // campaignDetails: {campaignName, campaignType, description} → string
-          if (normalized.campaignDetails && typeof normalized.campaignDetails === 'object' && !Array.isArray(normalized.campaignDetails)) {
-            const cd = normalized.campaignDetails as Record<string, string>;
-            normalized.campaignDetails = [cd.campaignName, cd.campaignType, cd.description].filter(Boolean).join(' — ');
-          }
-
-          // primaryAudience / secondaryAudience: [{name, description, estimatedSize}] → string[]
-          for (const key of ['primaryAudience', 'secondaryAudience'] as const) {
-            if (Array.isArray(normalized[key])) {
-              normalized[key] = (normalized[key] as unknown[]).map((item) =>
-                typeof item === 'object' && item !== null && 'name' in item
-                  ? (item as Record<string, string>).name
-                  : String(item)
-              );
-            }
-          }
-
-          // prospecting/retargeting/suppressionSegments: ensure string[] (AI may output objects)
-          for (const key of ['prospectingSegments', 'retargetingSegments', 'suppressionSegments'] as const) {
-            if (Array.isArray(normalized[key])) {
-              normalized[key] = (normalized[key] as unknown[]).map((item) => {
-                if (typeof item === 'string') return item;
-                if (typeof item === 'object' && item !== null) {
-                  const obj = item as Record<string, unknown>;
-                  return String(obj.segmentName || obj.name || obj.label || JSON.stringify(item));
-                }
-                return String(item);
-              });
-            }
-          }
-
-          // phases: [{name, ...}] → string (editor expects a simple string like "3 phases")
-          if (Array.isArray(normalized.phases)) {
-            const phaseArr = normalized.phases as Record<string, unknown>[];
-            normalized.phases = phaseArr.length > 0
-              ? `${phaseArr.length} phase${phaseArr.length > 1 ? 's' : ''}: ${phaseArr.map((p) => (p.name as string) || '').filter(Boolean).join(', ')}`
-              : '';
-          }
-
-          // budget: handle nested object or alternate field names
-          // AI may output { budget: { amount, pacing } } or { budget: "$200,000" }
-          if (!normalized.budgetAmount && normalized.budget) {
-            if (typeof normalized.budget === 'object' && !Array.isArray(normalized.budget)) {
-              const b = normalized.budget as Record<string, string>;
-              normalized.budgetAmount = b.amount || b.total || b.budgetAmount || '';
-              if (!normalized.pacing && b.pacing) normalized.pacing = b.pacing;
-            } else if (typeof normalized.budget === 'string') {
-              normalized.budgetAmount = normalized.budget;
-            }
-          }
-          // Also check totalBudget as a fallback
-          if (!normalized.budgetAmount && normalized.totalBudget) {
-            normalized.budgetAmount = String(normalized.totalBudget);
-          }
-
-          return normalized;
-        };
-
         // Dispatch to appropriate store based on skill name
         switch (skillResult.skillName) {
           case 'campaign-brief': {
@@ -1646,20 +1585,34 @@ ${enrichedContent}`;
             if (runId) trace.addEvent(runId, 'ui_update', 'Campaign Brief editor updated with AI-generated content');
             // Link to program if active
             if (useProgramStore.getState().activeProgram) {
-              useProgramStore.getState().saveBriefSnapshot(skillResult.data);
+              // Save the normalized editor data — not the raw AI output — so that
+              // restoring the snapshot later produces the format the editor expects.
+              useProgramStore.getState().saveBriefSnapshot(useBriefEditorStore.getState().state.briefData);
               useProgramStore.getState().markStepEdited(1);
               // Derive a meaningful program name from the brief
               const briefRaw = skillResult.data as Record<string, unknown>;
-              const cd = briefRaw.campaignDetails;
               let derivedName: string | undefined;
-              if (typeof cd === 'object' && cd !== null && 'campaignName' in cd) {
-                derivedName = (cd as Record<string, string>).campaignName;
-              } else if (typeof cd === 'string' && cd.trim()) {
-                derivedName = cd.trim().split(/\s*[—–-]\s*/)[0];
+
+              // 1. Prefer explicit programName from the skill output
+              if (typeof briefRaw.programName === 'string' && briefRaw.programName.trim()) {
+                derivedName = briefRaw.programName.trim();
               }
+
+              // 2. Fall back to campaignName (existing logic)
+              if (!derivedName) {
+                const cd = briefRaw.campaignDetails;
+                if (typeof cd === 'object' && cd !== null && 'campaignName' in cd) {
+                  derivedName = (cd as Record<string, string>).campaignName;
+                } else if (typeof cd === 'string' && cd.trim()) {
+                  derivedName = cd.trim().split(/\s*[—–-]\s*/)[0];
+                }
+              }
+
+              // 3. Last resort
               if (!derivedName) {
                 derivedName = (briefRaw.brandProduct as string) || (briefRaw.businessObjective as string) || undefined;
               }
+
               if (derivedName) {
                 useProgramStore.getState().renameProgram(derivedName.slice(0, 80));
               }
