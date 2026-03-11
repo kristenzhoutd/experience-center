@@ -82,7 +82,8 @@ export default function SettingsPage() {
   const [isSavingTdx, setIsSavingTdx] = useState(false);
   const [tdxSaveMessage, setTdxSaveMessage] = useState<string | null>(null);
 
-  // Auto-save debounce ref for TDX API key
+  // Auto-save debounce refs
+  const aiAutoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tdxAutoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load settings on mount
@@ -120,9 +121,10 @@ export default function SettingsPage() {
     loadSettings();
   }, []);
 
-  // Cleanup auto-save timer
+  // Cleanup auto-save timers
   useEffect(() => {
     return () => {
+      if (aiAutoSaveTimer.current) clearTimeout(aiAutoSaveTimer.current);
       if (tdxAutoSaveTimer.current) clearTimeout(tdxAutoSaveTimer.current);
     };
   }, []);
@@ -170,6 +172,21 @@ export default function SettingsPage() {
     } else {
       setAgents([]);
       setSelectedAgent('');
+    }
+  };
+
+  // Auto-save when AI API key is entered
+  const handleAiApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setApiKey(value);
+    setAiKeyStatus('idle');
+
+    if (aiAutoSaveTimer.current) clearTimeout(aiAutoSaveTimer.current);
+
+    if (value.trim()) {
+      aiAutoSaveTimer.current = setTimeout(() => {
+        handleSaveAi(true);
+      }, 800);
     }
   };
 
@@ -269,7 +286,7 @@ export default function SettingsPage() {
   };
 
   // --- AI Section Save ---
-  const handleSaveAi = async () => {
+  const handleSaveAi = useCallback(async (autoSave = false) => {
     setIsSavingAi(true);
     setAiSaveMessage(null);
     try {
@@ -284,15 +301,15 @@ export default function SettingsPage() {
         setAiKeyStatus('success');
         setApiKey('');
       }
-      setAiSaveMessage('AI configuration saved.');
+      if (!autoSave) setAiSaveMessage('AI configuration saved.');
     } catch (error) {
       console.error('Failed to save AI config:', error);
       setAiSaveMessage('Failed to save AI configuration.');
     } finally {
       setIsSavingAi(false);
-      setTimeout(() => setAiSaveMessage(null), 3000);
+      if (!autoSave) setTimeout(() => setAiSaveMessage(null), 3000);
     }
-  };
+  }, [apiKey, llmProxyUrl, model, savedAgentName, selectedProject, selectedAgent]);
 
   return (
     <div className="h-full overflow-y-auto">
@@ -335,11 +352,10 @@ export default function SettingsPage() {
                   const val = e.target.value;
                   // If user starts typing over the mask, clear it first
                   if (!apiKey && hasStoredApiKey) {
-                    setApiKey(val.replace(/\*/g, ''));
+                    handleAiApiKeyChange({ target: { value: val.replace(/\*/g, '') } } as React.ChangeEvent<HTMLInputElement>);
                   } else {
-                    setApiKey(val);
+                    handleAiApiKeyChange(e);
                   }
-                  setAiKeyStatus('idle');
                 }}
                 onFocus={() => { if (!apiKey && hasStoredApiKey) setApiKey(''); }}
                 placeholder="1/xxxxxxxxxxxxxxxx"

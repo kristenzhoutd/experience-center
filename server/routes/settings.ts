@@ -22,6 +22,12 @@ function getApiKeyFromRequest(req: any): string {
     || '';
 }
 
+function getTdxApiKeyFromRequest(req: any): string {
+  return req.headers['x-tdx-api-key'] as string
+    || loadSettings().tdxApiKey
+    || '';
+}
+
 /**
  * Ensure Claude Agent is initialized with the key from the current request.
  */
@@ -37,10 +43,11 @@ function ensureInitialized(req: any): void {
   }
 }
 
-// GET /api/settings — return settings (API key comes from frontend localStorage)
+// GET /api/settings — return settings (API keys come from frontend localStorage)
 settingsRouter.get('/', (req, res) => {
   const settings = loadSettings();
   const apiKey = getApiKeyFromRequest(req);
+  const tdxApiKey = getTdxApiKeyFromRequest(req);
   res.json({
     success: true,
     data: {
@@ -49,6 +56,8 @@ settingsRouter.get('/', (req, res) => {
       apiKey: undefined,
       tdxApiKey: undefined,
       hasSavedCredentials: !!apiKey,
+      hasStoredApiKey: !!apiKey,
+      hasStoredTdxApiKey: !!tdxApiKey,
     },
   });
 });

@@ -14,6 +14,7 @@ const APP_PASSWORD = import.meta.env.VITE_APP_PASSWORD || '';
 // API key in localStorage and send it as x-api-key on every request.
 
 const STORAGE_KEY = 'ai-suites-api-key';
+const TDX_STORAGE_KEY = 'ai-suites-tdx-api-key';
 
 function getSavedApiKey(): string {
   try { return localStorage.getItem(STORAGE_KEY) || ''; } catch { return ''; }
@@ -27,6 +28,18 @@ function clearApiKey(): void {
   try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
 }
 
+function getSavedTdxApiKey(): string {
+  try { return localStorage.getItem(TDX_STORAGE_KEY) || ''; } catch { return ''; }
+}
+
+function saveTdxApiKey(key: string): void {
+  try { localStorage.setItem(TDX_STORAGE_KEY, key); } catch { /* ignore */ }
+}
+
+function clearTdxApiKey(): void {
+  try { localStorage.removeItem(TDX_STORAGE_KEY); } catch { /* ignore */ }
+}
+
 // ── HTTP Helpers ──
 
 function getHeaders(): Record<string, string> {
@@ -34,6 +47,8 @@ function getHeaders(): Record<string, string> {
   if (APP_PASSWORD) headers['x-app-password'] = APP_PASSWORD;
   const apiKey = getSavedApiKey();
   if (apiKey) headers['x-api-key'] = apiKey;
+  const tdxApiKey = getSavedTdxApiKey();
+  if (tdxApiKey) headers['x-tdx-api-key'] = tdxApiKey;
   return headers;
 }
 
@@ -204,17 +219,22 @@ const settings = {
   get: async () => {
     const result = await request<{ success: boolean; data: Record<string, unknown> }>('/settings');
     const data = result.data || result;
-    // Inject locally-stored API key so the Settings page shows it
-    const savedKey = getSavedApiKey();
-    if (savedKey) {
-      (data as any).apiKey = savedKey;
+    // Report stored keys so Settings page shows masked values
+    if (getSavedApiKey()) {
+      (data as any).hasStoredApiKey = true;
+    }
+    if (getSavedTdxApiKey()) {
+      (data as any).hasStoredTdxApiKey = true;
     }
     return data;
   },
   set: async (newSettings: Record<string, unknown>) => {
-    // Save API key to localStorage for persistence across serverless invocations
+    // Save API keys to localStorage for persistence across serverless invocations
     if (newSettings.apiKey && typeof newSettings.apiKey === 'string') {
       saveApiKey(newSettings.apiKey);
+    }
+    if (newSettings.tdxApiKey && typeof newSettings.tdxApiKey === 'string') {
+      saveTdxApiKey(newSettings.tdxApiKey);
     }
     await request('/settings', { method: 'PUT', body: newSettings });
   },
@@ -222,10 +242,12 @@ const settings = {
   hasCredentials: async () => !!getSavedApiKey(),
   saveCredentials: async (key: string, type: 'apiKey' | 'tdxApiKey') => {
     if (type === 'apiKey') saveApiKey(key);
+    if (type === 'tdxApiKey') saveTdxApiKey(key);
     return request('/settings/credentials', { method: 'POST', body: { key, type } });
   },
   deleteCredentials: async (type: 'apiKey' | 'tdxApiKey') => {
     if (type === 'apiKey') clearApiKey();
+    if (type === 'tdxApiKey') clearTdxApiKey();
     return request(`/settings/credentials/${type}`, { method: 'DELETE' });
   },
   parentSegments: async () => {
