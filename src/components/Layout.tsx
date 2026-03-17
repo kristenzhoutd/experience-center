@@ -184,7 +184,7 @@ export default function Layout() {
 
   const isExperienceLab = activeSuite === 'ai-marketing-lab'
 
-  // Experience Lab: clean standalone layout
+  // Experience Center: clean standalone layout
   if (isExperienceLab) {
     return (
       <div className="flex flex-col h-screen bg-white">
@@ -199,7 +199,7 @@ export default function Layout() {
           >
             <img src="/td-icon.svg" alt="Treasure AI" className="w-7 h-7 md:w-8 md:h-8 flex-shrink-0" />
             <span className="text-xs md:text-sm font-semibold text-gray-900 truncate" style={{ fontFamily: "'Manrope', sans-serif" }}>
-              Treasure AI Experience Lab
+              Treasure AI Experience Center
             </span>
           </Link>
           <div className="flex-1" />
@@ -267,9 +267,9 @@ export default function Layout() {
             </svg>
           </button>
 
-          {/* Treasure AI Experience Lab Suite */}
+          {/* Treasure AI Experience Center Suite */}
           <button
-            title="Treasure AI Experience Lab"
+            title="Treasure AI Experience Center"
             onClick={() => handleSuiteSwitch('ai-marketing-lab')}
             className={`group w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${
               activeSuite === 'ai-marketing-lab'
@@ -349,7 +349,7 @@ export default function Layout() {
           {/* Suite Title */}
           <div className="flex items-center gap-4 mr-8 window-no-drag">
             <h1 className="text-base font-semibold text-gray-900">
-              {activeSuite === 'personalization' ? 'Personalization' : activeSuite === 'paid-media' ? 'Paid Media' : activeSuite === 'ai-marketing-lab' ? 'Treasure AI Experience Lab' : 'Settings'}
+              {activeSuite === 'personalization' ? 'Personalization' : activeSuite === 'paid-media' ? 'Paid Media' : activeSuite === 'ai-marketing-lab' ? 'Treasure AI Experience Center' : 'Settings'}
             </h1>
           </div>
 
