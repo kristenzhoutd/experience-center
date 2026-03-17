@@ -251,11 +251,20 @@ const settings = {
     return request(`/settings/credentials/${type}`, { method: 'DELETE' });
   },
   parentSegments: async () => {
-    // TD CLI not available in web mode — return empty
-    return { success: true, data: [] };
+    try {
+      return await request('/segments/parents');
+    } catch (error) {
+      console.error('[WebBackend] Failed to fetch parent segments:', error);
+      return { success: false, error: 'Failed to fetch parent segments' };
+    }
   },
-  parentSegmentChildren: async (_parentId: string) => {
-    return { success: true, data: [] };
+  parentSegmentChildren: async (parentId: string) => {
+    try {
+      return await request(`/segments/children/${encodeURIComponent(parentId)}`);
+    } catch (error) {
+      console.error('[WebBackend] Failed to fetch child segments:', error);
+      return { success: false, error: 'Failed to fetch child segments' };
+    }
   },
   listProjects: async () => ({ success: true, data: [] }),
   listAgents: async (_projectName: string) => ({ success: true, data: [] }),
@@ -264,8 +273,13 @@ const settings = {
 // ── Audiences API ──
 
 const audiences = {
-  list: async (_parentSegmentName: string) => {
-    return { success: true, data: [] };
+  list: async (parentSegmentId: string) => {
+    try {
+      return await request(`/segments/children/${encodeURIComponent(parentSegmentId)}`);
+    } catch (error) {
+      console.error('[WebBackend] Failed to fetch audiences:', error);
+      return { success: false, error: 'Failed to fetch audiences' };
+    }
   },
 };
 

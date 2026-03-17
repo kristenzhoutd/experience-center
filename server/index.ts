@@ -26,6 +26,7 @@ import { webRouter } from './routes/web.js';
 import { platformRouter } from './routes/platforms.js';
 import { launchRouter } from './routes/launch.js';
 import { chatStorageRouter } from './routes/chat-storage.js';
+import { segmentsRouter } from './routes/segments.js';
 import { initClaudeAgent } from './services/claude-agent.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -59,6 +60,7 @@ app.use('/api/pdf', pdfRouter);
 app.use('/api/web', webRouter);
 app.use('/api/platforms', platformRouter);
 app.use('/api/launch', launchRouter);
+app.use('/api/segments', segmentsRouter);
 
 // Initialize Claude Agent SDK
 initClaudeAgent();
