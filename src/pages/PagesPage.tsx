@@ -157,6 +157,14 @@ export default function PagesPage() {
                                 alt={page.pageName}
                                 className="w-full h-full object-cover object-top"
                               />
+                            ) : page.websiteUrl ? (
+                              <iframe
+                                src={`/api/web/proxy?url=${encodeURIComponent(page.websiteUrl)}`}
+                                className="w-full h-full pointer-events-none"
+                                style={{ transform: 'scale(0.25)', transformOrigin: 'top left', width: '400%', height: '400%', border: 'none' }}
+                                tabIndex={-1}
+                                loading="lazy"
+                              />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
                                 <div className="text-center">
