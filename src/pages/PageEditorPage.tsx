@@ -449,6 +449,32 @@ export default function PageEditorPage() {
     const webview = webviewRef.current;
     if (!webview) return;
 
+    // In web mode (iframe), webview events don't exist — run extraction directly
+    const isElectronWebview = typeof (webview as any).executeJavaScript === 'function';
+
+    if (!isElectronWebview) {
+      // Web mode: run extraction when URL changes
+      if (websiteUrl) {
+        setIsAnalyzing(true);
+        setAnalysisComplete(false);
+        (window as any).aiSuites?.web?.extract(websiteUrl).then((result: any) => {
+          if (result.success && result.data?.spots) {
+            setExtractedSpots(result.data.spots.map((s: any) => ({
+              name: s.name,
+              type: s.type,
+              selector: s.selector,
+              confidence: s.confidence,
+            })));
+            setAnalysisComplete(true);
+          }
+        }).catch(() => {}).finally(() => {
+          setIsAnalyzing(false);
+        });
+      }
+      return;
+    }
+
+    // Electron mode: use webview events
     const onStartLoading = () => {
       setIsWebviewLoading(true);
       setWebviewError(null);
@@ -458,7 +484,6 @@ export default function PageEditorPage() {
     const onStopLoading = () => {
       setIsWebviewLoading(false);
       injectPickerScript();
-      // Run web extraction in the background for AI-powered classification
       if (websiteUrl) {
         setIsAnalyzing(true);
         setAnalysisComplete(false);
@@ -472,9 +497,7 @@ export default function PageEditorPage() {
             })));
             setAnalysisComplete(true);
           }
-        }).catch(() => {
-          // Silent fallback — local heuristics will be used
-        }).finally(() => {
+        }).catch(() => {}).finally(() => {
           setIsAnalyzing(false);
         });
       }
@@ -482,7 +505,6 @@ export default function PageEditorPage() {
     const onFailLoad = (_e: Event) => {
       const detail = (_e as CustomEvent).detail || (_e as any);
       const code = detail?.errorCode ?? (detail as any)?.errorCode;
-      // errorCode -3 is a cancelled navigation (e.g. redirect), not a real error
       if (code === -3) return;
       const desc = detail?.errorDescription ?? 'Failed to load page';
       setWebviewError(String(desc));
@@ -493,9 +515,7 @@ export default function PageEditorPage() {
       if (msg.startsWith('__SPOT_SELECTED__')) {
         try {
           const data = JSON.parse(msg.slice('__SPOT_SELECTED__'.length));
-          // Check for duplicate selector
           if (spotsRef.current.some(s => s.selector === data.selector)) return;
-          // Classify using AI-extracted data + local heuristics
           const classified = classifySpotType(data);
           const newSpot: Spot = {
             id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
@@ -879,11 +899,22 @@ export default function PageEditorPage() {
                     </div>
                   </div>
                 )}
-                <webview
-                  ref={webviewRef as any}
-                  src={websiteUrl}
-                  style={{ width: '100%', height: '100%' }}
-                />
+                {typeof (window as any).aiSuites?.chat?.startSession === 'function' ? (
+                  <webview
+                    ref={webviewRef as any}
+                    src={websiteUrl}
+                    style={{ width: '100%', height: '100%' }}
+                  />
+                ) : (
+                  <iframe
+                    ref={webviewRef as any}
+                    src={`/api/web/proxy?url=${encodeURIComponent(websiteUrl)}`}
+                    style={{ width: '100%', height: '100%', border: 'none' }}
+                    onLoad={() => setIsWebviewLoading(false)}
+                    onError={() => { setIsWebviewLoading(false); setWebviewError('Failed to load page'); }}
+                    sandbox="allow-same-origin allow-scripts allow-forms"
+                  />
+                )}
               </div>
             </div>
           ) : (
