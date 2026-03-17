@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TrendingUp, BarChart3, Zap, Heart } from 'lucide-react';
 import { Button } from '@/design-system';
+import BookWalkthroughModal from '../components/BookWalkthroughModal';
 import { useExperienceLabStore } from '../stores/experienceLabStore';
 import { goals } from '../data/experienceLabConfig';
 
@@ -25,9 +26,16 @@ export default function AIMarketingLabPage() {
   const [selectedGoal, setSelectedGoal] = useState('');
   const [wordIndex, setWordIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [showBookingModal, setShowBookingModal] = useState(false);
 
   useEffect(() => {
     resetSession();
+  }, []);
+
+  useEffect(() => {
+    const handler = () => setShowBookingModal(true);
+    window.addEventListener('open-booking-modal', handler);
+    return () => window.removeEventListener('open-booking-modal', handler);
   }, []);
 
   useEffect(() => {
@@ -105,6 +113,11 @@ export default function AIMarketingLabPage() {
           <span>Built on trusted, traceable context</span>
         </div>
       </div>
+
+      <BookWalkthroughModal
+        isOpen={showBookingModal}
+        onClose={() => setShowBookingModal(false)}
+      />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import SplitPaneLayout from '../components/campaign/SplitPaneLayout';
+import BookWalkthroughModal from '../components/BookWalkthroughModal';
 import { useExperienceLabStore, type FlowStep, type OutputData } from '../stores/experienceLabStore';
 import { goals, industries, scenarios, getScenarioSteps, generationSteps, type InputStep } from '../data/experienceLabConfig';
 import { generateExperienceLabOutput } from '../services/experienceLabOutputs';
@@ -69,6 +70,7 @@ export default function AIMarketingLabWorkflowPage() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileView, setMobileView] = useState<'chat' | 'output'>('output');
   const [isMobile, setIsMobile] = useState(false);
+  const [showBookingModal, setShowBookingModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasOutput = currentStep === 'output' && !!output;
 
@@ -78,6 +80,13 @@ export default function AIMarketingLabWorkflowPage() {
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
+  }, []);
+
+  // Listen for booking modal event from top nav
+  useEffect(() => {
+    const handler = () => setShowBookingModal(true);
+    window.addEventListener('open-booking-modal', handler);
+    return () => window.removeEventListener('open-booking-modal', handler);
   }, []);
 
   // Redirect if no goal selected
@@ -375,6 +384,9 @@ export default function AIMarketingLabWorkflowPage() {
                     canContinueInput={canContinueInput()}
                     onExploreAnother={handleExploreAnother}
                     messagesEndRef={messagesEndRef}
+              output={output}
+                  output={output}
+                    output={output}
                   />
                 ) : (
                   <div className="flex-1 relative overflow-hidden bg-[#F7F8FB]">
@@ -383,7 +395,7 @@ export default function AIMarketingLabWorkflowPage() {
                     </div>
                     {visibleOutputSections >= 7 && (
                       <div className="absolute bottom-3 right-3 z-10">
-                        <FloatingContextCard output={output!} />
+                        <FloatingContextCard output={output!} onBook={() => setShowBookingModal(true)} />
                       </div>
                     )}
                   </div>
@@ -414,6 +426,8 @@ export default function AIMarketingLabWorkflowPage() {
                   canContinueInput={canContinueInput()}
                   onExploreAnother={handleExploreAnother}
                   messagesEndRef={messagesEndRef}
+              output={output}
+                  output={output}
                   showCollapse
                   onCollapse={() => setCollapsed(true)}
                 />
@@ -424,7 +438,7 @@ export default function AIMarketingLabWorkflowPage() {
                   </div>
                   {visibleOutputSections >= 7 && (
                     <div className="absolute bottom-4 right-4 z-10">
-                      <FloatingContextCard output={output!} />
+                      <FloatingContextCard output={output!} onBook={() => setShowBookingModal(true)} />
                     </div>
                   )}
                 </div>
@@ -449,10 +463,22 @@ export default function AIMarketingLabWorkflowPage() {
               canContinueInput={canContinueInput()}
               onExploreAnother={handleExploreAnother}
               messagesEndRef={messagesEndRef}
+              output={output}
             />
           )}
         </div>
       </div>
+
+      {/* Booking Modal */}
+      <BookWalkthroughModal
+        isOpen={showBookingModal}
+        onClose={() => setShowBookingModal(false)}
+        context={{
+          goal: goals.find(g => g.id === goal)?.label,
+          industry: industries.find(i => i.id === industry)?.label,
+          scenario: scenarios.find(s => s.id === scenario)?.label,
+        }}
+      />
     </div>
   );
 }
@@ -465,7 +491,7 @@ function ChatPanel({
   inputSteps, currentInputStep, generationPhase,
   onIndustrySelect, onScenarioSelect, onInputSelect, onInputContinue,
   canContinueInput, onExploreAnother, messagesEndRef,
-  showCollapse, onCollapse,
+  showCollapse, onCollapse, output,
 }: {
   messages: ConversationMessage[];
   currentStep: FlowStep;
@@ -485,6 +511,7 @@ function ChatPanel({
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   showCollapse?: boolean;
   onCollapse?: () => void;
+  output?: OutputData | null;
 }) {
   return (
     <div className="flex flex-col h-full w-full bg-white">
@@ -510,19 +537,7 @@ function ChatPanel({
           <div key={msg.id}>
             {msg.type === 'cta' && currentStep === 'output' ? (
               <div className="animate-fade-in px-1 mt-2 space-y-3 max-w-sm">
-                <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-                  <p className="text-xs text-gray-600 mb-2.5">Send a copy of this output to your inbox</p>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="email"
-                      placeholder="Work email"
-                      className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                    />
-                    <button className="px-3 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-800 transition-colors cursor-pointer flex-shrink-0">
-                      Send
-                    </button>
-                  </div>
-                </div>
+                <EmailCaptureCard output={output} />
                 <button
                   onClick={onExploreAnother}
                   className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
@@ -533,10 +548,8 @@ function ChatPanel({
               </div>
             ) : msg.role === 'thinking' ? (
               <div className="flex justify-start animate-fade-in">
-                <div className="flex items-center gap-1.5 px-4 py-3">
-                  <div className="w-2 h-2 rounded-full bg-gradient-to-br from-[#1957DB] to-[#6F2EFF] animate-pulse" />
-                  <div className="w-2 h-2 rounded-full bg-gradient-to-br from-[#1957DB] to-[#6F2EFF] animate-pulse [animation-delay:200ms]" />
-                  <div className="w-2 h-2 rounded-full bg-gradient-to-br from-[#1957DB] to-[#6F2EFF] animate-pulse [animation-delay:400ms]" />
+                <div className="px-4 py-3">
+                  <img src="/icons/td-avatar.png" alt="" className="w-10 h-10 animate-spin-slow" />
                 </div>
               </div>
             ) : (
@@ -1064,12 +1077,126 @@ function OutputSection({ title, icon, children }: { title: string; icon: React.R
 }
 
 // ============================================================
+// Email Capture Card (left chat, after output)
+// ============================================================
+function EmailCaptureCard({ output }: { output?: OutputData | null }) {
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
+
+  const generateOutputText = (): string => {
+    if (!output) return '';
+    const lines: string[] = [];
+    lines.push('TREASURE AI EXPERIENCE LAB — OUTPUT SUMMARY');
+    lines.push('='.repeat(50));
+    lines.push('');
+    lines.push('AI-GENERATED RECOMMENDATION');
+    lines.push(output.summaryBanner.topRecommendation);
+    lines.push(`Goal: ${output.summaryBanner.goal} | Audience: ${output.summaryBanner.audience}`);
+    lines.push(output.summaryBanner.impactFraming);
+    lines.push('');
+    lines.push('EXECUTIVE SUMMARY');
+    lines.push(output.executiveSummary);
+    lines.push('');
+    lines.push('AUDIENCE SEGMENTS');
+    output.audienceCards.forEach(c => {
+      lines.push(`- ${c.name} [${c.opportunityLevel}]: ${c.whyItMatters}`);
+      lines.push(`  Action: ${c.suggestedAction}`);
+    });
+    lines.push('');
+    lines.push('CHANNEL STRATEGY');
+    output.channelStrategy.forEach(c => {
+      lines.push(`- ${c.channel}: ${c.role} | ${c.messageAngle}`);
+    });
+    lines.push('');
+    lines.push(output.scenarioCore.title.toUpperCase());
+    output.scenarioCore.sections.forEach(s => {
+      lines.push(`${s.label}: ${s.content}`);
+    });
+    lines.push('');
+    lines.push('KPI FRAMEWORK');
+    output.kpiFramework.forEach(k => {
+      lines.push(`- [${k.type}] ${k.name}: ${k.note}`);
+    });
+    lines.push('');
+    lines.push('RECOMMENDED NEXT ACTIONS');
+    output.nextActions.forEach(a => {
+      lines.push(`- [${a.priority}] ${a.action}`);
+    });
+    lines.push('');
+    lines.push('---');
+    lines.push('Generated by Treasure AI Experience Lab');
+    return lines.join('\n');
+  };
+
+  const handleSend = () => {
+    if (!email || !email.includes('@')) return;
+    setStatus('sending');
+
+    // Generate and download the output as a file
+    const text = generateOutputText();
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'treasure-ai-output.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    setTimeout(() => setStatus('sent'), 600);
+  };
+
+  if (status === 'sent') {
+    return (
+      <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+            <Check className="w-3 h-3 text-green-600" />
+          </div>
+          <p className="text-xs text-gray-600">Output downloaded and sent to <span className="font-medium">{email}</span></p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+      <p className="text-xs text-gray-600 mb-2.5">Send a copy of this output to your inbox</p>
+      <div className="flex items-center gap-2">
+        <input
+          type="email"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          placeholder="Work email"
+          className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+          onKeyDown={e => { if (e.key === 'Enter') handleSend(); }}
+        />
+        <button
+          onClick={handleSend}
+          disabled={!email || !email.includes('@') || status === 'sending'}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0 ${
+            email && email.includes('@') && status !== 'sending'
+              ? 'bg-gray-900 text-white hover:bg-gray-800 cursor-pointer'
+              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+          }`}
+        >
+          {status === 'sending' ? 'Sending...' : 'Send'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // Floating Context Card (bottom of right output panel)
 // ============================================================
 function FloatingContextCard({
   output,
+  onBook,
 }: {
   output: OutputData;
+  onBook: () => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -1083,12 +1210,12 @@ function FloatingContextCard({
         </div>
         <div className="flex-1" />
         {!isExpanded && (
-          <a
-            href="#book"
-            className="inline-flex items-center px-3.5 py-1.5 bg-gray-900 text-white rounded-full text-[11px] font-semibold hover:bg-gray-800 transition-colors shadow-sm mr-2 flex-shrink-0"
+          <button
+            onClick={onBook}
+            className="inline-flex items-center px-3.5 py-1.5 bg-gray-900 text-white rounded-full text-[11px] font-semibold hover:bg-gray-800 transition-colors shadow-sm mr-2 flex-shrink-0 cursor-pointer"
           >
             Book a walkthrough
-          </a>
+          </button>
         )}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
@@ -1110,7 +1237,7 @@ function FloatingContextCard({
         }`}
       >
         {/* Hero section */}
-        <div className="mx-4 rounded-xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #f5f3f0 0%, #eeedf5 50%, #f0eff8 100%)' }}>
+        <div className="mx-4 rounded-xl overflow-hidden" style={{ backgroundImage: 'url(/icons/impact-card-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
           <div className="flex items-start p-5">
             <div className="flex-1 min-w-0">
               <div className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-medium text-gray-600 mb-3" style={{ background: 'rgba(255,255,255,0.7)' }}>
@@ -1120,12 +1247,12 @@ function FloatingContextCard({
                 See this in action
               </h3>
               <p className="text-xs text-gray-500 mb-3">with your real data and goals</p>
-              <a
-                href="#book"
-                className="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-lg text-xs font-semibold hover:bg-gray-800 transition-colors"
+              <button
+                onClick={onBook}
+                className="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-lg text-xs font-semibold hover:bg-gray-800 transition-colors cursor-pointer"
               >
                 Book a walkthrough
-              </a>
+              </button>
             </div>
             <img src="/icons/td-avatar.png" alt="" className="flex-shrink-0 w-14 h-14 ml-3" />
           </div>
