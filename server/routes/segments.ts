@@ -16,8 +16,27 @@ function getTdxApiKey(req: any): string {
     || '';
 }
 
-function getTdxEndpoint(): string {
-  return loadSettings().tdxEndpoint || 'https://api-cdp.treasuredata.com';
+function getCdpEndpoint(): string {
+  // The CDP API lives on api-cdp.treasuredata.com, not the regular api.treasuredata.com.
+  // If the stored endpoint is the regular API, derive the CDP endpoint from it.
+  const stored = loadSettings().tdxEndpoint || '';
+  if (!stored) return 'https://api-cdp.treasuredata.com';
+
+  // Convert api.treasuredata.com → api-cdp.treasuredata.com
+  // Convert api.eu01.treasuredata.com → api-cdp.eu01.treasuredata.com
+  // Convert api.ap01.treasuredata.com → api-cdp.ap01.treasuredata.com
+  try {
+    const url = new URL(stored);
+    if (url.hostname.startsWith('api.')) {
+      url.hostname = url.hostname.replace('api.', 'api-cdp.');
+      return url.toString().replace(/\/$/, '');
+    }
+    if (url.hostname.startsWith('api-cdp.')) {
+      return stored; // Already a CDP endpoint
+    }
+  } catch { /* fall through */ }
+
+  return 'https://api-cdp.treasuredata.com';
 }
 
 async function tdApiGet(endpoint: string, apiKey: string, baseUrl: string): Promise<{ statusCode: number; body: string }> {
@@ -53,8 +72,7 @@ segmentsRouter.get('/parents', async (req, res) => {
     return;
   }
 
-  const baseUrl = getTdxEndpoint();
-
+  const baseUrl = getCdpEndpoint();
   try {
     const response = await tdApiGet('/audiences', apiKey, baseUrl);
 
@@ -101,7 +119,7 @@ segmentsRouter.get('/children/:parentId', async (req, res) => {
     return;
   }
 
-  const baseUrl = getTdxEndpoint();
+  const baseUrl = getCdpEndpoint();
   const { parentId } = req.params;
 
   try {
