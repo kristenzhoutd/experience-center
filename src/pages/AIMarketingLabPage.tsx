@@ -1,22 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, BarChart3, Zap, Heart, ArrowRight, FileText, Users, GitBranch, LineChart } from 'lucide-react';
+import { TrendingUp, BarChart3, Zap, Heart } from 'lucide-react';
 import { Button } from '@/design-system';
 import { useExperienceLabStore } from '../stores/experienceLabStore';
-import { goals, previewCards } from '../data/experienceLabConfig';
+import { goals } from '../data/experienceLabConfig';
 
 const goalIcons: Record<string, React.ElementType> = {
   'trending-up': TrendingUp,
   'bar-chart': BarChart3,
   'zap': Zap,
   'heart': Heart,
-};
-
-const previewIcons: Record<string, React.ElementType> = {
-  brief: FileText,
-  segments: Users,
-  journey: GitBranch,
-  performance: LineChart,
 };
 
 const rotatingWords = [
@@ -61,9 +54,9 @@ export default function AIMarketingLabPage() {
   };
 
   return (
-    <div className="h-full overflow-y-auto flex items-center justify-center">
-      <div className="max-w-4xl mx-auto px-6">
-        {/* Hero — original styling preserved */}
+    <div className="h-full overflow-y-auto flex flex-col items-center justify-center">
+      <div className="w-full max-w-4xl mx-auto px-6">
+        {/* Hero */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-light text-gray-900 mb-1" style={{ fontFamily: "'Manrope', sans-serif" }}>
             Let's launch something
@@ -85,88 +78,114 @@ export default function AIMarketingLabPage() {
             No setup. No login. Just choose a goal and see the outcome.
           </p>
         </div>
+      </div>
 
-        {/* Goal Selection Cards */}
-        <div className="mb-6">
-          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">What would you like to achieve?</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {goals.map((g) => {
-              const Icon = goalIcons[g.icon] || TrendingUp;
-              const isSelected = selectedGoal === g.id;
-              return (
-                <button
-                  key={g.id}
-                  onClick={() => handleGoalSelect(g.id)}
-                  className={`relative border rounded-2xl p-5 cursor-pointer transition-all text-left ${
-                    isSelected
-                      ? 'border-blue-400 bg-blue-50/80 shadow-md'
-                      : 'border-gray-200 bg-white/60 backdrop-blur-sm hover:border-blue-300 hover:shadow-md hover:-translate-y-0.5'
-                  }`}
-                >
-                  {isSelected && (
-                    <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
-                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                  )}
-                  <Icon className={`w-6 h-6 mb-3 ${isSelected ? 'text-blue-600' : 'text-gray-400'}`} />
-                  <div className={`font-medium text-gray-900 mb-1 ${isSelected ? 'text-blue-900' : ''}`}>{g.label}</div>
-                  <div className="text-xs text-gray-500 leading-relaxed">{g.description}</div>
-                </button>
-              );
-            })}
-          </div>
+      {/* Goal Selection — Auto-scrolling carousel */}
+      <GoalCarousel
+        selectedGoal={selectedGoal}
+        onSelect={handleGoalSelect}
+      />
+
+      {/* Start Button */}
+      {selectedGoal && (
+        <div className="text-center mt-8">
+          <Button variant="primary" onClick={handleStart}>
+            Start guided experience
+          </Button>
         </div>
+      )}
 
-        {/* Start Button */}
-        {selectedGoal && (
-          <div className="text-center mb-12">
-            <Button variant="primary" onClick={handleStart}>
-              Start guided experience
-            </Button>
-          </div>
-        )}
+      {/* Trust strip */}
+      <div className="text-center mt-10 mb-6">
+        <div className="inline-flex items-center gap-6 text-[11px] text-gray-400">
+          <span>Powered by contextual customer intelligence</span>
+          <span className="w-1 h-1 rounded-full bg-gray-300" />
+          <span>AI-generated for human review</span>
+          <span className="w-1 h-1 rounded-full bg-gray-300" />
+          <span>Built on trusted, traceable context</span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-        {/* Sample Output Previews */}
-        <div className="mb-10">
-          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">See what you'll get</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {previewCards.map((card) => {
-              const Icon = previewIcons[card.id] || FileText;
-              return (
-                <div
-                  key={card.id}
-                  className="bg-white/50 backdrop-blur-sm border border-gray-100 rounded-xl p-4"
-                >
-                  <div className="flex items-center gap-2 mb-3">
-                    <Icon className="w-4 h-4 text-gray-400" />
-                    <span className="text-xs font-semibold text-gray-700">{card.label}</span>
-                  </div>
-                  <div className="space-y-1.5">
-                    {card.lines.map((line, i) => (
-                      <div key={i} className="flex items-center gap-2">
-                        <div className="w-1 h-1 rounded-full bg-gray-300 flex-shrink-0" />
-                        <span className="text-[11px] text-gray-400">{line}</span>
-                      </div>
-                    ))}
-                  </div>
+// ============================================================
+// Goal Carousel (auto-scroll, matches AI Suite homepage pattern)
+// ============================================================
+function GoalCarousel({
+  selectedGoal,
+  onSelect,
+}: {
+  selectedGoal: string;
+  onSelect: (id: string) => void;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || isPaused) return;
+
+    let animationFrame: number;
+    const scrollSpeed = 0.5;
+
+    const step = () => {
+      if (el.scrollLeft >= el.scrollWidth - el.clientWidth) {
+        el.scrollLeft = 0;
+      } else {
+        el.scrollLeft += scrollSpeed;
+      }
+      animationFrame = requestAnimationFrame(step);
+    };
+
+    animationFrame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [isPaused]);
+
+  // Duplicate for seamless loop
+  const items = [...goals, ...goals];
+
+  return (
+    <div
+      className="w-full max-w-5xl mt-2"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      style={{
+        maskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)',
+        WebkitMaskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)',
+      }}
+    >
+      <div
+        ref={scrollRef}
+        className="flex gap-4 overflow-x-auto scrollbar-hide pb-2"
+        style={{ scrollBehavior: 'auto' }}
+      >
+        {items.map((g, index) => {
+          const Icon = goalIcons[g.icon] || TrendingUp;
+          const isSelected = selectedGoal === g.id;
+          return (
+            <button
+              key={`${g.id}-${index}`}
+              onClick={() => onSelect(g.id)}
+              className={`flex-shrink-0 w-72 p-5 rounded-2xl text-left transition-all cursor-pointer ${
+                isSelected
+                  ? 'border-2 border-blue-400 bg-blue-50/80 shadow-md'
+                  : 'border border-white/60 backdrop-blur-sm bg-white/10 shadow-[0_2px_4px_rgba(0,0,0,0.02),0_8px_24px_rgba(0,0,0,0.04)] hover:bg-white/40 hover:shadow-[0_4px_8px_rgba(0,0,0,0.03),0_12px_32px_rgba(0,0,0,0.06)]'
+              }`}
+            >
+              {isSelected && (
+                <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
+                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Trust strip */}
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-6 text-[11px] text-gray-400">
-            <span>Powered by contextual customer intelligence</span>
-            <span className="w-1 h-1 rounded-full bg-gray-300" />
-            <span>AI-generated for human review</span>
-            <span className="w-1 h-1 rounded-full bg-gray-300" />
-            <span>Built on trusted, traceable context</span>
-          </div>
-        </div>
+              )}
+              <Icon className={`w-6 h-6 mb-3 ${isSelected ? 'text-blue-600' : 'text-gray-400'}`} />
+              <div className={`font-medium text-sm mb-1 ${isSelected ? 'text-blue-900' : 'text-gray-900'}`}>{g.label}</div>
+              <div className="text-xs text-gray-500 leading-relaxed">{g.description}</div>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
