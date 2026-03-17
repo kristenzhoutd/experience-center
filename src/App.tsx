@@ -31,7 +31,7 @@ import CampaignLaunchStickyNavPage from './pages/campaignLaunch/CampaignLaunchSt
 import CampaignLaunchCommandPage from './pages/campaignLaunch/CampaignLaunchCommandPage';
 import CampaignLaunchSidebarAccordionPage from './pages/campaignLaunch/CampaignLaunchSidebarAccordionPage';
 
-// AI Marketing Lab pages
+// Treasure AI Experience Lab pages
 import AIMarketingLabPage from './pages/AIMarketingLabPage';
 import AIMarketingLabWorkflowPage from './pages/AIMarketingLabWorkflowPage';
 
@@ -80,7 +80,7 @@ function App() {
           <Route path="/campaign-launch/sticky-nav" element={<CampaignLaunchStickyNavPage />} />
           <Route path="/campaign-launch/command" element={<CampaignLaunchCommandPage />} />
 
-          {/* AI Marketing Lab routes */}
+          {/* Treasure AI Experience Lab routes */}
           <Route path="/ai-marketing-lab" element={<AIMarketingLabPage />} />
           <Route path="/ai-marketing-lab/workflow" element={<AIMarketingLabWorkflowPage />} />
 

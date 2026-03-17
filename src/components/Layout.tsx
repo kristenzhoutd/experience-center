@@ -182,6 +182,50 @@ export default function Layout() {
     return segment?.name || 'Select Parent Segment'
   }
 
+  const isExperienceLab = activeSuite === 'ai-marketing-lab'
+
+  // Experience Lab: clean standalone layout
+  if (isExperienceLab) {
+    return (
+      <div className="flex flex-col h-screen bg-white">
+        {/* Top bar */}
+        <div
+          className="h-14 px-6 flex items-center flex-shrink-0 border-b border-gray-100 bg-white window-drag"
+        >
+          <Link
+            to="/ai-marketing-lab"
+            onClick={(e) => { e.preventDefault(); navigate('/ai-marketing-lab'); }}
+            className="flex items-center gap-3 window-no-drag cursor-pointer hover:opacity-80 transition-opacity"
+          >
+            <img src="/td-icon.svg" alt="Treasure AI" className="w-8 h-8" />
+            <span className="text-sm font-semibold text-gray-900" style={{ fontFamily: "'Manrope', sans-serif" }}>
+              Treasure AI Experience Lab
+            </span>
+          </Link>
+          <div className="flex-1" />
+          <div className="flex items-center gap-2 text-[11px] text-gray-400 mr-6 window-no-drag">
+            Powered by Treasure AI
+          </div>
+          <a
+            href="#talk"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-gray-700 border border-gray-200 rounded-full hover:bg-gray-50 transition-colors window-no-drag"
+          >
+            Talk to our team
+          </a>
+        </div>
+        {/* Content */}
+        <main className="flex-1 overflow-hidden" style={{
+          backgroundImage: 'url(/marketing-lab-bg.svg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+        }}>
+          <Outlet />
+        </main>
+      </div>
+    )
+  }
+
   return (
     <div className="flex h-screen bg-white">
       {/* Icon-only Sidebar */}
@@ -223,9 +267,9 @@ export default function Layout() {
             </svg>
           </button>
 
-          {/* AI Marketing Lab Suite */}
+          {/* Treasure AI Experience Lab Suite */}
           <button
-            title="AI Marketing Lab"
+            title="Treasure AI Experience Lab"
             onClick={() => handleSuiteSwitch('ai-marketing-lab')}
             className={`group w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${
               activeSuite === 'ai-marketing-lab'
@@ -305,7 +349,7 @@ export default function Layout() {
           {/* Suite Title */}
           <div className="flex items-center gap-4 mr-8 window-no-drag">
             <h1 className="text-base font-semibold text-gray-900">
-              {activeSuite === 'personalization' ? 'Personalization' : activeSuite === 'paid-media' ? 'Paid Media' : activeSuite === 'ai-marketing-lab' ? 'AI Marketing Lab' : 'Settings'}
+              {activeSuite === 'personalization' ? 'Personalization' : activeSuite === 'paid-media' ? 'Paid Media' : activeSuite === 'ai-marketing-lab' ? 'Treasure AI Experience Lab' : 'Settings'}
             </h1>
           </div>
 
