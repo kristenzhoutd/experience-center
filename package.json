@@ -23,7 +23,6 @@
     "@fontsource/inter": "^5.2.8",
     "@fontsource/manrope": "^5.2.8",
     "@grapesjs/react": "^2.0.0",
-    "@paper-design/shaders-react": "^0.0.72",
     "cheerio": "^1.2.0",
     "cors": "^2.8.5",
     "express": "^4.21.0",
