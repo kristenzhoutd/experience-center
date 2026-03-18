@@ -639,7 +639,10 @@ function ChatPanel({
                         </div>
                       </div>
                     ) : (
-                      <div className="max-w-[85%] px-1">
+                      <div className="max-w-[85%] px-1 flex items-center gap-3">
+                        {msg.type === 'generation' && (
+                          <img src="/icons/td-avatar.png" alt="" className="w-10 h-10 animate-spin-slow flex-shrink-0" />
+                        )}
                         <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
                           {msg.content?.split('\n').map((line, i) => (
                             <span key={i} className={line.trim().endsWith('?') ? 'font-semibold' : ''}>
