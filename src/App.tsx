@@ -32,8 +32,8 @@ import CampaignLaunchCommandPage from './pages/campaignLaunch/CampaignLaunchComm
 import CampaignLaunchSidebarAccordionPage from './pages/campaignLaunch/CampaignLaunchSidebarAccordionPage';
 
 // Treasure AI Experience Center pages
-import AIMarketingLabPage from './pages/AIMarketingLabPage';
-import AIMarketingLabWorkflowPage from './pages/AIMarketingLabWorkflowPage';
+import ExperienceCenterPage from './pages/ExperienceCenterPage';
+import ExperienceCenterWorkflowPage from './pages/ExperienceCenterWorkflowPage';
 
 // Shared pages
 import SettingsPage from './pages/SettingsPage';
@@ -81,8 +81,8 @@ function App() {
           <Route path="/campaign-launch/command" element={<CampaignLaunchCommandPage />} />
 
           {/* Treasure AI Experience Center routes */}
-          <Route path="/experience-center" element={<AIMarketingLabPage />} />
-          <Route path="/experience-center/workflow" element={<AIMarketingLabWorkflowPage />} />
+          <Route path="/experience-center" element={<ExperienceCenterPage />} />
+          <Route path="/experience-center/workflow" element={<ExperienceCenterWorkflowPage />} />
           {/* Redirects from old routes */}
           <Route path="/ai-marketing-lab" element={<Navigate to="/experience-center" replace />} />
           <Route path="/ai-marketing-lab/workflow" element={<Navigate to="/experience-center/workflow" replace />} />

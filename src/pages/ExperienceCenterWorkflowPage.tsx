@@ -77,7 +77,7 @@ function getRefinementAck(chip: RefinementChip): string {
 // ============================================================
 // Main Component
 // ============================================================
-export default function AIMarketingLabWorkflowPage() {
+export default function ExperienceCenterWorkflowPage() {
   const navigate = useNavigate();
   const store = useExperienceLabStore();
   const {

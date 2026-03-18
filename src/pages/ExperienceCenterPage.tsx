@@ -20,7 +20,7 @@ const rotatingWords = [
   { word: 'exceptional', color: '#F05256', icon: '/icons/rotating-word-4.svg' },
 ];
 
-export default function AIMarketingLabPage() {
+export default function ExperienceCenterPage() {
   const navigate = useNavigate();
   const { setGoal, resetSession } = useExperienceLabStore();
   const [selectedGoal, setSelectedGoal] = useState('');
