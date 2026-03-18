@@ -49,6 +49,31 @@ interface ConversationMessage {
   multiSelect?: boolean;
 }
 
+function getRefinementAck(chip: RefinementChip): string {
+  const acks: Record<string, string[]> = {
+    objective: [
+      `Got it — I'll refine this to focus on ${chip.inputValue.replace(/-/g, ' ')}.`,
+      `Sure — updating the strategy to optimize for ${chip.inputValue.replace(/-/g, ' ')}.`,
+    ],
+    audience: [
+      `Understood — I'll tailor this for ${chip.label.replace(/^Target /i, '')}.`,
+      `Got it — reshaping the recommendation for ${chip.label.replace(/^Target /i, '')}.`,
+    ],
+    channels: [
+      `Sure — I'll ${chip.label.toLowerCase()} to the channel mix.`,
+      `On it — updating the output to include ${chip.inputValue.replace(/-/g, ' ')}.`,
+    ],
+    priority: [
+      `Got it — I'll ${chip.label.toLowerCase()} in this version.`,
+    ],
+    kpi: [
+      `Understood — I'll ${chip.label.toLowerCase()}.`,
+    ],
+  };
+  const options = acks[chip.inputKey] || [`Got it — I'll update the recommendation based on "${chip.label}".`];
+  return options[Math.floor(Math.random() * options.length)];
+}
+
 // ============================================================
 // Main Component
 // ============================================================
@@ -180,7 +205,20 @@ export default function AIMarketingLabWorkflowPage() {
   // Refinement handler
   // ============================================================
   const handleRefinement = useCallback((chip: RefinementChip) => {
-    addUserMessage(chip.label);
+    // Generate a natural acknowledgment based on the refinement type
+    const ack = getRefinementAck(chip);
+
+    // Clean up old action UI (refinements, cta, output-ready) and replace with conversational history
+    setMessages(prev => {
+      const cleaned = prev
+        .filter(m => m.type !== 'refinements' && m.type !== 'cta')
+        .map(m => m.type === 'output-ready' ? { ...m, type: 'text' as const } : m);
+      return [
+        ...cleaned,
+        { id: `user-${Date.now()}`, role: 'user' as const, content: chip.label },
+        { id: `ai-ack-${Date.now()}`, role: 'ai' as const, content: ack, type: 'text' as const },
+      ];
+    });
 
     // Update the input
     const currentInputs = useExperienceLabStore.getState().inputs;
@@ -596,7 +634,7 @@ function ChatPanel({
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
-                        <div className="w-fit max-w-[80%] px-5 py-3 bg-gradient-to-b from-[#4e8ecc] to-[#487ec2] text-white rounded-tl-[24px] rounded-tr-[24px] rounded-bl-[24px] rounded-br-[4px]">
+                        <div className="w-fit max-w-[240px] px-5 py-3 bg-gradient-to-b from-[#4e8ecc] to-[#487ec2] text-white rounded-tl-[24px] rounded-tr-[24px] rounded-bl-[24px] rounded-br-[4px]">
                           <div className="text-sm leading-relaxed">{msg.content}</div>
                         </div>
                       </div>
