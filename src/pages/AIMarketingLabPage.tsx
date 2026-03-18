@@ -58,7 +58,7 @@ export default function AIMarketingLabPage() {
   const handleStart = () => {
     if (!selectedGoal) return;
     setGoal(selectedGoal);
-    navigate('/ai-marketing-lab/workflow');
+    navigate('/experience-center/workflow');
   };
 
   return (

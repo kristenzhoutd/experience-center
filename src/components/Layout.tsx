@@ -18,7 +18,7 @@ const campaignSubNavItems = [
   { path: '/briefs', label: 'Briefs' },
 ]
 const paidMediaRoutes = ['/campaign-chat', '/pm-campaigns', '/unified', '/unified-view', '/reports', '/pm-settings', '/campaign-launch']
-const aiMarketingLabRoutes = ['/ai-marketing-lab']
+const aiMarketingLabRoutes = ['/experience-center']
 
 // Global routes that don't belong to any suite
 const globalRoutes = ['/settings']
@@ -95,7 +95,7 @@ const paidMediaTopNav = [
 ]
 
 const aiMarketingLabTopNav = [
-  { path: '/ai-marketing-lab', label: 'Home', isIcon: true, icon: (
+  { path: '/experience-center', label: 'Home', isIcon: true, icon: (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
     </svg>
@@ -130,7 +130,7 @@ export default function Layout() {
   }, [location.pathname])
 
   const topNavItems = activeSuite === 'personalization' ? personalizationTopNav : activeSuite === 'paid-media' ? paidMediaTopNav : activeSuite === 'ai-marketing-lab' ? aiMarketingLabTopNav : []
-  const homeRoute = activeSuite === 'personalization' ? '/chat' : activeSuite === 'paid-media' ? '/campaign-chat' : '/ai-marketing-lab'
+  const homeRoute = activeSuite === 'personalization' ? '/chat' : activeSuite === 'paid-media' ? '/campaign-chat' : '/experience-center'
 
   const filteredParentSegments = useMemo(() => {
     if (!parentSegmentSearch.trim()) return parentSegments
@@ -169,7 +169,7 @@ export default function Layout() {
   const handleSuiteSwitch = (suite: ActiveSuite) => {
     if (suite === activeSuite) return
     setActiveSuite(suite)
-    navigate(suite === 'personalization' ? '/chat' : suite === 'paid-media' ? '/campaign-chat' : '/ai-marketing-lab')
+    navigate(suite === 'personalization' ? '/chat' : suite === 'paid-media' ? '/campaign-chat' : '/experience-center')
   }
 
   const handleParentSegmentSelect = (segmentId: string) => {
@@ -183,7 +183,7 @@ export default function Layout() {
   }
 
   const isExperienceLab = activeSuite === 'ai-marketing-lab'
-  const isExperienceLabLanding = location.pathname === '/ai-marketing-lab'
+  const isExperienceLabLanding = location.pathname === '/experience-center'
 
   // Experience Center: clean standalone layout
   if (isExperienceLab) {
@@ -194,8 +194,8 @@ export default function Layout() {
           className="h-14 px-4 md:px-6 flex items-center flex-shrink-0 bg-white window-drag"
         >
           <Link
-            to="/ai-marketing-lab"
-            onClick={(e) => { e.preventDefault(); navigate('/ai-marketing-lab'); }}
+            to="/experience-center"
+            onClick={(e) => { e.preventDefault(); navigate('/experience-center'); }}
             className="flex items-center gap-2 md:gap-3 window-no-drag cursor-pointer hover:opacity-80 transition-opacity min-w-0"
           >
             <img src="/td-icon.svg" alt="Treasure AI" className="w-7 h-7 md:w-8 md:h-8 flex-shrink-0" />
@@ -334,7 +334,7 @@ export default function Layout() {
       {/* Main content area with top nav */}
       <div
         className="flex-1 flex flex-col overflow-hidden noise-bg"
-        style={location.pathname.startsWith('/ai-marketing-lab') ? {
+        style={location.pathname.startsWith('/experience-center') ? {
           backgroundImage: 'url(/marketing-lab-bg.svg)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',

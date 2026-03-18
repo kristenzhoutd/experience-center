@@ -81,8 +81,11 @@ function App() {
           <Route path="/campaign-launch/command" element={<CampaignLaunchCommandPage />} />
 
           {/* Treasure AI Experience Center routes */}
-          <Route path="/ai-marketing-lab" element={<AIMarketingLabPage />} />
-          <Route path="/ai-marketing-lab/workflow" element={<AIMarketingLabWorkflowPage />} />
+          <Route path="/experience-center" element={<AIMarketingLabPage />} />
+          <Route path="/experience-center/workflow" element={<AIMarketingLabWorkflowPage />} />
+          {/* Redirects from old routes */}
+          <Route path="/ai-marketing-lab" element={<Navigate to="/experience-center" replace />} />
+          <Route path="/ai-marketing-lab/workflow" element={<Navigate to="/experience-center/workflow" replace />} />
 
           {/* Shared routes */}
           <Route path="/settings" element={<SettingsPage />} />

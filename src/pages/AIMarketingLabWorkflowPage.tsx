@@ -115,7 +115,7 @@ export default function AIMarketingLabWorkflowPage() {
 
   // Redirect if no goal selected
   useEffect(() => {
-    if (!goal) navigate('/ai-marketing-lab', { replace: true });
+    if (!goal) navigate('/experience-center', { replace: true });
   }, [goal, navigate]);
 
   // Scroll to bottom on new messages
@@ -338,7 +338,7 @@ export default function AIMarketingLabWorkflowPage() {
     const step = EXPERIENCE_STEPS[stepNum - 1];
     if (!step) return;
     if (step.key === 'goal') {
-      navigate('/ai-marketing-lab');
+      navigate('/experience-center');
       return;
     }
     const targetIdx = stepIndex(step.key);
