@@ -10,7 +10,7 @@ import {
 import SplitPaneLayout from '../components/campaign/SplitPaneLayout';
 import BookWalkthroughModal from '../components/BookWalkthroughModal';
 import { useExperienceLabStore, type FlowStep, type OutputData } from '../stores/experienceLabStore';
-import { goals, industries, scenarios, getScenarioSteps, generationSteps, type InputStep } from '../data/experienceLabConfig';
+import { goals, industries, scenarios, generationSteps, refinementGenerationSteps, getDefaultInputs, getRefinementChips, type RefinementChip } from '../data/experienceLabConfig';
 import { generateExperienceLabOutput } from '../services/experienceLabOutputs';
 
 // ============================================================
@@ -28,11 +28,10 @@ const EXPERIENCE_STEPS: { id: number; key: FlowStep | 'goal'; label: string }[] 
   { id: 1, key: 'goal', label: 'Goal' },
   { id: 2, key: 'industry', label: 'Industry' },
   { id: 3, key: 'scenario', label: 'Scenario' },
-  { id: 4, key: 'inputs', label: 'Inputs' },
-  { id: 5, key: 'output', label: 'Outcome' },
+  { id: 4, key: 'output', label: 'Outcome' },
 ];
 
-const stepOrder: (FlowStep | 'goal')[] = ['goal', 'industry', 'scenario', 'inputs', 'generating', 'output'];
+const stepOrder: (FlowStep | 'goal')[] = ['goal', 'industry', 'scenario', 'generating', 'output'];
 
 function stepIndex(step: FlowStep | 'goal'): number {
   return stepOrder.indexOf(step);
@@ -45,7 +44,7 @@ interface ConversationMessage {
   id: string;
   role: 'ai' | 'user' | 'thinking';
   content: string;
-  type?: 'text' | 'industry-cards' | 'scenario-cards' | 'input-options' | 'generation' | 'output-ready' | 'cta';
+  type?: 'text' | 'industry-cards' | 'scenario-cards' | 'input-options' | 'generation' | 'output-ready' | 'cta' | 'refinements';
   stepKey?: string;
   multiSelect?: boolean;
 }
@@ -58,7 +57,7 @@ export default function AIMarketingLabWorkflowPage() {
   const store = useExperienceLabStore();
   const {
     goal, industry, scenario, inputs, currentStep,
-    currentInputStep, generationPhase, output,
+    generationPhase, output, isGenerating,
     setIndustry, setScenario, setInput, setCurrentStep,
     setCurrentInputStep, startGeneration, setGenerationPhase,
     finishGeneration, resetSession,
@@ -97,10 +96,8 @@ export default function AIMarketingLabWorkflowPage() {
   // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, currentStep, currentInputStep, generationPhase]);
+  }, [messages, currentStep, generationPhase]);
 
-  // Get input steps for current scenario + industry
-  const inputSteps = scenario ? getScenarioSteps(scenario, industry) : [];
 
   // ============================================================
   // Initialize first message
@@ -171,58 +168,48 @@ export default function AIMarketingLabWorkflowPage() {
     const label = scenarios.find(s => s.id === id)?.label || id;
     setScenario(id);
     addUserMessage(label);
-    setCurrentStep('inputs');
-    setCurrentInputStep(0);
-    const steps = getScenarioSteps(id, industry);
-    setTimeout(() => {
-      if (steps[0]) {
-        addAIMessageWithTyping(
-          steps[0].question + (steps[0].subtitle ? `\n${steps[0].subtitle}` : ''),
-          'input-options',
-          steps[0].id,
-          steps[0].multiSelect,
-        );
-      }
-    }, 300);
+
+    // Apply default inputs and generate immediately
+    const defaults = getDefaultInputs(id, industry);
+    Object.entries(defaults).forEach(([key, value]) => setInput(key, value));
+
+    setTimeout(() => runGeneration(id, defaults), 300);
   };
 
-  const handleInputSelect = (stepId: string, value: string | string[]) => {
-    setInput(stepId, value);
-  };
+  // ============================================================
+  // Refinement handler
+  // ============================================================
+  const handleRefinement = useCallback((chip: RefinementChip) => {
+    addUserMessage(chip.label);
 
-  const handleInputContinue = () => {
-    const step = inputSteps[currentInputStep];
-    if (!step) return;
-    // Read from store directly to avoid stale closure on single-select auto-advance
+    // Update the input
     const currentInputs = useExperienceLabStore.getState().inputs;
-    const val = currentInputs[step.id];
-    const lookupLabel = (id: string) => step.options.find(o => o.id === id)?.label || id.replace(/-/g, ' ');
-    const displayVal = Array.isArray(val)
-      ? val.map(lookupLabel).join(', ')
-      : (typeof val === 'string' ? lookupLabel(val) : '');
-    addUserMessage(displayVal);
+    const currentScenario = useExperienceLabStore.getState().scenario;
 
-    const nextIdx = currentInputStep + 1;
-    if (nextIdx < inputSteps.length) {
-      setCurrentInputStep(nextIdx);
-      const nextStep = inputSteps[nextIdx];
-      setTimeout(() => {
-        addAIMessageWithTyping(
-          nextStep.question + (nextStep.subtitle ? `\n${nextStep.subtitle}` : ''),
-          'input-options',
-          nextStep.id,
-          nextStep.multiSelect,
-        );
-      }, 300);
+    // For channel chips, toggle in the channels array
+    if (chip.inputKey === 'channels') {
+      const current = Array.isArray(currentInputs.channels) ? currentInputs.channels : ['email', 'paid-social'];
+      const updated = current.includes(chip.inputValue)
+        ? current
+        : [...current, chip.inputValue];
+      setInput('channels', updated);
     } else {
-      setTimeout(() => runGeneration(), 300);
+      setInput(chip.inputKey, chip.inputValue);
     }
-  };
+
+    // Regenerate with updated inputs
+    setTimeout(() => {
+      const updatedInputs = useExperienceLabStore.getState().inputs;
+      runRefinement(currentScenario, updatedInputs);
+    }, 300);
+  }, []);
 
   // ============================================================
-  // Generation
+  // Generation (first draft)
   // ============================================================
-  const runGeneration = useCallback(() => {
+  const runGeneration = useCallback((scenarioId?: string, defaultInputs?: Record<string, string | string[]>) => {
+    const s = scenarioId || scenario;
+    const i = defaultInputs || inputs;
     startGeneration();
     addAIMessage('Generating your personalized outcome...', 'generation');
 
@@ -231,14 +218,15 @@ export default function AIMarketingLabWorkflowPage() {
       phase++;
       if (phase >= generationSteps.length) {
         clearInterval(interval);
-        const result = generateExperienceLabOutput({ goal, industry, scenario, inputs });
+        const result = generateExperienceLabOutput({ goal, industry, scenario: s, inputs: i });
         finishGeneration(result);
         setMessages(prev => {
           const filtered = prev.filter(m => m.type !== 'generation');
           return [
             ...filtered,
-            { id: `ai-output-${Date.now()}`, role: 'ai' as const, content: 'Your AI-generated outcome is ready. Review the structured result on the right.', type: 'output-ready' as const },
-            { id: `ai-cta-${Date.now() + 1}`, role: 'ai' as const, content: '', type: 'cta' as const },
+            { id: `ai-output-${Date.now()}`, role: 'ai' as const, content: 'Here\'s your initial recommendation. You can refine it below.', type: 'output-ready' as const },
+            { id: `ai-refine-${Date.now() + 1}`, role: 'ai' as const, content: 'Want to adjust? Try one of these:', type: 'refinements' as const },
+            { id: `ai-cta-${Date.now() + 2}`, role: 'ai' as const, content: '', type: 'cta' as const },
           ];
         });
       } else {
@@ -246,6 +234,38 @@ export default function AIMarketingLabWorkflowPage() {
       }
     }, 1100);
   }, [goal, industry, scenario, inputs, startGeneration, setGenerationPhase, finishGeneration]);
+
+  // ============================================================
+  // Refinement generation (faster)
+  // ============================================================
+  const runRefinement = useCallback((scenarioId: string, updatedInputs: Record<string, string | string[]>) => {
+    // Don't call startGeneration() — it sets currentStep to 'generating' which hides the output panel
+    useExperienceLabStore.setState({ isGenerating: true, generationPhase: 0 });
+    // Show thinking spinner for entire refinement duration
+    const thinkingId = `thinking-${Date.now()}`;
+    setMessages(prev => [...prev, { id: thinkingId, role: 'thinking' as const, content: '' }]);
+
+    let phase = 0;
+    const interval = setInterval(() => {
+      phase++;
+      if (phase >= refinementGenerationSteps.length) {
+        clearInterval(interval);
+        const result = generateExperienceLabOutput({ goal, industry, scenario: scenarioId, inputs: updatedInputs });
+        finishGeneration(result);
+        setMessages(prev => {
+          const filtered = prev.filter(m => m.id !== thinkingId);
+          return [
+            ...filtered,
+            { id: `ai-output-${Date.now()}`, role: 'ai' as const, content: 'Updated! Here\'s your refined recommendation.', type: 'output-ready' as const },
+            { id: `ai-refine-${Date.now() + 1}`, role: 'ai' as const, content: 'Want to adjust further?', type: 'refinements' as const },
+            { id: `ai-cta-${Date.now() + 2}`, role: 'ai' as const, content: '', type: 'cta' as const },
+          ];
+        });
+      } else {
+        setGenerationPhase(phase);
+      }
+    }, 800);
+  }, [goal, industry, startGeneration, setGenerationPhase, finishGeneration]);
 
   // Progressive output reveal
   useEffect(() => {
@@ -270,8 +290,7 @@ export default function AIMarketingLabWorkflowPage() {
   const getCurrentVisualStep = (): number => {
     if (currentStep === 'industry') return 2;
     if (currentStep === 'scenario') return 3;
-    if (currentStep === 'inputs') return 4;
-    if (currentStep === 'generating' || currentStep === 'output') return 5;
+    if (currentStep === 'generating' || currentStep === 'output') return 4;
     return 2;
   };
 
@@ -288,7 +307,6 @@ export default function AIMarketingLabWorkflowPage() {
     const currentIdx = stepIndex(currentStep);
     if (targetIdx < currentIdx && step.key !== 'generating') {
       setCurrentStep(step.key as FlowStep);
-      if (step.key === 'inputs') setCurrentInputStep(0);
       setShowCTA(false);
     }
   };
@@ -340,14 +358,14 @@ export default function AIMarketingLabWorkflowPage() {
     // Clear output and scenario, reset to scenario step
     useExperienceLabStore.setState({
       output: null, scenario: '', inputs: {},
-      currentInputStep: 0, currentStep: 'scenario',
+      currentStep: 'scenario',
     });
     setShowCTA(false);
     setVisibleOutputSections(0);
     setCollapsed(false);
     // Remove old output/cta messages and add scenario prompt immediately
     setMessages(prev => [
-      ...prev.filter(m => m.type !== 'output-ready' && m.type !== 'cta' && m.role !== 'thinking'),
+      ...prev.filter(m => m.type !== 'output-ready' && m.type !== 'cta' && m.type !== 'refinements' && m.role !== 'thinking'),
       {
         id: `ai-${Date.now()}`,
         role: 'ai' as const,
@@ -356,18 +374,6 @@ export default function AIMarketingLabWorkflowPage() {
       },
     ]);
   }, []);
-
-  // ============================================================
-  // Input validation
-  // ============================================================
-  const canContinueInput = (): boolean => {
-    if (currentStep !== 'inputs') return false;
-    const step = inputSteps[currentInputStep];
-    if (!step) return false;
-    const val = inputs[step.id];
-    if (step.multiSelect) return Array.isArray(val) && val.length > 0;
-    return !!val;
-  };
 
   // ============================================================
   // Render
@@ -416,15 +422,10 @@ export default function AIMarketingLabWorkflowPage() {
                     lastAIMessage={lastAIMessage}
                     industry={industry}
                     scenario={scenario}
-                    inputs={inputs}
-                    inputSteps={inputSteps}
-                    currentInputStep={currentInputStep}
                     generationPhase={generationPhase}
                     onIndustrySelect={handleIndustrySelect}
                     onScenarioSelect={handleScenarioSelect}
-                    onInputSelect={handleInputSelect}
-                    onInputContinue={handleInputContinue}
-                    canContinueInput={canContinueInput()}
+                    onRefinement={handleRefinement}
                     onExploreAnother={handleExploreAnother}
                     messagesEndRef={messagesEndRef}
                     output={output}
@@ -457,15 +458,10 @@ export default function AIMarketingLabWorkflowPage() {
                   lastAIMessage={lastAIMessage}
                   industry={industry}
                   scenario={scenario}
-                  inputs={inputs}
-                  inputSteps={inputSteps}
-                  currentInputStep={currentInputStep}
                   generationPhase={generationPhase}
                   onIndustrySelect={handleIndustrySelect}
                   onScenarioSelect={handleScenarioSelect}
-                  onInputSelect={handleInputSelect}
-                  onInputContinue={handleInputContinue}
-                  canContinueInput={canContinueInput()}
+                  onRefinement={handleRefinement}
                   onExploreAnother={handleExploreAnother}
                   messagesEndRef={messagesEndRef}
                   output={output}
@@ -494,15 +490,10 @@ export default function AIMarketingLabWorkflowPage() {
               lastAIMessage={lastAIMessage}
               industry={industry}
               scenario={scenario}
-              inputs={inputs}
-              inputSteps={inputSteps}
-              currentInputStep={currentInputStep}
               generationPhase={generationPhase}
               onIndustrySelect={handleIndustrySelect}
               onScenarioSelect={handleScenarioSelect}
-              onInputSelect={handleInputSelect}
-              onInputContinue={handleInputContinue}
-              canContinueInput={canContinueInput()}
+              onRefinement={handleRefinement}
               onExploreAnother={handleExploreAnother}
               messagesEndRef={messagesEndRef}
               output={output}
@@ -531,10 +522,10 @@ export default function AIMarketingLabWorkflowPage() {
 // Chat Panel (shared between full-width and split-view modes)
 // ============================================================
 function ChatPanel({
-  messages, currentStep, lastAIMessage, industry, scenario, inputs,
-  inputSteps, currentInputStep, generationPhase,
-  onIndustrySelect, onScenarioSelect, onInputSelect, onInputContinue,
-  canContinueInput, onExploreAnother, messagesEndRef,
+  messages, currentStep, lastAIMessage, industry, scenario,
+  generationPhase,
+  onIndustrySelect, onScenarioSelect, onRefinement,
+  onExploreAnother, messagesEndRef,
   showCollapse, onCollapse, output, onEditMessage,
 }: {
   messages: ConversationMessage[];
@@ -542,15 +533,10 @@ function ChatPanel({
   lastAIMessage: ConversationMessage | undefined;
   industry: string;
   scenario: string;
-  inputs: Record<string, string | string[]>;
-  inputSteps: InputStep[];
-  currentInputStep: number;
   generationPhase: number;
   onIndustrySelect: (id: string) => void;
   onScenarioSelect: (id: string) => void;
-  onInputSelect: (stepId: string, value: string | string[]) => void;
-  onInputContinue: () => void;
-  canContinueInput: boolean;
+  onRefinement: (chip: RefinementChip) => void;
   onExploreAnother: () => void;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   showCollapse?: boolean;
@@ -627,7 +613,7 @@ function ChatPanel({
                     )}
                   </div>
                 )}
-                {msg.role === 'ai' && msg.id === lastAIMessage?.id && (
+                {msg.role === 'ai' && (msg.id === lastAIMessage?.id || msg.type === 'refinements') && (
                   <div className="mt-4 px-1 animate-fade-in-delay-1">
                     {msg.type === 'industry-cards' && currentStep === 'industry' && (
                       <IndustryCards industry={industry} onSelect={onIndustrySelect} />
@@ -635,18 +621,11 @@ function ChatPanel({
                     {msg.type === 'scenario-cards' && currentStep === 'scenario' && (
                       <ScenarioCards scenario={scenario} onSelect={onScenarioSelect} />
                     )}
-                    {msg.type === 'input-options' && currentStep === 'inputs' && msg.stepKey === inputSteps[currentInputStep]?.id && (
-                      <InputChips
-                        step={inputSteps[currentInputStep]}
-                        value={inputs[inputSteps[currentInputStep].id]}
-                        onSelect={(val) => onInputSelect(inputSteps[currentInputStep].id, val)}
-                        onContinue={onInputContinue}
-                        canContinue={canContinueInput}
-                        isLastStep={currentInputStep === inputSteps.length - 1}
-                      />
-                    )}
                     {msg.type === 'generation' && currentStep === 'generating' && (
                       <GenerationProgress phase={generationPhase} />
+                    )}
+                    {msg.type === 'refinements' && currentStep === 'output' && (
+                      <RefinementChips scenario={scenario} industry={industry} onSelect={onRefinement} />
                     )}
                   </div>
                 )}
@@ -823,111 +802,30 @@ function ScenarioCards({ scenario, onSelect }: { scenario: string; onSelect: (id
 // ============================================================
 // Input Chips
 // ============================================================
-function InputChips({
-  step, value, onSelect, onContinue, canContinue, isLastStep,
+// ============================================================
+// Refinement Chips (post-output, in chat)
+// ============================================================
+function RefinementChips({
+  scenario, industry, onSelect,
 }: {
-  step: InputStep;
-  value: string | string[] | undefined;
-  onSelect: (val: string | string[]) => void;
-  onContinue: () => void;
-  canContinue: boolean;
-  isLastStep: boolean;
+  scenario: string;
+  industry: string;
+  onSelect: (chip: RefinementChip) => void;
 }) {
-  const selectedArr = Array.isArray(value) ? value : value ? [value] : [];
-
-  const handleClick = (optionId: string) => {
-    if (step.multiSelect) {
-      const current = Array.isArray(value) ? value : [];
-      if (current.includes(optionId)) {
-        onSelect(current.filter(v => v !== optionId));
-      } else {
-        onSelect([...current, optionId]);
-      }
-    } else {
-      onSelect(optionId);
-      setTimeout(() => onContinue(), 200);
-    }
-  };
-
-  const hasDescriptions = step.options.some(o => o.description);
-
-  if (hasDescriptions) {
-    return (
-      <div className="max-w-xl">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          {step.options.map((option) => {
-            const isSelected = selectedArr.includes(option.id);
-            return (
-              <button
-                key={option.id}
-                onClick={() => handleClick(option.id)}
-                className={`relative border rounded-xl p-3 cursor-pointer transition-all text-left ${
-                  isSelected
-                    ? 'border-blue-400 bg-blue-50/60'
-                    : 'border-gray-200 bg-white hover:border-blue-300'
-                }`}
-              >
-                {isSelected && (
-                  <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
-                    <Check className="w-2.5 h-2.5 text-white" />
-                  </div>
-                )}
-                <div className="font-medium text-sm text-gray-900">{option.label}</div>
-                <div className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">{option.description}</div>
-              </button>
-            );
-          })}
-        </div>
-        {step.multiSelect && (
-          <button
-            onClick={onContinue}
-            disabled={!canContinue}
-            className={`mt-3 px-5 py-2 rounded-full text-sm font-medium transition-all cursor-pointer border-none ${
-              canContinue
-                ? 'bg-gray-900 text-white hover:bg-gray-800'
-                : 'bg-gray-100 text-gray-300 cursor-not-allowed'
-            }`}
-          >
-            {isLastStep ? 'Generate' : 'Continue'}
-          </button>
-        )}
-      </div>
-    );
-  }
-
+  const chips = getRefinementChips(scenario, industry);
   return (
     <div className="max-w-xl">
-      <div className="flex flex-wrap gap-2">
-        {step.options.map((option) => {
-          const isSelected = selectedArr.includes(option.id);
-          return (
-            <button
-              key={option.id}
-              onClick={() => handleClick(option.id)}
-              className={`px-4 py-2 rounded-full text-sm transition-all cursor-pointer border ${
-                isSelected
-                  ? 'bg-gray-900 text-white border-gray-900'
-                  : 'bg-white text-gray-700 border-gray-200 hover:border-gray-400'
-              }`}
-            >
-              {option.label}
-            </button>
-          );
-        })}
+      <div className="flex flex-wrap gap-1.5">
+        {chips.slice(0, 8).map((chip) => (
+          <button
+            key={chip.id}
+            onClick={() => onSelect(chip)}
+            className="px-3 py-1.5 rounded-full text-xs transition-all cursor-pointer border border-gray-200 bg-white text-gray-700 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50"
+          >
+            {chip.label}
+          </button>
+        ))}
       </div>
-      {step.multiSelect && (
-        <button
-          onClick={onContinue}
-          disabled={!canContinue}
-          className={`mt-3 px-5 py-2 rounded-full text-sm font-medium transition-all cursor-pointer border-none ${
-            canContinue
-              ? 'bg-gray-900 text-white hover:bg-gray-800'
-              : 'bg-gray-100 text-gray-300 cursor-not-allowed'
-          }`}
-        >
-          {isLastStep ? 'Generate' : 'Continue'}
-        </button>
-      )}
     </div>
   );
 }
@@ -1297,7 +1195,7 @@ function FloatingContextCard({
         }`}
       >
         {/* Hero section */}
-        <div className="mx-4 rounded-xl overflow-hidden" style={{ backgroundImage: 'url(/icons/impact-card-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+        <div className="mx-4 rounded-xl overflow-hidden" style={{ backgroundImage: 'url(/icons/cta-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
           <div className="flex items-start p-5">
             <div className="flex-1 min-w-0">
               <div className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-medium text-gray-600 mb-3" style={{ background: 'rgba(255,255,255,0.7)' }}>

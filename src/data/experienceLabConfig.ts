@@ -363,6 +363,123 @@ export const generationSteps = [
   'Preparing action plan',
 ];
 
+// --- Default inputs per scenario + industry (for fast first generation) ---
+export function getDefaultInputs(scenarioId: string, industryId: string): Record<string, string | string[]> {
+  const audienceDefaults: Record<string, string> = {
+    retail: 'high-value-repeat',
+    travel: 'frequent-travelers',
+    cpg: 'brand-loyalists',
+  };
+
+  switch (scenarioId) {
+    case 'campaign-brief':
+      return {
+        objective: 'repeat-purchase',
+        audience: audienceDefaults[industryId] || 'high-value-repeat',
+        channels: ['email', 'paid-social'],
+        priority: 'roi',
+        kpi: 'conversion-rate',
+      };
+    case 'customer-segments':
+      return {
+        objective: 'retention',
+        'segment-lens': 'value',
+        'audience-priority': 'revenue-upside',
+        'activation-channel': 'email',
+      };
+    case 'lifecycle-journey':
+      return {
+        'journey-goal': 'retention',
+        audience: audienceDefaults[industryId] || 'high-value-repeat',
+        'channel-set': 'email-sms',
+        'brand-posture': 'personalized',
+        kpi: 'retention',
+      };
+    case 'performance-analysis':
+      return {
+        'performance-goal': 'roas',
+        'problem-area': 'audience-targeting',
+        constraint: 'scale-efficiently',
+        'output-focus': 'actions',
+      };
+    default:
+      return {};
+  }
+}
+
+// --- Refinement chips (post-output) ---
+export interface RefinementChip {
+  id: string;
+  label: string;
+  inputKey: string;
+  inputValue: string;
+}
+
+export function getRefinementChips(scenarioId: string, industryId: string): RefinementChip[] {
+  const audiences = industryAudiences[industryId] || industryAudiences['retail'];
+
+  const common: RefinementChip[] = [
+    ...audiences.slice(0, 3).map(a => ({ id: `aud-${a.id}`, label: `Target ${a.label.toLowerCase()}`, inputKey: 'audience', inputValue: a.id })),
+    { id: 'ch-email', label: 'Add email', inputKey: 'channels', inputValue: 'email' },
+    { id: 'ch-sms', label: 'Add SMS', inputKey: 'channels', inputValue: 'sms' },
+    { id: 'ch-paid', label: 'Add paid social', inputKey: 'channels', inputValue: 'paid-social' },
+    { id: 'ch-push', label: 'Add mobile push', inputKey: 'channels', inputValue: 'mobile-push' },
+  ];
+
+  switch (scenarioId) {
+    case 'campaign-brief':
+      return [
+        { id: 'obj-reactivate', label: 'Reactivate dormant customers', inputKey: 'objective', inputValue: 'reactivate' },
+        { id: 'obj-loyalty', label: 'Focus on loyalty', inputKey: 'objective', inputValue: 'loyalty' },
+        { id: 'obj-conversion', label: 'Increase conversion', inputKey: 'objective', inputValue: 'conversion' },
+        ...common,
+        { id: 'pri-speed', label: 'Maximize speed', inputKey: 'priority', inputValue: 'speed' },
+        { id: 'pri-retention', label: 'Focus on retention', inputKey: 'priority', inputValue: 'retention' },
+        { id: 'kpi-roas', label: 'Optimize for ROAS', inputKey: 'kpi', inputValue: 'roas' },
+        { id: 'kpi-engagement', label: 'Optimize for engagement', inputKey: 'kpi', inputValue: 'engagement-rate' },
+      ];
+    case 'customer-segments':
+      return [
+        { id: 'lens-lifecycle', label: 'Lifecycle-based segments', inputKey: 'segment-lens', inputValue: 'lifecycle' },
+        { id: 'lens-behavioral', label: 'Behavioral segments', inputKey: 'segment-lens', inputValue: 'behavioral' },
+        { id: 'lens-promo', label: 'Promotion sensitivity', inputKey: 'segment-lens', inputValue: 'promotion' },
+        { id: 'pri-atrisk', label: 'Prioritize at-risk', inputKey: 'audience-priority', inputValue: 'at-risk' },
+        { id: 'pri-engage', label: 'Most likely to engage', inputKey: 'audience-priority', inputValue: 'likely-engage' },
+        { id: 'act-paid', label: 'Activate via paid media', inputKey: 'activation-channel', inputValue: 'paid-media' },
+        { id: 'act-omni', label: 'Go omnichannel', inputKey: 'activation-channel', inputValue: 'omnichannel' },
+      ];
+    case 'lifecycle-journey':
+      return [
+        { id: 'jg-welcome', label: 'Switch to welcome flow', inputKey: 'journey-goal', inputValue: 'welcome' },
+        { id: 'jg-winback', label: 'Switch to win-back', inputKey: 'journey-goal', inputValue: 'winback' },
+        { id: 'jg-cart', label: 'Cart recovery flow', inputKey: 'journey-goal', inputValue: 'cart-recovery' },
+        { id: 'tone-premium', label: 'Premium tone', inputKey: 'brand-posture', inputValue: 'premium' },
+        { id: 'tone-promo', label: 'Promotional tone', inputKey: 'brand-posture', inputValue: 'promotional' },
+        { id: 'cs-omni', label: 'Omnichannel', inputKey: 'channel-set', inputValue: 'omnichannel' },
+        { id: 'cs-paid', label: 'Paid social + email', inputKey: 'channel-set', inputValue: 'paid-email' },
+      ];
+    case 'performance-analysis':
+      return [
+        { id: 'pg-conversion', label: 'Improve conversion', inputKey: 'performance-goal', inputValue: 'conversion' },
+        { id: 'pg-cac', label: 'Lower CAC', inputKey: 'performance-goal', inputValue: 'cac' },
+        { id: 'pa-channel', label: 'Focus on channel mix', inputKey: 'problem-area', inputValue: 'channel-mix' },
+        { id: 'pa-messaging', label: 'Focus on messaging', inputKey: 'problem-area', inputValue: 'messaging' },
+        { id: 'pa-fatigue', label: 'Address frequency fatigue', inputKey: 'problem-area', inputValue: 'frequency-fatigue' },
+        { id: 'con-reduce', label: 'Reduce spend', inputKey: 'constraint', inputValue: 'reduce-spend' },
+        { id: 'of-diagnosis', label: 'Show diagnosis', inputKey: 'output-focus', inputValue: 'diagnosis' },
+      ];
+    default:
+      return [];
+  }
+}
+
+// --- Faster generation steps for refinement ---
+export const refinementGenerationSteps = [
+  'Adjusting recommendations',
+  'Updating strategy',
+  'Preparing revised output',
+];
+
 // --- Preview card data ---
 export interface PreviewCard {
   id: string;
