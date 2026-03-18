@@ -62,7 +62,8 @@ export default function AIMarketingLabPage() {
   };
 
   return (
-    <div className="h-full overflow-y-auto flex flex-col items-center justify-center px-4 md:px-0">
+    <div className="h-full overflow-y-auto flex flex-col items-center px-4 md:px-0">
+      <div className="flex-1" />
       <div className="w-full max-w-4xl mx-auto px-2 md:px-6">
         {/* Hero */}
         <div className="text-center mb-8 md:mb-12">
@@ -103,13 +104,16 @@ export default function AIMarketingLabPage() {
         </div>
       )}
 
-      {/* Trust strip */}
-      <div className="text-center mt-8 md:mt-10 mb-6 px-4">
-        <div className="flex flex-col md:flex-row items-center gap-2 md:gap-6 text-[11px] text-gray-400">
+      {/* Spacer to push footer down */}
+      <div className="flex-1" />
+
+      {/* Trust strip — footer */}
+      <div className="text-center py-4 pb-8 px-4 w-full">
+        <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-6 text-[11px] text-gray-600">
           <span>Powered by contextual customer intelligence</span>
-          <span className="hidden md:block w-1 h-1 rounded-full bg-gray-300" />
+          <span className="hidden md:block w-1 h-1 rounded-full bg-gray-500" />
           <span>AI-generated for human review</span>
-          <span className="hidden md:block w-1 h-1 rounded-full bg-gray-300" />
+          <span className="hidden md:block w-1 h-1 rounded-full bg-gray-500" />
           <span>Built on trusted, traceable context</span>
         </div>
       </div>

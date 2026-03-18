@@ -5,7 +5,7 @@ import {
   ShoppingBag, Plane, Package, Car, Film, Landmark,
   Clock, Star, Send, RotateCcw,
   Target, Lightbulb, TrendingUp, Shield,
-  Loader2,
+  Loader2, Pencil,
 } from 'lucide-react';
 import SplitPaneLayout from '../components/campaign/SplitPaneLayout';
 import BookWalkthroughModal from '../components/BookWalkthroughModal';
@@ -293,6 +293,49 @@ export default function AIMarketingLabWorkflowPage() {
     }
   };
 
+  const handleEditMessage = (msgId: string) => {
+    const msgIndex = messages.findIndex(m => m.id === msgId);
+    if (msgIndex < 0) return;
+
+    // Find the AI message just before this user message to know which step to go back to
+    const aiMsgBefore = [...messages.slice(0, msgIndex)].reverse().find(m => m.role === 'ai');
+
+    // Truncate messages: keep everything before the user message (including the AI question)
+    setMessages(prev => prev.slice(0, msgIndex));
+    setShowCTA(false);
+    setCollapsed(false);
+
+    // Reset state based on what the AI was asking
+    if (aiMsgBefore?.type === 'industry-cards') {
+      setIndustry('');
+      setScenario('');
+      useExperienceLabStore.setState({ inputs: {}, currentInputStep: 0, output: null });
+      setCurrentStep('industry');
+    } else if (aiMsgBefore?.type === 'scenario-cards') {
+      setScenario('');
+      useExperienceLabStore.setState({ inputs: {}, currentInputStep: 0, output: null });
+      setCurrentStep('scenario');
+    } else if (aiMsgBefore?.type === 'input-options' && aiMsgBefore.stepKey) {
+      // Find which input step this was and reset from there
+      const stepIdx = inputSteps.findIndex(s => s.id === aiMsgBefore.stepKey);
+      if (stepIdx >= 0) {
+        // Clear this input and all subsequent inputs
+        const clearedInputs = { ...useExperienceLabStore.getState().inputs };
+        for (let i = stepIdx; i < inputSteps.length; i++) {
+          delete clearedInputs[inputSteps[i].id];
+        }
+        useExperienceLabStore.setState({ inputs: clearedInputs, currentInputStep: stepIdx, output: null });
+        setCurrentStep('inputs');
+      }
+    } else {
+      // Fallback: reset to industry step to avoid inconsistent state
+      setIndustry('');
+      setScenario('');
+      useExperienceLabStore.setState({ inputs: {}, currentInputStep: 0, output: null });
+      setCurrentStep('industry');
+    }
+  };
+
   const handleExploreAnother = useCallback(() => {
     // Clear output and scenario, reset to scenario step
     useExperienceLabStore.setState({
@@ -335,15 +378,15 @@ export default function AIMarketingLabWorkflowPage() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      {/* ── Horizontal Stepper (top) ── */}
-      <HorizontalStepper
-        currentStep={currentVisualStep}
-        onStepClick={handleStepperClick}
-      />
-
       {/* ── Main Layout ── */}
-      <div className="flex-1 overflow-hidden p-2 md:p-4 pt-0">
-        <div className="h-full flex flex-col md:flex-row rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden bg-white">
+      <div className="flex-1 overflow-hidden p-2 md:p-4">
+        <div className="h-full flex flex-col rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden bg-white">
+          {/* ── Horizontal Stepper (inside card) ── */}
+          <HorizontalStepper
+            currentStep={currentVisualStep}
+            onStepClick={handleStepperClick}
+          />
+          <div className="flex-1 flex flex-col md:flex-row overflow-hidden pb-3 pr-3">
           {hasOutput ? (
             isMobile ? (
               /* Mobile post-output: tab toggle between chat and output */
@@ -384,12 +427,11 @@ export default function AIMarketingLabWorkflowPage() {
                     canContinueInput={canContinueInput()}
                     onExploreAnother={handleExploreAnother}
                     messagesEndRef={messagesEndRef}
-              output={output}
-                  output={output}
                     output={output}
+                    onEditMessage={handleEditMessage}
                   />
                 ) : (
-                  <div className="flex-1 relative overflow-hidden bg-[#F7F8FB]">
+                  <div className="flex-1 relative overflow-hidden bg-[#F7F8FB] rounded-2xl">
                     <div className="h-full overflow-y-auto p-4 pb-20">
                       <OutputDisplay output={output!} visibleSections={visibleOutputSections} />
                     </div>
@@ -426,13 +468,13 @@ export default function AIMarketingLabWorkflowPage() {
                   canContinueInput={canContinueInput()}
                   onExploreAnother={handleExploreAnother}
                   messagesEndRef={messagesEndRef}
-              output={output}
                   output={output}
                   showCollapse
                   onCollapse={() => setCollapsed(true)}
+                  onEditMessage={handleEditMessage}
                 />
                 {/* Right: Output */}
-                <div className="h-full relative bg-[#F7F8FB]">
+                <div className="h-full relative bg-[#F7F8FB] rounded-2xl">
                   <div className="h-full overflow-y-auto p-6 pb-20">
                     <OutputDisplay output={output!} visibleSections={visibleOutputSections} />
                   </div>
@@ -464,8 +506,10 @@ export default function AIMarketingLabWorkflowPage() {
               onExploreAnother={handleExploreAnother}
               messagesEndRef={messagesEndRef}
               output={output}
+              onEditMessage={handleEditMessage}
             />
           )}
+          </div>
         </div>
       </div>
 
@@ -491,7 +535,7 @@ function ChatPanel({
   inputSteps, currentInputStep, generationPhase,
   onIndustrySelect, onScenarioSelect, onInputSelect, onInputContinue,
   canContinueInput, onExploreAnother, messagesEndRef,
-  showCollapse, onCollapse, output,
+  showCollapse, onCollapse, output, onEditMessage,
 }: {
   messages: ConversationMessage[];
   currentStep: FlowStep;
@@ -512,6 +556,7 @@ function ChatPanel({
   showCollapse?: boolean;
   onCollapse?: () => void;
   output?: OutputData | null;
+  onEditMessage?: (msgId: string) => void;
 }) {
   return (
     <div className="flex flex-col h-full w-full bg-white">
@@ -532,7 +577,7 @@ function ChatPanel({
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-5 md:gap-6">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-5 md:gap-6 max-w-2xl mx-auto w-full">
         {messages.map((msg) => (
           <div key={msg.id}>
             {msg.type === 'cta' && currentStep === 'output' ? (
@@ -557,12 +602,27 @@ function ChatPanel({
                 {msg.content && (
                   <div className={`flex animate-fade-in ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                     {msg.role === 'user' ? (
-                      <div className="max-w-[80%] px-5 py-3 bg-gradient-to-b from-[#4e8ecc] to-[#487ec2] text-white rounded-tl-[24px] rounded-tr-[24px] rounded-bl-[24px] rounded-br-[4px]">
-                        <div className="text-sm leading-relaxed">{msg.content}</div>
+                      <div className="flex items-center gap-2 group">
+                        <button
+                          onClick={() => onEditMessage?.(msg.id)}
+                          className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 bg-white text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                          title="Edit response"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <div className="w-fit max-w-[80%] px-5 py-3 bg-gradient-to-b from-[#4e8ecc] to-[#487ec2] text-white rounded-tl-[24px] rounded-tr-[24px] rounded-bl-[24px] rounded-br-[4px]">
+                          <div className="text-sm leading-relaxed">{msg.content}</div>
+                        </div>
                       </div>
                     ) : (
                       <div className="max-w-[85%] px-1">
-                        <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{msg.content}</div>
+                        <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+                          {msg.content?.split('\n').map((line, i) => (
+                            <span key={i} className={line.trim().endsWith('?') ? 'font-semibold' : ''}>
+                              {line}{i < (msg.content?.split('\n').length ?? 1) - 1 && '\n'}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>

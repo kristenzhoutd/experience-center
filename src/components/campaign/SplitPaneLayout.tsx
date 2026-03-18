@@ -77,7 +77,7 @@ export default function SplitPaneLayout({
 
       {/* Resizer */}
       {!collapsed && (
-        <div className="flex items-center shrink-0 relative z-[5]">
+        <div className="flex items-center shrink-0 relative z-[5] mr-2">
           <div
             onMouseDown={handleMouseDown}
             className="w-[6px] h-full cursor-col-resize flex items-center justify-center group"
