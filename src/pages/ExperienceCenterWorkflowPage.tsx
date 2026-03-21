@@ -427,7 +427,7 @@ export default function ExperienceCenterWorkflowPage() {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* ── Main Layout ── */}
-      <div className="flex-1 overflow-hidden p-2 md:p-4">
+      <div className="flex-1 overflow-hidden p-4">
         <div className="h-full flex flex-col rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden bg-white">
           {/* ── Horizontal Stepper (inside card) ── */}
           <HorizontalStepper

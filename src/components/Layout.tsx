@@ -188,10 +188,19 @@ export default function Layout() {
   // Experience Center: clean standalone layout
   if (isExperienceLab) {
     return (
-      <div className="flex flex-col h-screen bg-white">
+      <div className="flex flex-col h-screen relative">
+        {/* Full-bleed background — covers nav + content */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: 'url(/gradient-bg.png)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        />
         {/* Top bar */}
         <div
-          className="h-14 px-4 md:px-6 flex items-center flex-shrink-0 bg-white window-drag"
+          className="h-14 px-4 md:px-6 flex items-center flex-shrink-0 relative z-10 window-drag"
         >
           <Link
             to="/experience-center"
@@ -215,20 +224,8 @@ export default function Layout() {
           </button>
         </div>
         {/* Content */}
-        <main className="flex-1 overflow-hidden relative bg-white">
-          <div className={`absolute inset-0 pointer-events-none transition-all duration-500 ${isExperienceLabLanding ? 'p-4 pt-0' : 'p-0'}`}>
-            <div
-              className={`w-full h-full overflow-hidden transition-all duration-500 ${isExperienceLabLanding ? 'rounded-3xl' : 'rounded-none'}`}
-              style={{
-                backgroundImage: 'url(/gradient-bg.png)',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-              }}
-            />
-          </div>
-          <div className="relative z-10 h-full">
-            <Outlet />
-          </div>
+        <main className="flex-1 overflow-hidden relative z-10">
+          <Outlet />
         </main>
       </div>
     )
