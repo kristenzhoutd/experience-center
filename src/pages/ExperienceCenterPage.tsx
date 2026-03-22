@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, BarChart3, Zap, Heart } from 'lucide-react';
+import { TrendingUp, BarChart3, Shield, Lightbulb } from 'lucide-react';
 import { Button } from '@/design-system';
 import BookWalkthroughModal from '../components/BookWalkthroughModal';
 import { useExperienceLabStore } from '../stores/experienceLabStore';
@@ -9,8 +9,8 @@ import { goals } from '../data/experienceLabConfig';
 const goalIcons: Record<string, React.ElementType> = {
   'trending-up': TrendingUp,
   'bar-chart': BarChart3,
-  'zap': Zap,
-  'heart': Heart,
+  'shield': Shield,
+  'lightbulb': Lightbulb,
 };
 
 const rotatingWords = [
