@@ -11,10 +11,10 @@ export interface GoalOption {
 }
 
 export const goals: GoalOption[] = [
-  { id: 'revenue', label: 'Increase revenue', description: 'Drive more revenue through smarter targeting, personalization, and customer lifecycle optimization.', icon: 'trending-up' },
+  { id: 'revenue', label: 'Increase revenue', description: 'Drive measurable growth through AI-powered targeting, journey orchestration, and opportunity discovery.', icon: 'trending-up' },
   { id: 'campaign-performance', label: 'Improve campaign performance', description: 'Get better results from every campaign through AI-powered audience, channel, and message optimization.', icon: 'bar-chart' },
-  { id: 'efficiency', label: 'Increase marketing efficiency', description: 'Do more with less by automating insights, reducing manual work, and accelerating time-to-action.', icon: 'zap' },
-  { id: 'engagement', label: 'Improve customer engagement', description: 'Build deeper relationships through relevant, timely, and personalized customer experiences.', icon: 'heart' },
+  { id: 'retention', label: 'Improve customer retention', description: 'Reduce churn and strengthen loyalty with more timely, relevant, and personalized customer experiences.', icon: 'shield' },
+  { id: 'insights', label: 'Generate faster business insights', description: 'Turn customer and campaign signals into actionable insights that help teams decide and act faster.', icon: 'lightbulb' },
 ];
 
 // --- Industries (Screen 2) ---
@@ -35,6 +35,14 @@ export const industries: IndustryOption[] = [
   { id: 'financial', label: 'Financial Services', description: 'Banking, insurance, fintech, and wealth management', icon: 'landmark', enabled: false },
 ];
 
+// --- Outcome → Industry availability ---
+export const outcomeIndustries: Record<string, string[]> = {
+  'revenue': ['retail', 'cpg', 'travel'],
+  'campaign-performance': ['retail', 'cpg', 'travel'],
+  'retention': ['retail', 'travel', 'cpg'],
+  'insights': ['cpg', 'retail', 'travel'],
+};
+
 // --- Scenarios (Screen 3) ---
 export interface ScenarioOption {
   id: string;
@@ -42,40 +50,104 @@ export interface ScenarioOption {
   description: string;
   estimatedTime: string;
   badge?: string;
+  kpi?: string;
   previewLines: string[];
 }
 
+// Legacy flat list (kept for backward compat with label lookups)
 export const scenarios: ScenarioOption[] = [
-  {
-    id: 'campaign-brief',
-    label: 'Generate a campaign brief',
-    description: 'Create a strategic campaign plan with audience, channels, messaging direction, and KPI focus.',
-    estimatedTime: '3 min',
-    badge: 'Most popular',
-    previewLines: ['Executive summary', 'Audience strategy', 'Channel plan', 'KPI framework'],
-  },
-  {
-    id: 'customer-segments',
-    label: 'Discover customer segments',
-    description: 'Identify high-potential customer groups and suggested activation strategies.',
-    estimatedTime: '3 min',
-    previewLines: ['Segment profiles', 'Opportunity scoring', 'Activation tactics', 'Sizing estimates'],
-  },
-  {
-    id: 'lifecycle-journey',
-    label: 'Build a lifecycle journey',
-    description: 'Generate a draft multi-step customer journey for acquisition, retention, or reactivation.',
-    estimatedTime: '4 min',
-    previewLines: ['Journey stages', 'Trigger logic', 'Channel orchestration', 'Success metrics'],
-  },
-  {
-    id: 'performance-analysis',
-    label: 'Analyze marketing performance',
-    description: 'Review sample performance signals and generate AI recommendations for improvement.',
-    estimatedTime: '3 min',
-    previewLines: ['Performance diagnosis', 'Root cause analysis', 'Optimization actions', 'Impact forecast'],
-  },
+  { id: 'campaign-brief', label: 'Generate a campaign brief', description: '', estimatedTime: '3 min', previewLines: [] },
+  { id: 'customer-segments', label: 'Discover customer segments', description: '', estimatedTime: '3 min', previewLines: [] },
+  { id: 'lifecycle-journey', label: 'Build a lifecycle journey', description: '', estimatedTime: '3 min', previewLines: [] },
+  { id: 'performance-analysis', label: 'Analyze marketing performance', description: '', estimatedTime: '3 min', previewLines: [] },
 ];
+
+// --- Outcome + Industry → Scenario matrix ---
+export const scenarioMatrix: Record<string, Record<string, ScenarioOption[]>> = {
+  // ── Increase revenue ──
+  revenue: {
+    retail: [
+      { id: 'rev-retail-1', label: 'Re-engage lapsed high-value shoppers', description: 'Create a targeted growth strategy for valuable shoppers who have stopped purchasing recently.', kpi: 'Repeat purchase rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'rev-retail-2', label: 'Identify high-intent browsers', description: 'Find the customer segments most likely to convert and prioritize them for activation.', kpi: 'Conversion rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'rev-retail-3', label: 'Build a post-purchase journey', description: 'Design a follow-up journey that encourages first-time buyers to make a second purchase.', kpi: 'Time to second purchase', estimatedTime: '3 min', previewLines: [] },
+    ],
+    cpg: [
+      { id: 'rev-cpg-1', label: 'Build a replenishment campaign', description: 'Create a campaign to reach buyers when they are most likely ready to purchase again.', kpi: 'Repeat purchase rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'rev-cpg-2', label: 'Identify households with cross-category potential', description: 'Find buyer groups most likely to expand into adjacent product categories.', kpi: 'Basket size', estimatedTime: '3 min', previewLines: [] },
+      { id: 'rev-cpg-3', label: 'Create a premium upsell brief', description: 'Develop a strategy to increase household value through premium product adoption.', kpi: 'Revenue per household', estimatedTime: '3 min', previewLines: [] },
+    ],
+    travel: [
+      { id: 'rev-travel-1', label: 'Re-engage inactive loyalty members', description: 'Create a growth strategy to bring valuable loyalty members back into active booking behavior.', kpi: 'Rebooking rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'rev-travel-2', label: 'Identify premium guests', description: 'Find the guests most likely to respond to upgrades and premium offers.', kpi: 'Upgrade conversion rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'rev-travel-3', label: 'Create a targeted offer strategy for seasonal travelers', description: 'Build a campaign strategy for travelers whose demand is driven by seasonality and timing.', kpi: 'Booking rate', estimatedTime: '3 min', previewLines: [] },
+    ],
+  },
+  // ── Improve campaign performance ──
+  'campaign-performance': {
+    retail: [
+      { id: 'perf-retail-1', label: 'Diagnose underperforming promotions', description: 'Analyze why recent promotions are underperforming and identify the biggest optimization opportunities.', kpi: 'ROAS', estimatedTime: '3 min', previewLines: [] },
+      { id: 'perf-retail-2', label: 'Refine audience targeting for seasonal campaigns', description: 'Improve who gets targeted in key seasonal campaigns to increase downstream performance.', kpi: 'Conversion rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'perf-retail-3', label: 'Optimize campaign timing for engaged shoppers', description: 'Find the best timing windows to improve progression from engagement to purchase.', kpi: 'Click-to-purchase rate', estimatedTime: '3 min', previewLines: [] },
+    ],
+    cpg: [
+      { id: 'perf-cpg-1', label: 'Build a segment-based activation plan', description: 'Create a campaign plan that prioritizes the highest-opportunity buyer segments.', kpi: 'Conversion rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'perf-cpg-2', label: 'Identify the best channel mix for replenishment campaigns', description: 'Determine which channels are best suited to drive repeat purchase efficiently.', kpi: 'ROAS', estimatedTime: '3 min', previewLines: [] },
+      { id: 'perf-cpg-3', label: 'Diagnose performance drop by audience group', description: 'Analyze which audience groups are driving weaker campaign results and why.', kpi: 'Response rate', estimatedTime: '3 min', previewLines: [] },
+    ],
+    travel: [
+      { id: 'perf-travel-1', label: 'Optimize channel mix by traveler type', description: 'Match traveler segments to the channels most likely to drive efficient bookings and engagement.', kpi: 'ROAS', estimatedTime: '3 min', previewLines: [] },
+      { id: 'perf-travel-2', label: 'Personalize post-booking communications', description: 'Improve post-booking communications to drive stronger upsell and add-on conversion.', kpi: 'Upsell rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'perf-travel-3', label: 'Create a destination-based content strategy', description: 'Develop a campaign strategy aligned to traveler interests and destination relevance.', kpi: 'Click-through rate', estimatedTime: '3 min', previewLines: [] },
+    ],
+  },
+  // ── Improve customer retention ──
+  retention: {
+    retail: [
+      { id: 'ret-retail-1', label: 'Build a loyalty journey for repeat buyers', description: 'Create a retention journey for customers showing strong repeat behavior but emerging drop-off risk.', kpi: 'Retention rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'ret-retail-2', label: 'Find at-risk customers after their second purchase', description: 'Identify the customers most likely to disengage early in their lifecycle.', kpi: 'Retention rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'ret-retail-3', label: 'Create a win-back campaign for inactive members', description: 'Develop a reactivation strategy for members who have stopped engaging or purchasing.', kpi: 'Reactivation rate', estimatedTime: '3 min', previewLines: [] },
+    ],
+    travel: [
+      { id: 'ret-travel-1', label: 'Build a loyalty journey for high-value guests', description: 'Create a retention journey for guests with strong value but signs of declining engagement.', kpi: 'Retention rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'ret-travel-2', label: 'Identify travelers at risk of disengagement', description: 'Find travelers most likely to churn and prioritize them for intervention.', kpi: 'Churn rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'ret-travel-3', label: 'Tailor follow-up messaging by trip history', description: 'Personalize retention messaging based on prior trip behavior and engagement signals.', kpi: 'Engagement rate', estimatedTime: '3 min', previewLines: [] },
+    ],
+    cpg: [
+      { id: 'ret-cpg-1', label: 'Identify high-frequency buyers at risk of slowing down', description: 'Find valuable buyers whose purchase behavior suggests early retention risk.', kpi: 'Retention rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'ret-cpg-2', label: 'Build a loyalty journey for valuable households', description: 'Design a retention journey to deepen loyalty among high-value household segments.', kpi: 'Retention rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'ret-cpg-3', label: 'Create a reactivation campaign for promo-driven buyers', description: 'Develop a campaign to bring back buyers who primarily engage through offers and discounts.', kpi: 'Repeat purchase rate', estimatedTime: '3 min', previewLines: [] },
+    ],
+  },
+  // ── Generate faster business insights ──
+  insights: {
+    cpg: [
+      { id: 'ins-cpg-1', label: 'Surface segments driving the highest repeat purchase rate', description: 'Identify the buyer groups most responsible for repeat purchase performance.', kpi: 'Repeat purchase rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'ins-cpg-2', label: 'Analyze promotion sensitivity by segment', description: 'Understand which customer groups respond best to promotions and where to optimize spend.', kpi: 'ROAS', estimatedTime: '3 min', previewLines: [] },
+      { id: 'ins-cpg-3', label: 'Find households with highest growth potential', description: 'Identify the audience groups with the greatest upside for future targeting and investment.', kpi: 'Targeting efficiency', estimatedTime: '3 min', previewLines: [] },
+    ],
+    retail: [
+      { id: 'ins-retail-1', label: 'Identify product affinity segments', description: 'Find customer groups with strong product relationships that can unlock cross-sell opportunities.', kpi: 'Cross-sell rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'ins-retail-2', label: 'Surface the customer groups driving the highest revenue per campaign', description: 'Identify which audiences are contributing the most value across campaign activity.', kpi: 'Revenue per campaign', estimatedTime: '3 min', previewLines: [] },
+      { id: 'ins-retail-3', label: 'Analyze engagement timing patterns', description: 'Understand when customers are most responsive so campaigns can be timed more effectively.', kpi: 'Click-to-purchase rate', estimatedTime: '3 min', previewLines: [] },
+    ],
+    travel: [
+      { id: 'ins-travel-1', label: 'Identify premium guest segments with highest upgrade potential', description: 'Find the guest groups most likely to respond to premium offers and upgrades.', kpi: 'Upgrade conversion rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'ins-travel-2', label: 'Surface booking patterns by traveler type', description: 'Analyze how different traveler groups behave to improve strategic planning and targeting.', kpi: 'Marketing efficiency', estimatedTime: '3 min', previewLines: [] },
+      { id: 'ins-travel-3', label: 'Analyze loyalty engagement patterns', description: 'Understand which loyalty engagement signals are most associated with long-term retention.', kpi: 'Retention rate', estimatedTime: '3 min', previewLines: [] },
+    ],
+  },
+};
+
+// Helper to get scenarios for a specific outcome + industry
+export function getScenariosForOutcome(goalId: string, industryId: string): ScenarioOption[] {
+  return scenarioMatrix[goalId]?.[industryId] || [];
+}
+
+// Helper to get available industries for a given outcome
+export function getIndustriesForOutcome(goalId: string): IndustryOption[] {
+  const allowedIds = outcomeIndustries[goalId] || [];
+  return allowedIds.map(id => industries.find(i => i.id === id)).filter((i): i is IndustryOption => !!i);
+}
 
 // --- Input Steps per Scenario ---
 export interface InputStep {

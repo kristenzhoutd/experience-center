@@ -10,7 +10,7 @@ import {
 import SplitPaneLayout from '../components/campaign/SplitPaneLayout';
 import BookWalkthroughModal from '../components/BookWalkthroughModal';
 import { useExperienceLabStore, type FlowStep, type OutputData } from '../stores/experienceLabStore';
-import { goals, industries, scenarios, generationSteps, refinementGenerationSteps, getDefaultInputs, getRefinementChips, type RefinementChip } from '../data/experienceLabConfig';
+import { goals, industries, scenarios, generationSteps, refinementGenerationSteps, getDefaultInputs, getRefinementChips, getIndustriesForOutcome, getScenariosForOutcome, type ScenarioOption, type RefinementChip } from '../data/experienceLabConfig';
 import { generateExperienceLabOutput } from '../services/experienceLabOutputs';
 
 // ============================================================
@@ -194,7 +194,9 @@ export default function ExperienceCenterWorkflowPage() {
   };
 
   const handleScenarioSelect = (id: string) => {
-    const label = scenarios.find(s => s.id === id)?.label || id;
+    // Look up label from matrix first, then legacy flat list
+    const matrixScenarios = getScenariosForOutcome(goal, industry);
+    const label = matrixScenarios.find(s => s.id === id)?.label || scenarios.find(s => s.id === id)?.label || id;
     setScenario(id);
     addUserMessage(label);
 
@@ -465,6 +467,7 @@ export default function ExperienceCenterWorkflowPage() {
                   messages={messages}
                   currentStep={currentStep}
                   lastAIMessage={lastAIMessage}
+                  goal={goal}
                   industry={industry}
                   scenario={scenario}
                   generationPhase={generationPhase}
@@ -500,6 +503,7 @@ export default function ExperienceCenterWorkflowPage() {
                   messages={messages}
                   currentStep={currentStep}
                   lastAIMessage={lastAIMessage}
+                  goal={goal}
                   industry={industry}
                   scenario={scenario}
                   generationPhase={generationPhase}
@@ -532,6 +536,7 @@ export default function ExperienceCenterWorkflowPage() {
               messages={messages}
               currentStep={currentStep}
               lastAIMessage={lastAIMessage}
+              goal={goal}
               industry={industry}
               scenario={scenario}
               generationPhase={generationPhase}
@@ -566,7 +571,7 @@ export default function ExperienceCenterWorkflowPage() {
 // Chat Panel (shared between full-width and split-view modes)
 // ============================================================
 function ChatPanel({
-  messages, currentStep, lastAIMessage, industry, scenario,
+  messages, currentStep, lastAIMessage, goal, industry, scenario,
   generationPhase,
   onIndustrySelect, onScenarioSelect, onRefinement,
   onExploreAnother, messagesEndRef,
@@ -575,6 +580,7 @@ function ChatPanel({
   messages: ConversationMessage[];
   currentStep: FlowStep;
   lastAIMessage: ConversationMessage | undefined;
+  goal: string;
   industry: string;
   scenario: string;
   generationPhase: number;
@@ -663,10 +669,10 @@ function ChatPanel({
                 {msg.role === 'ai' && (msg.id === lastAIMessage?.id || msg.type === 'refinements') && (
                   <div className="mt-4 px-1 animate-fade-in-delay-1">
                     {msg.type === 'industry-cards' && currentStep === 'industry' && (
-                      <IndustryCards industry={industry} onSelect={onIndustrySelect} />
+                      <IndustryCards industry={industry} goal={goal} onSelect={onIndustrySelect} />
                     )}
                     {msg.type === 'scenario-cards' && currentStep === 'scenario' && (
-                      <ScenarioCards scenario={scenario} onSelect={onScenarioSelect} />
+                      <ScenarioCards scenario={scenario} goal={goal} industry={industry} onSelect={onScenarioSelect} />
                     )}
                     {msg.type === 'generation' && currentStep === 'generating' && (
                       <GenerationProgress phase={generationPhase} />
@@ -771,11 +777,12 @@ function HorizontalStepper({
 // ============================================================
 // Industry Cards
 // ============================================================
-function IndustryCards({ industry, onSelect }: { industry: string; onSelect: (id: string) => void }) {
+function IndustryCards({ industry, goal, onSelect }: { industry: string; goal: string; onSelect: (id: string) => void }) {
+  const availableIndustries = getIndustriesForOutcome(goal);
   return (
     <div className="max-w-xl">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        {industries.filter(i => i.enabled).map((item) => {
+        {availableIndustries.map((item) => {
           const Icon = industryIcons[item.icon] || ShoppingBag;
           const isSelected = industry === item.id;
           return (
@@ -794,16 +801,6 @@ function IndustryCards({ industry, onSelect }: { industry: string; onSelect: (id
             </button>
           );
         })}
-        {industries.filter(i => !i.enabled).map((item) => {
-          const Icon = industryIcons[item.icon] || ShoppingBag;
-          return (
-            <div key={item.id} className="border border-gray-100 rounded-2xl p-4 opacity-35">
-              <Icon className="w-5 h-5 mb-2 text-gray-300" />
-              <div className="font-medium text-sm text-gray-400">{item.label}</div>
-              <div className="text-[10px] text-gray-300 mt-0.5">Coming soon</div>
-            </div>
-          );
-        })}
       </div>
     </div>
   );
@@ -812,10 +809,11 @@ function IndustryCards({ industry, onSelect }: { industry: string; onSelect: (id
 // ============================================================
 // Scenario Cards
 // ============================================================
-function ScenarioCards({ scenario, onSelect }: { scenario: string; onSelect: (id: string) => void }) {
+function ScenarioCards({ scenario, goal, industry, onSelect }: { scenario: string; goal: string; industry: string; onSelect: (id: string) => void }) {
+  const items = getScenariosForOutcome(goal, industry);
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-xl">
-      {scenarios.map((item) => {
+    <div className="grid grid-cols-1 gap-3 max-w-xl">
+      {items.map((item) => {
         const isSelected = scenario === item.id;
         return (
           <button
@@ -827,18 +825,14 @@ function ScenarioCards({ scenario, onSelect }: { scenario: string; onSelect: (id
                 : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-md hover:-translate-y-0.5'
             }`}
           >
-            {item.badge && (
-              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-semibold mb-2">
-                <Star className="w-3 h-3" />
-                {item.badge}
-              </div>
-            )}
             <div className="font-medium text-sm text-gray-900 mb-1">{item.label}</div>
             <div className="text-[11px] text-gray-500 leading-relaxed mb-2">{item.description}</div>
-            <div className="flex items-center gap-1 text-[10px] text-gray-400">
-              <Clock className="w-3 h-3" />
-              {item.estimatedTime}
-            </div>
+            {item.kpi && (
+              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[10px] font-medium">
+                <Target className="w-3 h-3" />
+                {item.kpi}
+              </div>
+            )}
           </button>
         );
       })}
