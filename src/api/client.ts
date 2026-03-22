@@ -131,6 +131,15 @@ export const templateApi = {
     request<void>(`/templates/${id}`, { method: 'DELETE' }),
 };
 
+// Experience Center API
+export const experienceCenterApi = {
+  generate: (scenarioConfig: any) =>
+    request<any>('/experience-center/generate', {
+      method: 'POST',
+      body: { scenarioConfig },
+    }),
+};
+
 // Parent Segments API (Treasure Data CDP)
 export const parentSegmentApi = {
   list: () =>

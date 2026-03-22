@@ -27,6 +27,7 @@ import { platformRouter } from './routes/platforms.js';
 import { launchRouter } from './routes/launch.js';
 import { chatStorageRouter } from './routes/chat-storage.js';
 import { segmentsRouter } from './routes/segments.js';
+import { experienceCenterRouter } from './experience-center/route.js';
 import { initClaudeAgent } from './services/claude-agent.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -61,6 +62,7 @@ app.use('/api/web', webRouter);
 app.use('/api/platforms', platformRouter);
 app.use('/api/launch', launchRouter);
 app.use('/api/segments', segmentsRouter);
+app.use('/api/experience-center', experienceCenterRouter);
 
 // Initialize Claude Agent SDK
 initClaudeAgent();
