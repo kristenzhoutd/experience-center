@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button, TextField } from '@/design-system';
+import { useSettingsStore } from '../stores/settingsStore';
 
 const DEFAULT_LLM_PROXY_URL = 'https://llm-proxy.us01.treasuredata.com';
 
@@ -206,6 +207,7 @@ export default function SettingsPage() {
     setTdxKeyStatus('testing');
     setTdxKeyError(undefined);
     try {
+      const keyChanged = !!tdxApiKey;
       await window.aiSuites?.settings.set({
         ...(tdxApiKey ? { tdxApiKey } : {}),
         tdxEndpoint: tdxEndpoint || TDX_REGIONS[0].value,
@@ -214,6 +216,9 @@ export default function SettingsPage() {
       if (tdxApiKey) {
         setHasStoredTdxApiKey(true);
         setTdxApiKey('');
+      }
+      if (keyChanged) {
+        useSettingsStore.getState().refetchParentSegments();
       }
       const result = await window.aiSuites?.settings.testConnection();
       if (result?.success) {
@@ -233,6 +238,7 @@ export default function SettingsPage() {
     setIsSavingTdx(true);
     setTdxSaveMessage(null);
     try {
+      const keyChanged = !!tdxApiKey;
       await window.aiSuites?.settings.set({
         ...(tdxApiKey ? { tdxApiKey } : {}),
         tdxEndpoint: tdxEndpoint || TDX_REGIONS[0].value,
@@ -242,6 +248,9 @@ export default function SettingsPage() {
         setHasStoredTdxApiKey(true);
         setTdxKeyStatus('success');
         setTdxApiKey('');
+      }
+      if (keyChanged) {
+        useSettingsStore.getState().refetchParentSegments();
       }
       if (!autoSave) setTdxSaveMessage('TDX configuration saved.');
     } catch (error) {

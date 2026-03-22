@@ -23,6 +23,7 @@ interface SettingsState {
   isLoadingParentSegments: boolean;
   parentSegmentError: string | null;
   fetchParentSegments: () => Promise<void>;
+  refetchParentSegments: () => Promise<void>;
   selectParentSegment: (id: string) => void;
 }
 
@@ -87,6 +88,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       console.error('Failed to fetch parent segments:', error);
       set({ parentSegmentError: msg, isLoadingParentSegments: false });
     }
+  },
+
+  refetchParentSegments: async () => {
+    set({ parentSegments: [], selectedParentSegmentId: null, isLoadingParentSegments: false, parentSegmentError: null });
+    await get().fetchParentSegments();
   },
 
   selectParentSegment: (id: string) => {
