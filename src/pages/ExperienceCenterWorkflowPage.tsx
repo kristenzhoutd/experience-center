@@ -15,9 +15,7 @@ import { generateExperienceLabOutput } from '../services/experienceLabOutputs';
 import { experienceCenterApi } from '../api/client';
 import { getScenarioConfig } from '../experience-center/registry/scenarioRegistry';
 import { skillFamilies } from '../experience-center/registry/skillFamilies';
-import { ThinkingBlock } from '../components/StreamingMessage';
-import ExecutionTrace from '../components/ExecutionTrace';
-import { useTraceStore } from '../stores/traceStore';
+import SkillProgressBlock, { type ProgressStep } from '../experience-center/output-formats/SkillProgressBlock';
 import { ModularOutputRenderer } from '../experience-center/output-formats/modules';
 
 // ============================================================
@@ -98,10 +96,8 @@ export default function ExperienceCenterWorkflowPage() {
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [showCTA, setShowCTA] = useState(false);
   const [visibleOutputSections, setVisibleOutputSections] = useState(0);
-  const [activeTraceRunId, setActiveTraceRunId] = useState<string | null>(null);
-  const [thinkingSteps, setThinkingSteps] = useState<string[]>([]);
+  const [progressSteps, setProgressSteps] = useState<ProgressStep[]>([]);
   const [isThinkingActive, setIsThinkingActive] = useState(false);
-  const traceRuns = useTraceStore((s) => s.runs);
   const [collapsed, setCollapsed] = useState(false);
   const [mobileView, setMobileView] = useState<'chat' | 'output'>('output');
   const [isMobile, setIsMobile] = useState(false);
@@ -271,42 +267,40 @@ export default function ExperienceCenterWorkflowPage() {
     // Resolve scenario config from registry
     const scenarioConfig = getScenarioConfig(s);
     const familyDef = scenarioConfig ? skillFamilies[scenarioConfig.skillFamily] : null;
+    const industryLabel = industries.find(ind => ind.id === (scenarioConfig?.industry || industry))?.label || industry;
+    const skillLabel = familyDef?.label || scenarioConfig?.skillFamily || 'AI';
 
-    // Set up execution trace
-    const trace = useTraceStore.getState();
-    const runId = `ec-run-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    trace.startRun(runId, `ec-gen-${Date.now()}`);
-    setActiveTraceRunId(runId);
+    setProgressSteps([]);
     setIsThinkingActive(true);
 
-    const thinkingMessages = scenarioConfig ? [
-      'Resolving scenario configuration',
-      `Loading ${industries.find(ind => ind.id === scenarioConfig.industry)?.label || scenarioConfig.industry} sandbox context`,
-      `Invoking ${familyDef?.label || scenarioConfig.skillFamily} skill`,
-      `Generating ${scenarioConfig.outputFormatKey.replace(/_/g, ' ')} output`,
-      'Rendering output modules',
-    ] : generationSteps;
-    setThinkingSteps([thinkingMessages[0]]);
+    const addStep = (message: string, stage?: ProgressStep['stage']) => {
+      setProgressSteps(prev => [...prev, { message, stage }]);
+    };
 
-    trace.addEvent(runId, 'intent', `Scenario: ${scenarioConfig?.title || s}`, {
-      data: { scenarioId: s, outcome: scenarioConfig?.outcome || goal, industry: scenarioConfig?.industry || industry },
-    });
+    // Initial step
+    addStep(`Scenario: ${scenarioConfig?.title || s}`, 'intent');
+
+    // Progressive steps
+    const stepQueue: Array<{ message: string; stage?: ProgressStep['stage'] }> = scenarioConfig ? [
+      { message: `Routing to ${skillLabel}`, stage: 'route' },
+      { message: `Loading ${industryLabel} sandbox context`, stage: 'skill_call' },
+      { message: `Invoking ${skillLabel}`, stage: 'skill_call' },
+      { message: `Generating ${scenarioConfig.outputFormatKey.replace(/_/g, ' ')} output`, stage: 'skill_call' },
+    ] : generationSteps.map(msg => ({ message: msg }));
 
     let phase = 0;
     const interval = setInterval(() => {
-      phase++;
-      if (phase < thinkingMessages.length) {
-        setGenerationPhase(phase);
-        setThinkingSteps(prev => [...prev, thinkingMessages[phase]]);
+      if (phase < stepQueue.length) {
+        setGenerationPhase(phase + 1);
+        addStep(stepQueue[phase].message, stepQueue[phase].stage);
+        phase++;
       }
     }, 1100);
 
     const completeGeneration = (result: import('../stores/experienceLabStore').OutputData) => {
       clearInterval(interval);
-      setThinkingSteps(prev => [...prev, 'Strategy complete — review results in the panel']);
+      addStep('Strategy complete — review results in the panel', 'ui_update');
       setIsThinkingActive(false);
-      trace.addEvent(runId, 'ui_update', 'Output rendered in Experience Center panel');
-      trace.completeRun(runId, 'succeeded');
       finishGeneration(result);
       setMessages(prev => {
         const filtered = prev.filter(m => m.type !== 'generation');
@@ -319,35 +313,23 @@ export default function ExperienceCenterWorkflowPage() {
       });
     };
 
-    // If scenario is in registry, use skill-driven API
     if (scenarioConfig) {
-      trace.addEvent(runId, 'route', `Routing to skill family: ${familyDef?.label || scenarioConfig.skillFamily}`);
-      trace.addEvent(runId, 'skill_call', `Loading ${industries.find(ind => ind.id === scenarioConfig.industry)?.label || scenarioConfig.industry} sandbox context`);
-      trace.addEvent(runId, 'skill_call', `Invoking ${familyDef?.label || scenarioConfig.skillFamily}`, {
-        data: { skillFamily: scenarioConfig.skillFamily, outputFormat: scenarioConfig.outputFormatKey },
-      });
-
       experienceCenterApi.generate(scenarioConfig)
         .then((result: any) => {
-          trace.addEvent(runId, 'skill_result', `${familyDef?.label || 'Skill'} output generated successfully`);
+          addStep(`${skillLabel} output generated successfully`, 'skill_result');
           completeGeneration(result);
         })
         .catch((err: Error) => {
           console.warn('[ExperienceCenter] Skill failed, falling back to local:', err.message);
-          trace.addEvent(runId, 'skill_call', 'Falling back to local template engine');
+          addStep('Falling back to local template engine', 'skill_call');
           const result = generateExperienceLabOutput({ goal, industry, scenario: s, inputs: i });
-          trace.addEvent(runId, 'skill_result', 'Output generated via local template');
+          addStep('Output generated via local template', 'skill_result');
           completeGeneration(result);
         });
     } else {
-      // Scenario not in registry — use local generation
-      trace.addEvent(runId, 'route', 'Using local template generator');
-      trace.addEvent(runId, 'skill_call', 'Generating with template engine');
-
-      // Simulate progress then generate locally
       setTimeout(() => {
         const result = generateExperienceLabOutput({ goal, industry, scenario: s, inputs: i });
-        trace.addEvent(runId, 'skill_result', 'Output generated via local template');
+        addStep('Output generated', 'skill_result');
         completeGeneration(result);
       }, generationSteps.length * 1100);
     }
@@ -363,21 +345,14 @@ export default function ExperienceCenterWorkflowPage() {
 
     const scenarioConfig = getScenarioConfig(scenarioId);
     const familyDef = scenarioConfig ? skillFamilies[scenarioConfig.skillFamily] : null;
+    const skillLabel = familyDef?.label || 'AI';
 
-    // Set up trace
-    const trace = useTraceStore.getState();
-    const runId = `ec-refine-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    trace.startRun(runId, `ec-refine-msg-${Date.now()}`);
-    setActiveTraceRunId(runId);
-    setThinkingSteps(['Adjusting recommendations']);
+    setProgressSteps([{ message: 'Adjusting recommendations', stage: 'intent' }]);
     setIsThinkingActive(true);
-    trace.addEvent(runId, 'intent', 'Refinement requested');
 
     const completeRefinement = (result: import('../stores/experienceLabStore').OutputData) => {
-      setThinkingSteps(prev => [...prev, 'Refinement complete — review updated results']);
+      setProgressSteps(prev => [...prev, { message: 'Refinement complete — review updated results', stage: 'ui_update' }]);
       setIsThinkingActive(false);
-      trace.addEvent(runId, 'ui_update', 'Refined output rendered');
-      trace.completeRun(runId, 'succeeded');
       finishGeneration(result);
       setMessages(prev => {
         const filtered = prev.filter(m => m.id !== thinkingId);
@@ -391,12 +366,11 @@ export default function ExperienceCenterWorkflowPage() {
     };
 
     if (scenarioConfig) {
-      trace.addEvent(runId, 'route', `Routing refinement to ${familyDef?.label || scenarioConfig.skillFamily}`);
-      trace.addEvent(runId, 'skill_call', 'Sending refinement to Treasure AI');
+      setProgressSteps(prev => [...prev, { message: `Routing to ${skillLabel}`, stage: 'route' }]);
 
       experienceCenterApi.generate(scenarioConfig)
         .then((result: any) => {
-          trace.addEvent(runId, 'skill_result', 'Refined output generated');
+          setProgressSteps(prev => [...prev, { message: 'Refined output generated', stage: 'skill_result' }]);
           completeRefinement(result);
         })
         .catch((err: Error) => {
@@ -579,9 +553,7 @@ export default function ExperienceCenterWorkflowPage() {
                   messagesEndRef={messagesEndRef}
                   output={output}
                   onEditMessage={handleEditMessage}
-                  activeTraceRunId={activeTraceRunId}
-                  traceRuns={traceRuns}
-                  thinkingSteps={thinkingSteps}
+                  progressSteps={progressSteps}
                   isThinkingActive={isThinkingActive}
                 />
               ) : (
@@ -633,9 +605,7 @@ export default function ExperienceCenterWorkflowPage() {
                   showCollapse
                   onCollapse={() => setCollapsed(true)}
                   onEditMessage={handleEditMessage}
-                  activeTraceRunId={activeTraceRunId}
-                  traceRuns={traceRuns}
-                  thinkingSteps={thinkingSteps}
+                  progressSteps={progressSteps}
                   isThinkingActive={isThinkingActive}
                 />
                 {/* Right: Output */}
@@ -680,9 +650,7 @@ export default function ExperienceCenterWorkflowPage() {
               messagesEndRef={messagesEndRef}
               output={output}
               onEditMessage={handleEditMessage}
-              activeTraceRunId={activeTraceRunId}
-              traceRuns={traceRuns}
-              thinkingSteps={thinkingSteps}
+              progressSteps={progressSteps}
               isThinkingActive={isThinkingActive}
             />
           )}
@@ -713,7 +681,7 @@ function ChatPanel({
   onIndustrySelect, onScenarioSelect, onRefinement,
   onExploreAnother, messagesEndRef,
   showCollapse, onCollapse, output, onEditMessage,
-  activeTraceRunId, traceRuns, thinkingSteps = [], isThinkingActive = false,
+  progressSteps = [], isThinkingActive = false,
 }: {
   messages: ConversationMessage[];
   currentStep: FlowStep;
@@ -731,12 +699,9 @@ function ChatPanel({
   onCollapse?: () => void;
   output?: OutputData | null;
   onEditMessage?: (msgId: string) => void;
-  activeTraceRunId?: string | null;
-  traceRuns?: Record<string, import('../types/trace').TraceRun>;
-  thinkingSteps?: string[];
+  progressSteps?: ProgressStep[];
   isThinkingActive?: boolean;
 }) {
-  const activeRun = activeTraceRunId && traceRuns ? traceRuns[activeTraceRunId] : null;
   return (
     <div className="flex flex-col h-full w-full bg-white">
       {/* Header — only shown with collapse button */}
@@ -757,8 +722,14 @@ function ChatPanel({
 
       {/* Messages */}
       <div className={`flex-1 overflow-y-auto p-4 md:p-6 flex flex-col max-w-2xl mx-auto w-full ${currentStep === 'generating' ? 'gap-3' : 'gap-5 md:gap-6'}`}>
-        {messages.map((msg) => (
+        {messages.map((msg, msgIdx) => (
           <div key={msg.id}>
+            {/* Show collapsed progress before the output-ready message */}
+            {msg.type === 'output-ready' && !isThinkingActive && progressSteps.length > 0 && (
+              <div className="px-1 animate-fade-in max-w-2xl mx-auto w-full mb-3">
+                <SkillProgressBlock steps={progressSteps} isActive={false} />
+              </div>
+            )}
             {msg.type === 'cta' && currentStep === 'output' ? (
               <div className="animate-fade-in px-1 mt-2 space-y-3 max-w-sm">
                 <EmailCaptureCard output={output} />
@@ -779,7 +750,7 @@ function ChatPanel({
             ) : (
               <>
                 {msg.content && (
-                  <div className={`flex animate-fade-in ${msg.role === 'user' ? 'justify-end' : 'justify-start'} ${msg.type === 'generation' && isThinkingActive ? 'mb-[-8px]' : ''}`}>
+                  <div className={`flex animate-fade-in ${msg.role === 'user' ? 'justify-end' : 'justify-start'} ${msg.type === 'generation' && isThinkingActive ? 'mb-[-16px]' : ''}`}>
                     {msg.role === 'user' ? (
                       <div className="flex items-center gap-2 group">
                         <button
@@ -826,14 +797,10 @@ function ChatPanel({
             )}
           </div>
         ))}
-        {/* Thinking + Execution Trace during generation */}
-        {(currentStep === 'generating' || (isThinkingActive && thinkingSteps.length > 0)) && (
-          <div className="px-1 space-y-3 animate-fade-in max-w-2xl mx-auto w-full">
-            <ThinkingBlock
-              content={thinkingSteps.join('\n') || 'Initializing...'}
-              isStreaming={isThinkingActive}
-            />
-            {activeRun && <ExecutionTrace run={activeRun} title="Running" hideIcon hideStatus />}
+        {/* Skill progress during active generation */}
+        {isThinkingActive && progressSteps.length > 0 && (
+          <div className="animate-fade-in max-w-2xl mx-auto w-full px-1">
+            <SkillProgressBlock steps={progressSteps} isActive={true} />
           </div>
         )}
         <div ref={messagesEndRef} />

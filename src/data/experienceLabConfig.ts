@@ -28,7 +28,7 @@ export interface IndustryOption {
 
 export const industries: IndustryOption[] = [
   { id: 'retail', label: 'Retail', description: 'E-commerce, brick-and-mortar, and omnichannel retail brands', icon: 'shopping-bag', enabled: true },
-  { id: 'travel', label: 'Travel & Hospitality', description: 'Airlines, hotels, OTAs, and travel experience providers', icon: 'plane', enabled: true },
+  { id: 'travel', label: 'Travel & Hospitality', description: 'Airlines, hotels, OTAs, cruise lines, and travel experience providers', icon: 'plane', enabled: true },
   { id: 'cpg', label: 'CPG', description: 'Consumer packaged goods, FMCG, and consumer brands', icon: 'package', enabled: true },
   { id: 'automotive', label: 'Automotive', description: 'Auto manufacturers, dealers, and mobility services', icon: 'car', enabled: false },
   { id: 'media', label: 'Media & Entertainment', description: 'Streaming, publishing, and content platforms', icon: 'film', enabled: false },
