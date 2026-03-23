@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ChevronLeft, ChevronRight, Check, Calendar, Clock, Sparkles, Target, ArrowRight } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Check, Calendar, Clock, Sparkles, Target, ArrowRight, Loader2 } from 'lucide-react';
+
+const APP_PASSWORD = import.meta.env.VITE_APP_PASSWORD || '';
 
 interface BookWalkthroughModalProps {
   isOpen: boolean;
@@ -46,13 +48,89 @@ export default function BookWalkthroughModal({ isOpen, onClose, context }: BookW
     return { year: d.getFullYear(), month: d.getMonth() };
   });
   const [form, setForm] = useState({ email: '', firstName: '', company: '', role: '' });
+  const [busySlots, setBusySlots] = useState<Array<{ start: string; end: string }>>([]);
+  const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
+  const [busyFetchedMonth, setBusyFetchedMonth] = useState('');
+  const [isBooking, setIsBooking] = useState(false);
+  const [bookingError, setBookingError] = useState('');
 
   const availableDates = getAvailableDates();
 
+  // Fetch busy slots for the entire visible month (once per month)
+  useEffect(() => {
+    const monthKey = `${calendarMonth.year}-${calendarMonth.month}`;
+    if (busyFetchedMonth === monthKey) return;
+    const fetchBusy = async () => {
+      setIsLoadingAvailability(true);
+      try {
+        const start = new Date(calendarMonth.year, calendarMonth.month, 1);
+        const end = new Date(calendarMonth.year, calendarMonth.month + 1, 0, 23, 59, 59);
+        const res = await fetch(`/api/calendar/availability?start=${start.toISOString()}&end=${end.toISOString()}`, {
+          headers: { 'x-app-password': APP_PASSWORD },
+        });
+        const data = await res.json();
+        if (data.success) {
+          setBusySlots(data.data.busySlots);
+          setBusyFetchedMonth(monthKey);
+        }
+      } catch { /* fallback to showing all slots */ }
+      setIsLoadingAvailability(false);
+    };
+    fetchBusy();
+  }, [calendarMonth.year, calendarMonth.month, busyFetchedMonth]);
+
+  // Check if a time slot is busy
+  const isSlotBusy = (time: string): boolean => {
+    if (!selectedDate || busySlots.length === 0) return false;
+    const [hourStr, minutePart] = time.split(':');
+    const isPM = minutePart.includes('PM');
+    let hour = parseInt(hourStr);
+    const minute = parseInt(minutePart) || 0;
+    if (isPM && hour !== 12) hour += 12;
+    if (!isPM && hour === 12) hour = 0;
+
+    const slotStart = new Date(selectedDate);
+    slotStart.setHours(hour, minute, 0, 0);
+    const slotEnd = new Date(slotStart);
+    slotEnd.setMinutes(slotEnd.getMinutes() + 30);
+
+    return busySlots.some(busy => {
+      const busyStart = new Date(busy.start);
+      const busyEnd = new Date(busy.end);
+      return slotStart < busyEnd && slotEnd > busyStart;
+    });
+  };
+
   if (!isOpen) return null;
 
-  const handleBook = () => {
-    setStep('success');
+  const handleBook = async () => {
+    if (!selectedDate || !selectedTime || !form.email) return;
+    setIsBooking(true);
+    setBookingError('');
+    try {
+      const res = await fetch('/api/calendar/book', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-app-password': APP_PASSWORD },
+        body: JSON.stringify({
+          date: selectedDate.toISOString(),
+          time: selectedTime,
+          email: form.email,
+          firstName: form.firstName,
+          company: form.company,
+          role: form.role,
+          context,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setStep('success');
+      } else {
+        setBookingError(data.error || 'Booking failed. Please try again.');
+      }
+    } catch {
+      setBookingError('Booking failed. Please try again.');
+    }
+    setIsBooking(false);
   };
 
   const handleClose = () => {
@@ -225,21 +303,34 @@ export default function BookWalkthroughModal({ isOpen, onClose, context }: BookW
                   <Clock className="w-3.5 h-3.5 text-gray-400" />
                   <span className="text-xs font-medium text-gray-700">{formatSelectedDate()}</span>
                 </div>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {TIME_SLOTS.map(time => (
-                    <button
-                      key={time}
-                      onClick={() => setSelectedTime(time)}
-                      className={`py-1.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer border ${
-                        selectedTime === time
-                          ? 'bg-gray-900 text-white border-gray-900'
-                          : 'text-gray-700 border-gray-200 hover:border-gray-400'
-                      }`}
-                    >
-                      {time}
-                    </button>
-                  ))}
-                </div>
+                {isLoadingAvailability ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                    <span className="text-xs text-gray-400 ml-2">Checking availability...</span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {TIME_SLOTS.map(time => {
+                      const busy = isSlotBusy(time);
+                      return (
+                        <button
+                          key={time}
+                          onClick={() => !busy && setSelectedTime(time)}
+                          disabled={busy}
+                          className={`py-1.5 rounded-lg text-[11px] font-medium transition-colors border ${
+                            selectedTime === time
+                              ? 'bg-gray-900 text-white border-gray-900 cursor-pointer'
+                              : busy
+                              ? 'text-gray-300 border-gray-100 cursor-not-allowed line-through'
+                              : 'text-gray-700 border-gray-200 hover:border-gray-400 cursor-pointer'
+                          }`}
+                        >
+                          {time}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
@@ -327,6 +418,12 @@ export default function BookWalkthroughModal({ isOpen, onClose, context }: BookW
               </div>
             </div>
 
+            {bookingError && (
+              <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg mt-3">
+                {bookingError}
+              </div>
+            )}
+
             <div className="flex items-center justify-between mt-5">
               <button
                 onClick={() => setStep('schedule')}
@@ -336,14 +433,21 @@ export default function BookWalkthroughModal({ isOpen, onClose, context }: BookW
               </button>
               <button
                 onClick={handleBook}
-                disabled={!form.email}
+                disabled={!form.email || isBooking}
                 className={`px-5 py-2 rounded-full text-sm font-semibold transition-colors ${
-                  form.email
+                  form.email && !isBooking
                     ? 'bg-gray-900 text-white hover:bg-gray-800 cursor-pointer'
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 }`}
               >
-                Book a walkthrough
+                {isBooking ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Booking...
+                  </span>
+                ) : (
+                  'Book a walkthrough'
+                )}
               </button>
             </div>
           </div>

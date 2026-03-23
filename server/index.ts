@@ -47,6 +47,8 @@ app.use(express.json({ limit: '50mb' }));
 const APP_PASSWORD = process.env.APP_PASSWORD;
 if (APP_PASSWORD) {
   app.use('/api', (req, res, next) => {
+    // Calendar routes are public (booking flow)
+    if (req.path.startsWith('/calendar')) return next();
     const provided = req.headers['x-app-password'] as string;
     if (provided !== APP_PASSWORD) {
       res.status(401).json({ success: false, error: 'Invalid password' });
