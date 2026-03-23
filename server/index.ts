@@ -5,6 +5,8 @@
  * exposing the same functionality over HTTP/SSE endpoints.
  */
 
+import 'dotenv/config';
+
 // Prevent EPIPE crashes when SDK subprocess pipe closes
 process.on('uncaughtException', (error) => {
   if (error.message?.includes('EPIPE') || error.message?.includes('write EPIPE')) {
@@ -28,6 +30,8 @@ import { launchRouter } from './routes/launch.js';
 import { chatStorageRouter } from './routes/chat-storage.js';
 import { segmentsRouter } from './routes/segments.js';
 import { experienceCenterRouter } from './experience-center/route.js';
+import { calendarRouter } from './routes/calendar.js';
+import { feedbackRouter } from './routes/feedback.js';
 import { initClaudeAgent } from './services/claude-agent.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -63,6 +67,8 @@ app.use('/api/platforms', platformRouter);
 app.use('/api/launch', launchRouter);
 app.use('/api/segments', segmentsRouter);
 app.use('/api/experience-center', experienceCenterRouter);
+app.use('/api/calendar', calendarRouter);
+app.use('/api/feedback', feedbackRouter);
 
 // Initialize Claude Agent SDK
 initClaudeAgent();

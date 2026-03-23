@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import SplitPaneLayout from '../components/campaign/SplitPaneLayout';
 import BookWalkthroughModal from '../components/BookWalkthroughModal';
+import FeedbackModal from '../components/campaigns/FeedbackModal';
 import { useExperienceLabStore, type FlowStep, type OutputData } from '../stores/experienceLabStore';
 import { goals, industries, scenarios, generationSteps, refinementGenerationSteps, getDefaultInputs, getRefinementChips, getIndustriesForOutcome, getScenariosForOutcome, type ScenarioOption, type RefinementChip } from '../data/experienceLabConfig';
 import { generateExperienceLabOutput } from '../services/experienceLabOutputs';
@@ -998,6 +999,8 @@ function ChatPanel({
   isThinkingActive?: boolean;
   usedScenarios?: Set<string>;
 }) {
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+
   return (
     <div className="flex flex-col h-full w-full bg-white">
       {/* Header — only shown with collapse button */}
@@ -1104,7 +1107,19 @@ function ChatPanel({
             ? 'AI-generated recommendation designed for human review'
             : 'Select an option above to continue'}
         </div>
+        {currentStep === 'output' && (
+          <div className="text-center mt-0.5">
+            <button
+              onClick={() => setIsFeedbackOpen(true)}
+              className="text-[12px] text-[#4a7ec2] hover:text-[#3a6eb2] font-medium cursor-pointer bg-transparent border-none transition-colors"
+            >
+              Share feedback
+            </button>
+          </div>
+        )}
       </div>
+
+      <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
     </div>
   );
 }
