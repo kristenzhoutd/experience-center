@@ -3,7 +3,7 @@
  * These form the shared design system across all output formats.
  */
 
-import { Sparkles, TrendingUp, Target, ArrowRight, AlertTriangle, Zap, BarChart3 } from 'lucide-react';
+import { Sparkles, TrendingUp, Target, ArrowRight, AlertTriangle, Zap, BarChart3, ArrowUp, ArrowDown, Minus } from 'lucide-react';
 
 // ── Section Wrapper ──
 
@@ -308,5 +308,195 @@ export function ComparisonCard({ labelA, labelB, valueA, valueB, metric }: {
         </div>
       </div>
     </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════
+// DATA VISUALIZATION PRIMITIVES
+// Inspired by Paid Media Command Center design language
+// ════════════════════════════════════════════════════════════
+
+// ── Metric Stat Card (Command Center style) ──
+
+export function MetricStatCard({ label, value, delta, trend, icon }: {
+  label: string;
+  value: string;
+  delta?: string;
+  trend?: 'up' | 'down' | 'flat';
+  icon?: React.ReactNode;
+}) {
+  return (
+    <div className="bg-white rounded-xl p-3.5 border border-gray-100 shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wide">{label}</span>
+        {icon && <div className="w-6 h-6 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400">{icon}</div>}
+      </div>
+      <div className="flex items-end gap-2">
+        <span className="text-xl font-bold text-gray-900">{value}</span>
+        {delta && (
+          <DeltaChip delta={delta} trend={trend} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Delta Chip ──
+
+export function DeltaChip({ delta, trend = 'up' }: { delta: string; trend?: 'up' | 'down' | 'flat' }) {
+  const color = trend === 'up' ? 'text-emerald-600 bg-emerald-50' : trend === 'down' ? 'text-red-500 bg-red-50' : 'text-gray-500 bg-gray-50';
+  const Icon = trend === 'up' ? ArrowUp : trend === 'down' ? ArrowDown : Minus;
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${color}`}>
+      <Icon className="w-2.5 h-2.5" />
+      {delta}
+    </span>
+  );
+}
+
+// ── Score Bar (horizontal progress) ──
+
+export function ScoreBar({ value, max = 100, label, color = 'blue' }: {
+  value: number;
+  max?: number;
+  label?: string;
+  color?: 'blue' | 'emerald' | 'amber' | 'red' | 'indigo';
+}) {
+  const pct = Math.min(100, Math.max(0, (value / max) * 100));
+  const barColors: Record<string, string> = {
+    blue: 'bg-blue-400',
+    emerald: 'bg-emerald-400',
+    amber: 'bg-amber-400',
+    red: 'bg-red-400',
+    indigo: 'bg-indigo-400',
+  };
+  return (
+    <div className="flex items-center gap-2">
+      {label && <span className="text-[10px] text-gray-400 w-16 flex-shrink-0 truncate">{label}</span>}
+      <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full transition-all duration-700 ${barColors[color]}`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-[10px] font-semibold text-gray-600 w-8 text-right">{value}%</span>
+    </div>
+  );
+}
+
+// ── Channel Allocation Strip ──
+
+export function ChannelAllocationStrip({ channels }: {
+  channels: Array<{ name: string; percent: number; color: string }>;
+}) {
+  const colors: Record<string, string> = {
+    blue: 'bg-blue-400', emerald: 'bg-emerald-400', amber: 'bg-amber-400',
+    indigo: 'bg-indigo-400', pink: 'bg-pink-400', purple: 'bg-purple-400',
+  };
+  return (
+    <div>
+      <div className="h-2.5 rounded-full overflow-hidden flex">
+        {channels.map((ch, i) => (
+          <div
+            key={i}
+            className={`h-full transition-all duration-700 ${colors[ch.color] || 'bg-gray-300'} ${i === 0 ? 'rounded-l-full' : ''} ${i === channels.length - 1 ? 'rounded-r-full' : ''}`}
+            style={{ width: `${ch.percent}%` }}
+          />
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
+        {channels.map((ch, i) => (
+          <div key={i} className="flex items-center gap-1.5">
+            <div className={`w-2 h-2 rounded-full ${colors[ch.color] || 'bg-gray-300'}`} />
+            <span className="text-[10px] text-gray-500">{ch.name}</span>
+            <span className="text-[10px] font-semibold text-gray-700">{ch.percent}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Mini Sparkline (CSS-only) ──
+
+export function MiniSparkline({ values, color = 'blue', height = 24 }: {
+  values: number[];
+  color?: 'blue' | 'emerald' | 'amber';
+  height?: number;
+}) {
+  if (values.length < 2) return null;
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const range = max - min || 1;
+  const barColors = { blue: 'bg-blue-300', emerald: 'bg-emerald-300', amber: 'bg-amber-300' };
+
+  return (
+    <div className="flex items-end gap-px" style={{ height }}>
+      {values.map((v, i) => (
+        <div
+          key={i}
+          className={`flex-1 rounded-t-sm ${barColors[color]} opacity-70`}
+          style={{ height: `${Math.max(8, ((v - min) / range) * 100)}%` }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ── Ranked Score Row ──
+
+export function RankedScoreRow({ rank, label, score, maxScore = 100, color = 'blue' }: {
+  rank: number;
+  label: string;
+  score: number;
+  maxScore?: number;
+  color?: 'blue' | 'emerald' | 'amber' | 'indigo';
+}) {
+  const pct = Math.min(100, (score / maxScore) * 100);
+  const barColors: Record<string, string> = {
+    blue: 'bg-blue-400', emerald: 'bg-emerald-400', amber: 'bg-amber-400', indigo: 'bg-indigo-400',
+  };
+  return (
+    <div className="flex items-center gap-3 py-1.5">
+      <span className="w-5 h-5 rounded-full bg-gray-100 text-gray-500 text-[10px] font-bold flex items-center justify-center flex-shrink-0">{rank}</span>
+      <span className="text-xs text-gray-700 w-28 flex-shrink-0 truncate">{label}</span>
+      <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full transition-all duration-700 ${barColors[color]}`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-[10px] font-bold text-gray-700 w-8 text-right">{score}</span>
+    </div>
+  );
+}
+
+// ── Timeline Strip ──
+
+export function TimelineStrip({ stages }: {
+  stages: Array<{ label: string; duration: string; active?: boolean }>;
+}) {
+  return (
+    <div className="flex items-center gap-0.5">
+      {stages.map((stage, i) => (
+        <div key={i} className="flex-1 flex flex-col items-center">
+          <div className={`w-full h-1.5 rounded-full ${stage.active ? 'bg-blue-400' : 'bg-gray-200'}`} />
+          <span className="text-[9px] text-gray-500 mt-1 text-center leading-tight">{stage.label}</span>
+          <span className="text-[9px] text-gray-400">{stage.duration}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Severity Indicator ──
+
+export function SeverityIndicator({ level }: { level: 'critical' | 'warning' | 'info' | 'success' }) {
+  const config = {
+    critical: { color: 'bg-red-500', label: 'Critical', bg: 'bg-red-50 text-red-700' },
+    warning: { color: 'bg-amber-500', label: 'Warning', bg: 'bg-amber-50 text-amber-700' },
+    info: { color: 'bg-blue-500', label: 'Info', bg: 'bg-blue-50 text-blue-700' },
+    success: { color: 'bg-emerald-500', label: 'Healthy', bg: 'bg-emerald-50 text-emerald-700' },
+  };
+  const c = config[level];
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full ${c.bg}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${c.color}`} />
+      {c.label}
+    </span>
   );
 }
