@@ -18,9 +18,9 @@ interface OutputData {
   insightPanel: { whyThisRecommendation: string; businessImpact: string[]; whatChanged: string[]; howTreasureHelps: string[] };
 }
 
-async function callLLM(systemPrompt: string, userPrompt: string): Promise<string> {
+async function callLLM(systemPrompt: string, userPrompt: string, apiKeyOverride?: string): Promise<string> {
   const settings = loadSettings();
-  const apiKey = process.env.API_KEY || settings.apiKey;
+  const apiKey = apiKeyOverride || process.env.API_KEY || settings.apiKey;
   const llmProxyUrl = (process.env.LLM_PROXY_URL || settings.llmProxyUrl || 'https://llm-proxy.us01.treasuredata.com').replace(/\/$/, '');
   const model = process.env.MODEL || settings.model || 'claude-sonnet-4-20250514';
 
@@ -74,12 +74,12 @@ export type ExecutionResult = {
   error: string;
 };
 
-export async function executeScenarioSkill(scenarioConfig: ScenarioConfig): Promise<ExecutionResult> {
+export async function executeScenarioSkill(scenarioConfig: ScenarioConfig, opts?: { apiKeyOverride?: string }): Promise<ExecutionResult> {
   const start = Date.now();
   try {
     const { config, industry } = resolveScenario(scenarioConfig);
     const { systemPrompt, userPrompt } = buildSkillRequest(config, industry);
-    const rawResponse = await callLLM(systemPrompt, userPrompt);
+    const rawResponse = await callLLM(systemPrompt, userPrompt, opts?.apiKeyOverride);
     const outputData = parseOutput(rawResponse);
 
     return {

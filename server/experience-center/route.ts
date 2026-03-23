@@ -21,7 +21,10 @@ experienceCenterRouter.post('/generate', async (req, res) => {
     return;
   }
 
-  const result = await executeScenarioSkill(scenarioConfig);
+  // Pass API key from request header (browser sends it from localStorage)
+  const apiKeyOverride = req.headers['x-api-key'] as string | undefined;
+
+  const result = await executeScenarioSkill(scenarioConfig, { apiKeyOverride });
 
   if (result.success) {
     res.json({ success: true, data: result.data, meta: result.meta });
