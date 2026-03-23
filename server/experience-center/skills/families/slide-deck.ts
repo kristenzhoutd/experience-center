@@ -1,11 +1,13 @@
 /**
- * Slide Deck Creation skill family — storyboard-first generation.
+ * Slide Deck Creation skill family — designer-quality, brand-native slides.
  *
- * Step 1: Build a deck storyboard mapping content to slide templates
- * Step 2: Generate structured slides with strict formatting rules
+ * Uses TD 2026 brand guidelines:
+ * - Colors: Deep Blue #2D40AA, Purple #847BF2, Sky Blue #8BBCFD, Peach #FDB893
+ * - Typography: Poppins (titles), Manrope (body)
+ * - Layouts: cover, divider, content, gradient, kpi, actions
  *
- * Each slide maps to a visual template via the `layout` field.
- * The renderer uses layout to determine visual treatment.
+ * Content is sourced from structured output, then compressed and
+ * rewritten for slide-native presentation (not copy-pasted from product UI).
  */
 
 interface SlideSkillInput {
@@ -22,18 +24,16 @@ interface SlideSkillInput {
   };
 }
 
-// ── Storyboard templates by output type ──
-
 const STORYBOARDS: Record<string, Record<number, string>> = {
   campaign_brief: {
     3: 'cover → recommendation → actions',
-    5: 'cover → recommendation → strategy → channels → actions',
+    5: 'cover → recommendation → strategy → kpi → actions',
     7: 'cover → recommendation → audience → strategy → channels → kpi → actions',
   },
   journey_map: {
     3: 'cover → journey_flow → actions',
     5: 'cover → recommendation → journey_flow → kpi → actions',
-    7: 'cover → recommendation → audience → journey_flow → timeline → kpi → actions',
+    7: 'cover → recommendation → audience → journey_flow → timing → kpi → actions',
   },
   segment_cards: {
     3: 'cover → segments → actions',
@@ -53,142 +53,49 @@ const STORYBOARDS: Record<string, Record<number, string>> = {
 };
 
 const STYLE_RULES: Record<string, string> = {
-  executive: `EXECUTIVE STYLE:
-- Maximum 3 bullets per slide, each under 10 words
-- Lead every slide with a single bold takeaway
-- Use numbers and metrics prominently
-- Subtitle should state "so what" in one line
-- Think: what would a CMO need to see in 30 seconds?`,
-  strategy: `STRATEGY STYLE:
-- Maximum 4 bullets per slide, each under 12 words
-- Balance insight with supporting evidence
-- Include "why" alongside "what"
-- Subtitle should frame the strategic context
-- Think: what would a strategy review audience need?`,
-  working: `WORKING SESSION STYLE:
-- Maximum 4 bullets per slide, each under 15 words
-- Include enough detail to drive discussion
-- Frame content as decisions and trade-offs
-- Subtitle should pose the question being addressed
-- Think: what would a team need to discuss and decide?`,
+  executive: 'EXECUTIVE: Max 3 bullets/slide, each under 8 words. One bold takeaway per slide. Lead with metrics.',
+  strategy: 'STRATEGY: Max 4 bullets/slide, each under 10 words. Balance insight with evidence. Include "why" alongside "what".',
+  working: 'WORKING: Max 4 bullets/slide, each under 12 words. Frame as decisions and trade-offs. Include enough to discuss.',
 };
-
-// ── Layout-to-template mapping ──
-
-const LAYOUT_INSTRUCTIONS = `
-## Slide Layout Templates
-
-Each slide MUST use one of these layouts. Choose the layout that matches the content type.
-
-### "cover" — Title/Cover slide
-- title: deck title (max 8 words)
-- subtitle: context line (outcome + industry + KPI)
-- No bullets needed
-
-### "hero" — Big Recommendation slide
-- title: short headline (max 8 words)
-- subtitle: the core recommendation rewritten as a single punchy sentence
-- stat: one key metric or impact number (e.g., "15-25% improvement")
-- statLabel: what the stat measures (e.g., "Projected conversion lift")
-- bullets: 2-3 supporting points, each under 10 words
-
-### "segments" — Ranked Comparison slide
-- title: short headline
-- segments: array of 3 items, each with { name, score (0-100), description (under 10 words), level ("High"|"Medium"|"Low") }
-
-### "journey" — Flow/Stages slide
-- title: short headline
-- stages: array of 3-5 items, each with { name, description (under 10 words), channel }
-
-### "kpi" — KPI/Impact slide
-- title: short headline
-- kpis: array of 3-4 items, each with { name, value, note (under 8 words) }
-
-### "diagnosis" — Findings slide
-- title: short headline
-- findings: array of 2-3 items, each with { label, detail (under 15 words), severity ("critical"|"warning"|"info") }
-
-### "strategy" — Strategy/Brief slide
-- title: short headline
-- subtitle: framing line
-- bullets: 3-4 concise points
-- highlight: one key callout sentence
-
-### "channels" — Channel Strategy slide
-- title: short headline
-- channels: array of 3-4 items, each with { name, role (under 6 words), percent (budget allocation number) }
-
-### "actions" — Next Steps slide
-- title: "Recommended Next Steps" or similar
-- actions: array of 3-5 items, each with { action (under 12 words), priority ("Do now"|"Test next"|"Scale later") }
-
-### "impact" — Business Impact slide
-- title: short headline
-- stat: primary impact metric
-- statLabel: what it measures
-- bullets: 3-4 impact statements, each under 12 words
-`;
 
 export function buildSlidePrompt(input: SlideSkillInput): string {
   const { outputData, deckLength, deckStyle, customTitle, scenarioContext } = input;
   const outputType = scenarioContext.outputFormatKey || 'campaign_brief';
   const storyboard = STORYBOARDS[outputType]?.[deckLength] || STORYBOARDS.campaign_brief[deckLength] || STORYBOARDS.campaign_brief[5];
-  const styleRules = STYLE_RULES[deckStyle] || STYLE_RULES.executive;
+  const styleRule = STYLE_RULES[deckStyle] || STYLE_RULES.executive;
 
-  return `You are creating a premium strategy presentation from structured AI output.
+  return `Create a ${deckLength}-slide strategy presentation. ${styleRule}
 
-## TASK
-Generate a ${deckLength}-slide deck that feels like a polished executive strategy review.
+STORYBOARD: ${storyboard}
 
-## STORYBOARD
-Follow this slide sequence: ${storyboard}
+CONTEXT: ${scenarioContext.outcome || ''} | ${scenarioContext.industry || ''} | ${scenarioContext.scenario || ''} | KPI: ${scenarioContext.kpi || ''}
+${customTitle ? `TITLE: ${customTitle}` : ''}
 
-Each item in the storyboard maps to a slide layout template. Generate slides in this exact order.
+SOURCE DATA (extract and compress for slides — do NOT paste verbatim):
+${JSON.stringify(outputData, null, 1)}
 
-## CONTEXT
-- Outcome: ${scenarioContext.outcome || 'Not specified'}
-- Industry: ${scenarioContext.industry || 'Not specified'}
-- Scenario: ${scenarioContext.scenario || 'Not specified'}
-- Primary KPI: ${scenarioContext.kpi || 'Not specified'}
-${customTitle ? `- Deck title: ${customTitle}` : ''}
+SLIDE LAYOUTS — each slide MUST use one:
 
-## STYLE
-${styleRules}
+"cover" — Title (max 6 words) + subtitle (context line). Clean, bold, branded.
+"hero" — Big recommendation. Fields: title, subtitle (the recommendation as 1 punchy sentence), stat (key metric), statLabel. Max 2 bullets.
+"segments" — Ranked audience cards. Fields: title, segments array [{name, score 0-100, description (max 8 words), level}]. Exactly 3 segments.
+"journey" — Stage flow. Fields: title, stages array [{name, description (max 8 words), channel}]. 3-5 stages.
+"kpi" — Metric tiles. Fields: title, kpis array [{name, value, note (max 6 words)}]. 3-4 KPIs.
+"diagnosis" — Findings. Fields: title, findings array [{label, detail (max 12 words), severity}]. 2-3 findings.
+"channels" — Allocation. Fields: title, channels array [{name, role (max 5 words), percent}]. 3-4 channels.
+"strategy" — Brief section. Fields: title, subtitle, highlight (1 key sentence), bullets (max 3). Clean whitespace.
+"actions" — Next steps. Fields: title, actions array [{action (max 10 words), priority "Do now"|"Test next"|"Scale later"}]. 3-5 actions.
+"impact" — Business value. Fields: title, stat (big number), statLabel, bullets (max 3 impact statements).
 
-${LAYOUT_INSTRUCTIONS}
+RULES:
+1. Title: MAX 6 words. Headline style. Not a sentence.
+2. Compress all content for slides. Rewrite — don't paste from source.
+3. Every non-cover slide needs a dominant visual structure (segments/journey/kpis/channels/findings/actions).
+4. First slide = "cover". Last slide = "actions".
+5. speakerNotes: 1 sentence, max 15 words.
+6. Output ONLY the JSON code fence. No other text.
 
-## STRICT FORMATTING RULES
-1. Title: MAX 8 words. Write like a headline, not a sentence.
-2. Subtitle: MAX 15 words. State the "so what."
-3. Bullets: MAX 4 per slide, each MAX 12 words. No filler.
-4. Every non-cover slide MUST have a dominant visual structure (segments, journey stages, KPIs, channels, findings, or actions). Do NOT make text-only slides.
-5. Rewrite all content into PRESENTATION language — concise, headline-driven, scannable.
-6. Do NOT copy raw paragraphs from the source output. Compress and restructure.
-7. Each slide must be self-contained and scannable in 10 seconds.
-8. Pull data from the source output — do NOT invent metrics.
-9. speakerNotes: 1 sentence, max 20 words.
-
-## SOURCE DATA
-${JSON.stringify(outputData, null, 2)}
-
-## OUTPUT FORMAT
-Wrap in a \`slide-deck-json\` code fence. Output ONLY the JSON.
-
-\`\`\`\`
 \`\`\`slide-deck-json
-{
-  "title": "string (max 8 words)",
-  "subtitle": "string (context line)",
-  "slides": [
-    {
-      "layout": "cover|hero|segments|journey|kpi|diagnosis|strategy|channels|actions|impact",
-      "title": "string",
-      "subtitle": "string",
-      ...layout-specific fields from templates above...
-      "speakerNotes": "string"
-    }
-  ]
-}
-\`\`\`
-\`\`\`\``;
+{"title":"...","subtitle":"...","slides":[...]}
+\`\`\``;
 }
