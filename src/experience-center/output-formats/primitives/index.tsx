@@ -14,8 +14,8 @@ export function OutputSection({ title, icon, children, className = '' }: {
   className?: string;
 }) {
   return (
-    <div className={`mb-5 ${className}`}>
-      <div className="flex items-center gap-2 mb-2.5">
+    <div className={`mb-4 bg-white rounded-2xl border border-gray-100 shadow-[0_1px_4px_rgba(0,0,0,0.03)] p-5 ${className}`}>
+      <div className="flex items-center gap-2 mb-3">
         {icon && <div className="text-gray-400">{icon}</div>}
         <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-wider">{title}</h3>
       </div>
@@ -26,16 +26,17 @@ export function OutputSection({ title, icon, children, className = '' }: {
 
 // ── Hero Summary Card ──
 
-export function HeroSummaryCard({ headline, supporting, goal, audience, impact, label = 'AI-Generated Recommendation' }: {
+export function HeroSummaryCard({ headline, supporting, goal, audience, impact, label = 'AI-Generated Recommendation', scenarioContext }: {
   headline: string;
   supporting?: string;
   goal?: string;
   audience?: string;
   impact?: string;
   label?: string;
+  scenarioContext?: { outcome?: string; industry?: string; scenario?: string; kpi?: string };
 }) {
   return (
-    <div className="border border-gray-200/60 rounded-2xl p-5 mb-5 bg-white shadow-sm">
+    <div className="border border-gray-200/60 rounded-2xl p-5 mb-4 bg-white shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
       <div className="flex items-start gap-3 mb-3">
         <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0 mt-0.5">
           <Sparkles className="w-4 h-4 text-blue-500" />
@@ -54,6 +55,19 @@ export function HeroSummaryCard({ headline, supporting, goal, audience, impact, 
         </div>
       )}
       {impact && <div className="mt-1.5 text-sm text-blue-600 font-medium">{impact}</div>}
+      {scenarioContext && (
+        <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+          {scenarioContext.outcome && <span className="text-[11px] px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 font-medium">{scenarioContext.outcome}</span>}
+          {scenarioContext.industry && <span className="text-[11px] px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 font-medium">{scenarioContext.industry}</span>}
+          {scenarioContext.scenario && <span className="text-[11px] px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-medium">{scenarioContext.scenario}</span>}
+          {scenarioContext.kpi && (
+            <span className="text-[11px] px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-medium flex items-center gap-1 ml-auto">
+              <Target className="w-3 h-3" />
+              {scenarioContext.kpi}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

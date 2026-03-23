@@ -44,9 +44,7 @@ function ScenarioContextHeader({ scenarioContext }: ModuleProps) {
 function ExecutiveSummaryModule({ output }: ModuleProps) {
   return (
     <OutputSection title="Executive Summary" icon={<Lightbulb className="w-4 h-4" />}>
-      <div className="bg-white rounded-xl p-4 border border-gray-200/60 shadow-sm">
-        <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{output.executiveSummary}</div>
-      </div>
+      <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{output.executiveSummary}</div>
     </OutputSection>
   );
 }
@@ -119,7 +117,7 @@ function JourneyMapModule({ output }: ModuleProps) {
   return (
     <OutputSection title={output.scenarioCore.title || 'Lifecycle Journey'} icon={<ArrowRight className="w-4 h-4" />}>
       {/* Timeline overview strip */}
-      <div className="bg-white rounded-xl p-4 border border-gray-200/60 shadow-sm mb-3">
+      <div className="bg-gray-50/60 rounded-xl p-4 border border-gray-100 mb-3">
         <div className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-2">Journey Timeline</div>
         <TimelineStrip stages={stages.map((s, i) => ({
           label: s.label.replace(/^Stage \d+:\s*/, ''),
@@ -128,7 +126,7 @@ function JourneyMapModule({ output }: ModuleProps) {
         }))} />
       </div>
       {/* Stage detail cards */}
-      <div className="bg-white rounded-xl p-4 border border-gray-200/60 shadow-sm">
+      <div>
         {stages.map((stage, i) => (
           <JourneyStageNode
             key={i}
@@ -269,7 +267,7 @@ function ChannelStrategyModule({ output }: ModuleProps) {
   return (
     <OutputSection title="Channel Strategy" icon={<Send className="w-4 h-4" />}>
       {/* Channel allocation strip */}
-      <div className="bg-white rounded-xl p-4 border border-gray-200/60 shadow-sm mb-3">
+      <div className="bg-gray-50/60 rounded-xl p-4 border border-gray-100 mb-3">
         <div className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-2">Budget Allocation</div>
         <ChannelAllocationStrip
           channels={output.channelStrategy.map((ch, i) => ({
@@ -366,7 +364,7 @@ function BusinessImpactModule({ output }: ModuleProps) {
 function InsightPanelModule({ output }: ModuleProps) {
   return (
     <OutputSection title="Why This Recommendation" icon={<Shield className="w-4 h-4" />}>
-      <div className="bg-white rounded-xl p-4 border border-gray-200/60 shadow-sm space-y-4">
+      <div className="space-y-4">
         <div className="text-sm text-gray-700 leading-relaxed">{output.insightPanel.whyThisRecommendation}</div>
         {output.insightPanel.whatChanged.length > 0 && (
           <div>
@@ -417,7 +415,6 @@ export const moduleRegistry: Record<string, ModuleComponent> = {
 
 export const outputCompositions: Record<string, string[]> = {
   'campaign_brief': [
-    'scenario_context_header',
     'executive_summary',
     'campaign_brief',
     'audience_rationale',
@@ -428,7 +425,6 @@ export const outputCompositions: Record<string, string[]> = {
     'insight_panel',
   ],
   'journey_map': [
-    'scenario_context_header',
     'executive_summary',
     'journey_map',
     'audience_rationale',
@@ -438,7 +434,6 @@ export const outputCompositions: Record<string, string[]> = {
     'insight_panel',
   ],
   'segment_cards': [
-    'scenario_context_header',
     'executive_summary',
     'segment_cards',
     'kpi_framework',
@@ -447,7 +442,6 @@ export const outputCompositions: Record<string, string[]> = {
     'insight_panel',
   ],
   'performance_diagnosis': [
-    'scenario_context_header',
     'executive_summary',
     'performance_diagnosis',
     'audience_rationale',
@@ -458,7 +452,6 @@ export const outputCompositions: Record<string, string[]> = {
     'insight_panel',
   ],
   'insight_summary': [
-    'scenario_context_header',
     'executive_summary',
     'insight_summary',
     'segment_cards',
@@ -471,7 +464,6 @@ export const outputCompositions: Record<string, string[]> = {
 
 // Default composition if outputFormatKey not found
 const DEFAULT_COMPOSITION = [
-  'scenario_context_header',
   'executive_summary',
   'campaign_brief',
   'audience_rationale',
@@ -501,6 +493,7 @@ export function ModularOutputRenderer({ output, outputFormatKey, visibleSections
           goal={output.summaryBanner.goal}
           audience={output.summaryBanner.audience}
           impact={output.summaryBanner.impactFraming}
+          scenarioContext={scenarioContext}
         />
       </div>
 
