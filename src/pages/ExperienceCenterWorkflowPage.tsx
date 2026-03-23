@@ -5,7 +5,7 @@ import {
   ShoppingBag, Plane, Package, Car, Film, Landmark,
   Clock, Star, Send, RotateCcw,
   Target, Lightbulb, TrendingUp, Shield,
-  Loader2, Pencil, Presentation, ChevronDown,
+  Loader2, Pencil, Presentation, ChevronDown, Share2, X,
 } from 'lucide-react';
 import SplitPaneLayout from '../components/campaign/SplitPaneLayout';
 import BookWalkthroughModal from '../components/BookWalkthroughModal';
@@ -113,6 +113,8 @@ export default function ExperienceCenterWorkflowPage() {
   const [activeArtifactId, setActiveArtifactId] = useState<string>('output');
   const activeArtifact = artifacts.find(a => a.id === activeArtifactId) || artifacts[0];
   const [showSlidePreview, setShowSlidePreview] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [usedScenarios, setUsedScenarios] = useState<Set<string>>(new Set());
   const [collapsed, setCollapsed] = useState(false);
   const [mobileView, setMobileView] = useState<'chat' | 'output'>('output');
   const [isMobile, setIsMobile] = useState(false);
@@ -319,15 +321,16 @@ export default function ExperienceCenterWorkflowPage() {
       addStep('Strategy complete — review results in the panel', 'ui_update');
       setIsThinkingActive(false);
       finishGeneration(result);
-      // Register as artifact
+      // Register as artifact and track used scenario
       setArtifacts([{ id: 'output', type: 'output', label: scenarioConfig?.title || 'Recommendation', data: result }]);
       setActiveArtifactId('output');
+      setUsedScenarios(prev => new Set(prev).add(s));
       setMessages(prev => {
         const filtered = prev.filter(m => m.type !== 'generation');
         return [
           ...filtered,
-          { id: `ai-output-${Date.now()}`, role: 'ai' as const, content: 'Here\'s your initial recommendation. You can refine it below.', type: 'output-ready' as const, runId },
-          { id: `ai-refine-${Date.now() + 1}`, role: 'ai' as const, content: 'Want to adjust? Try one of these:', type: 'refinements' as const },
+          { id: `ai-output-${Date.now()}`, role: 'ai' as const, content: 'Here\'s your recommendation. View it in the output panel.', type: 'output-ready' as const, runId },
+          { id: `ai-refine-${Date.now() + 1}`, role: 'ai' as const, content: '', type: 'refinements' as const },
           { id: `ai-cta-${Date.now() + 2}`, role: 'ai' as const, content: '', type: 'cta' as const },
         ];
       });
@@ -384,8 +387,8 @@ export default function ExperienceCenterWorkflowPage() {
         const filtered = prev.filter(m => m.id !== thinkingId);
         return [
           ...filtered,
-          { id: `ai-output-${Date.now()}`, role: 'ai' as const, content: 'Updated! Here\'s your refined recommendation.', type: 'output-ready' as const },
-          { id: `ai-refine-${Date.now() + 1}`, role: 'ai' as const, content: 'Want to adjust further?', type: 'refinements' as const },
+          { id: `ai-output-${Date.now()}`, role: 'ai' as const, content: 'Updated. View the revised output in the panel.', type: 'output-ready' as const },
+          { id: `ai-refine-${Date.now() + 1}`, role: 'ai' as const, content: '', type: 'refinements' as const },
           { id: `ai-cta-${Date.now() + 2}`, role: 'ai' as const, content: '', type: 'cta' as const },
         ];
       });
@@ -607,7 +610,7 @@ export default function ExperienceCenterWorkflowPage() {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* ── Main Layout ── */}
-      <div className="flex-1 overflow-hidden p-4">
+      <div className="flex-1 overflow-hidden px-4 pb-4 pt-1">
         <div className="h-full flex flex-col rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden bg-white">
           {/* ── Horizontal Stepper (inside card) ── */}
           <HorizontalStepper
@@ -659,6 +662,7 @@ export default function ExperienceCenterWorkflowPage() {
                   progressSteps={progressSteps}
                   progressHistory={progressHistory}
                   isThinkingActive={isThinkingActive}
+                  usedScenarios={usedScenarios}
                 />
               ) : (
                 <div className="flex-1 relative overflow-hidden bg-[#F7F8FB] rounded-2xl flex flex-col">
@@ -687,17 +691,26 @@ export default function ExperienceCenterWorkflowPage() {
                           })}
                         </div>
                       ) : <div />}
-                      <button
-                        onClick={() => setShowSlideModal(true)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50/50 transition-all cursor-pointer shadow-sm flex-shrink-0"
-                      >
-                        <Presentation className="w-3.5 h-3.5" />
-                        Create slides
-                      </button>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => setShowShareModal(true)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50/50 transition-all cursor-pointer shadow-sm"
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
+                          Share
+                        </button>
+                        <button
+                          onClick={() => setShowSlideModal(true)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50/50 transition-all cursor-pointer shadow-sm"
+                        >
+                          <Presentation className="w-3.5 h-3.5" />
+                          Create slides
+                        </button>
+                      </div>
                     </div>
                   )}
                   {/* Scrollable content */}
-                  <div className="flex-1 overflow-y-auto p-4 pb-20">
+                  <div className="flex-1 overflow-y-auto px-5 py-4 pb-20">
                     {output && (
                       <>
                         {activeArtifact?.type === 'slides' ? (
@@ -756,12 +769,13 @@ export default function ExperienceCenterWorkflowPage() {
                   progressSteps={progressSteps}
                   progressHistory={progressHistory}
                   isThinkingActive={isThinkingActive}
+                  usedScenarios={usedScenarios}
                 />
                 {/* Right: Output */}
                 <div className="h-full relative bg-[#F7F8FB] rounded-2xl flex flex-col">
                   {/* Sticky header */}
                   {output && visibleOutputSections >= 1 && (
-                    <div className="flex items-center justify-between px-6 py-2.5 border-b border-gray-200/60 bg-[#F7F8FB] z-10 flex-shrink-0">
+                    <div className="flex items-center justify-between px-5 py-2.5 border-b border-gray-200/60 bg-[#F7F8FB] z-10 flex-shrink-0 rounded-t-2xl">
                       {artifacts.length > 1 ? (
                         <div className="inline-flex items-center bg-gray-200/60 rounded-lg p-0.5 max-w-md">
                           {artifacts.map(a => {
@@ -784,17 +798,26 @@ export default function ExperienceCenterWorkflowPage() {
                           })}
                         </div>
                       ) : <div />}
-                      <button
-                        onClick={() => setShowSlideModal(true)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50/50 transition-all cursor-pointer shadow-sm flex-shrink-0"
-                      >
-                        <Presentation className="w-3.5 h-3.5" />
-                        Create slides
-                      </button>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => setShowShareModal(true)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50/50 transition-all cursor-pointer shadow-sm"
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
+                          Share
+                        </button>
+                        <button
+                          onClick={() => setShowSlideModal(true)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50/50 transition-all cursor-pointer shadow-sm"
+                        >
+                          <Presentation className="w-3.5 h-3.5" />
+                          Create slides
+                        </button>
+                      </div>
                     </div>
                   )}
                   {/* Scrollable content */}
-                  <div className="flex-1 overflow-y-auto p-6 pb-20">
+                  <div className="flex-1 overflow-y-auto px-5 py-4 pb-20">
                     {output && (
                       <>
                         {activeArtifact?.type === 'slides' ? (
@@ -862,6 +885,32 @@ export default function ExperienceCenterWorkflowPage() {
         }}
       />
 
+      {/* Share Modal */}
+      {showShareModal && (
+        <>
+          <div onClick={() => setShowShareModal(false)} className="fixed inset-0 bg-black/30 z-[9998]" />
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] max-w-[90vw] bg-white rounded-2xl shadow-2xl z-[9999] overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                  <Share2 className="w-4 h-4 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">Share output</h3>
+                  <p className="text-[11px] text-gray-400">Send a copy of this output to your inbox</p>
+                </div>
+              </div>
+              <button onClick={() => setShowShareModal(false)} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="px-6 py-5">
+              <EmailCaptureCard output={output} onDone={() => setShowShareModal(false)} />
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Slide Modal */}
       <SlideModal
         isOpen={showSlideModal}
@@ -892,6 +941,7 @@ function ChatPanel({
   onExploreAnother, messagesEndRef,
   showCollapse, onCollapse, output, onEditMessage,
   progressSteps = [], progressHistory = {}, isThinkingActive = false,
+  usedScenarios,
 }: {
   messages: ConversationMessage[];
   currentStep: FlowStep;
@@ -912,6 +962,7 @@ function ChatPanel({
   progressSteps?: ProgressStep[];
   progressHistory?: Record<string, ProgressStep[]>;
   isThinkingActive?: boolean;
+  usedScenarios?: Set<string>;
 }) {
   return (
     <div className="flex flex-col h-full w-full bg-white">
@@ -933,7 +984,7 @@ function ChatPanel({
 
       {/* Messages */}
       <div className={`flex-1 overflow-y-auto p-4 md:p-6 flex flex-col max-w-2xl mx-auto w-full ${currentStep === 'generating' ? 'gap-3' : 'gap-5 md:gap-6'}`}>
-        {messages.map((msg, msgIdx) => (
+        {messages.filter(m => !(m.type === 'refinements' && !m.content)).map((msg, msgIdx) => (
           <div key={msg.id}>
             {/* Show collapsed progress before the output-ready message, using that run's saved steps */}
             {msg.type === 'output-ready' && msg.runId && progressHistory[msg.runId]?.length > 0 && (
@@ -942,13 +993,12 @@ function ChatPanel({
               </div>
             )}
             {msg.type === 'cta' && currentStep === 'output' ? (
-              <div className="animate-fade-in px-1 mt-2 space-y-3 max-w-sm">
-                <EmailCaptureCard output={output} />
+              <div className="animate-fade-in px-1 -mt-3">
                 <button
                   onClick={onExploreAnother}
                   className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
                 >
-                  <RotateCcw className="w-3 h-3" />
+                  <ArrowRight className="w-3 h-3" />
                   Explore another scenario
                 </button>
               </div>
@@ -981,11 +1031,7 @@ function ChatPanel({
                           <img src="/icons/td-avatar.png" alt="" className="w-10 h-10 animate-spin-slow flex-shrink-0" />
                         )}
                         <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
-                          {msg.content?.split('\n').map((line, i) => (
-                            <span key={i} className={line.trim().endsWith('?') ? 'font-semibold' : ''}>
-                              {line}{i < (msg.content?.split('\n').length ?? 1) - 1 && '\n'}
-                            </span>
-                          ))}
+                          {msg.content}
                         </div>
                       </div>
                     )}
@@ -997,7 +1043,7 @@ function ChatPanel({
                       <IndustryCards industry={industry} goal={goal} onSelect={onIndustrySelect} />
                     )}
                     {msg.type === 'scenario-cards' && currentStep === 'scenario' && (
-                      <ScenarioCards scenario={scenario} goal={goal} industry={industry} onSelect={onScenarioSelect} />
+                      <ScenarioCards scenario={scenario} goal={goal} industry={industry} onSelect={onScenarioSelect} usedScenarios={usedScenarios} />
                     )}
                     {msg.type === 'refinements' && currentStep === 'output' && (
                       <RefinementChips scenario={scenario} industry={industry} onSelect={onRefinement} />
@@ -1137,8 +1183,11 @@ function IndustryCards({ industry, goal, onSelect }: { industry: string; goal: s
 // ============================================================
 // Scenario Cards
 // ============================================================
-function ScenarioCards({ scenario, goal, industry, onSelect }: { scenario: string; goal: string; industry: string; onSelect: (id: string) => void }) {
-  const items = getScenariosForOutcome(goal, industry);
+function ScenarioCards({ scenario, goal, industry, onSelect, usedScenarios }: { scenario: string; goal: string; industry: string; onSelect: (id: string) => void; usedScenarios?: Set<string> }) {
+  const items = getScenariosForOutcome(goal, industry).filter(item => !usedScenarios?.has(item.id));
+  if (items.length === 0) {
+    return <div className="text-xs text-gray-400 px-1">All scenarios for this industry have been explored.</div>;
+  }
   return (
     <div className="grid grid-cols-1 gap-3 max-w-xl">
       {items.map((item) => {
@@ -1406,7 +1455,7 @@ function OutputSection({ title, icon, children }: { title: string; icon: React.R
 // ============================================================
 // Email Capture Card (left chat, after output)
 // ============================================================
-function EmailCaptureCard({ output }: { output?: OutputData | null }) {
+function EmailCaptureCard({ output, onDone }: { output?: OutputData | null; onDone?: () => void }) {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
 
@@ -1471,7 +1520,10 @@ function EmailCaptureCard({ output }: { output?: OutputData | null }) {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    setTimeout(() => setStatus('sent'), 600);
+    setTimeout(() => {
+      setStatus('sent');
+      if (onDone) setTimeout(onDone, 1500);
+    }, 600);
   };
 
   if (status === 'sent') {

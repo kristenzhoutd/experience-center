@@ -14,7 +14,7 @@ export function OutputSection({ title, icon, children, className = '' }: {
   className?: string;
 }) {
   return (
-    <div className={`mb-4 bg-white rounded-2xl border border-gray-100 shadow-[0_1px_4px_rgba(0,0,0,0.03)] p-5 ${className}`}>
+    <div className={`mb-4 bg-white rounded-2xl border border-gray-100 shadow-[0_1px_4px_rgba(0,0,0,0.03)] p-4 ${className}`}>
       <div className="flex items-center gap-2 mb-3">
         {icon && <div className="text-gray-400">{icon}</div>}
         <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-wider">{title}</h3>
@@ -37,7 +37,7 @@ export function HeroSummaryCard({ headline, supporting, goal, audience, impact, 
   keyPoints?: string[];
 }) {
   return (
-    <div className="border border-gray-200/60 rounded-2xl p-5 mb-4 bg-white shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
+    <div className="border border-gray-200/60 rounded-2xl p-4 mb-4 bg-white shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
       {/* Headline */}
       <div className="flex items-start gap-3 mb-3">
         <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0 mt-0.5">
