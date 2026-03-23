@@ -5,7 +5,7 @@ import {
   ShoppingBag, Plane, Package, Car, Film, Landmark,
   Clock, Star, Send, RotateCcw,
   Target, Lightbulb, TrendingUp, Shield,
-  Loader2, Pencil, Presentation, ChevronDown, Share2, X,
+  Loader2, Pencil, Presentation, ChevronDown, Share2, X, MessageSquare,
 } from 'lucide-react';
 import SplitPaneLayout from '../components/campaign/SplitPaneLayout';
 import BookWalkthroughModal from '../components/BookWalkthroughModal';
@@ -1100,23 +1100,20 @@ function ChatPanel({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Bottom hint */}
-      <div className="shrink-0 px-6 py-3">
-        <div className="text-center text-[12px] text-gray-400">
+      {/* Bottom hint + feedback */}
+      <div className="shrink-0 px-6 py-2.5 flex items-center justify-between">
+        <div className="text-[11px] text-gray-400">
           {currentStep === 'output'
             ? 'AI-generated recommendation designed for human review'
             : 'Select an option above to continue'}
         </div>
-        {currentStep === 'output' && (
-          <div className="text-center mt-0.5">
-            <button
-              onClick={() => setIsFeedbackOpen(true)}
-              className="text-[12px] text-[#4a7ec2] hover:text-[#3a6eb2] font-medium cursor-pointer bg-transparent border-none transition-colors"
-            >
-              Share feedback
-            </button>
-          </div>
-        )}
+        <button
+          onClick={() => setIsFeedbackOpen(true)}
+          className="text-[11px] text-blue-600 hover:text-blue-700 font-medium cursor-pointer bg-transparent border-none transition-colors flex items-center gap-1"
+        >
+          <MessageSquare className="w-3 h-3" />
+          Feedback
+        </button>
       </div>
 
       <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />

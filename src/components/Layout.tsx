@@ -215,10 +215,10 @@ export default function Layout() {
           <div className="flex-1" />
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('open-api-key-modal'))}
-            className="hidden md:flex items-center gap-2 text-[11px] text-gray-400 mr-6 window-no-drag cursor-pointer hover:text-gray-600 transition-colors"
+            className="hidden md:flex items-center gap-2 text-[11px] mr-6 window-no-drag cursor-pointer hover:opacity-80 transition-opacity"
           >
             <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${(() => { try { return !!localStorage.getItem('ai-suites-api-key'); } catch { return false; } })() ? 'bg-emerald-400' : 'bg-gray-300'}`} />
-            Powered by Treasure AI
+            <span style={{ background: 'linear-gradient(90deg, #0082DE, #3C00C0)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 500 }}>Powered by Treasure AI</span>
           </button>
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('open-booking-modal'))}
