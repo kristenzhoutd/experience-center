@@ -98,3 +98,45 @@ export async function executeScenarioSkill(scenarioConfig: ScenarioConfig, opts?
     return { success: false, error: message };
   }
 }
+
+// ── Slide Deck Generation ──
+
+import { buildSlidePrompt } from '../skills/families/slide-deck.js';
+
+interface SlideSkillInput {
+  outputData: Record<string, unknown>;
+  deckLength: number;
+  deckStyle: string;
+  customTitle?: string;
+  scenarioContext: Record<string, string | undefined>;
+}
+
+export type SlideResult = {
+  success: true;
+  data: Record<string, unknown>;
+} | {
+  success: false;
+  error: string;
+};
+
+export async function executeSlideSkill(input: SlideSkillInput, opts?: { apiKeyOverride?: string }): Promise<SlideResult> {
+  try {
+    const systemPrompt = 'You are the Treasure AI Experience Center, generating presentation decks from structured AI output for enterprise marketers.';
+    const userPrompt = buildSlidePrompt(input);
+    const rawResponse = await callLLM(systemPrompt, userPrompt, opts?.apiKeyOverride);
+
+    const fenceMatch = rawResponse.match(/```slide-deck-json\s*\n([\s\S]*?)\n```/);
+    const jsonStr = fenceMatch ? fenceMatch[1] : rawResponse;
+    const parsed = JSON.parse(jsonStr.trim());
+
+    if (!parsed.slides || !Array.isArray(parsed.slides)) {
+      throw new Error('Invalid slide deck: missing slides array');
+    }
+
+    return { success: true, data: parsed };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[ExperienceCenter] Slide generation failed:', message);
+    return { success: false, error: message };
+  }
+}

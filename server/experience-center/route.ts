@@ -8,7 +8,7 @@
  */
 
 import { Router } from 'express';
-import { executeScenarioSkill } from './orchestration/executeSkill.js';
+import { executeScenarioSkill, executeSlideSkill } from './orchestration/executeSkill.js';
 import type { ScenarioConfig } from './types.js';
 
 export const experienceCenterRouter = Router();
@@ -28,6 +28,28 @@ experienceCenterRouter.post('/generate', async (req, res) => {
 
   if (result.success) {
     res.json({ success: true, data: result.data, meta: result.meta });
+  } else {
+    res.status(500).json({ success: false, error: result.error });
+  }
+});
+
+experienceCenterRouter.post('/generate-slides', async (req, res) => {
+  const { outputData, deckLength, deckStyle, customTitle, scenarioContext } = req.body;
+
+  if (!outputData || !deckLength || !deckStyle) {
+    res.status(400).json({ success: false, error: 'Missing required fields: outputData, deckLength, deckStyle' });
+    return;
+  }
+
+  const apiKeyOverride = req.headers['x-api-key'] as string | undefined;
+
+  const result = await executeSlideSkill(
+    { outputData, deckLength, deckStyle, customTitle, scenarioContext: scenarioContext || {} },
+    { apiKeyOverride },
+  );
+
+  if (result.success) {
+    res.json({ success: true, data: result.data });
   } else {
     res.status(500).json({ success: false, error: result.error });
   }

@@ -5,7 +5,7 @@ import {
   ShoppingBag, Plane, Package, Car, Film, Landmark,
   Clock, Star, Send, RotateCcw,
   Target, Lightbulb, TrendingUp, Shield,
-  Loader2, Pencil,
+  Loader2, Pencil, Presentation, ChevronDown,
 } from 'lucide-react';
 import SplitPaneLayout from '../components/campaign/SplitPaneLayout';
 import BookWalkthroughModal from '../components/BookWalkthroughModal';
@@ -17,6 +17,10 @@ import { getScenarioConfig } from '../experience-center/registry/scenarioRegistr
 import { skillFamilies } from '../experience-center/registry/skillFamilies';
 import SkillProgressBlock, { type ProgressStep } from '../experience-center/output-formats/SkillProgressBlock';
 import { ModularOutputRenderer } from '../experience-center/output-formats/modules';
+import SlideModal from '../experience-center/output-formats/slides/SlideModal';
+import SlidePreview from '../experience-center/output-formats/slides/SlidePreview';
+import SlideOutput from '../experience-center/output-formats/slides/SlideOutput';
+import type { DeckConfig, DeckData } from '../experience-center/output-formats/slides/types';
 
 // ============================================================
 // Icon maps
@@ -52,6 +56,7 @@ interface ConversationMessage {
   type?: 'text' | 'industry-cards' | 'scenario-cards' | 'input-options' | 'generation' | 'output-ready' | 'cta' | 'refinements';
   stepKey?: string;
   multiSelect?: boolean;
+  runId?: string;
 }
 
 function getRefinementAck(chip: RefinementChip): string {
@@ -96,8 +101,18 @@ export default function ExperienceCenterWorkflowPage() {
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [showCTA, setShowCTA] = useState(false);
   const [visibleOutputSections, setVisibleOutputSections] = useState(0);
-  const [progressSteps, setProgressSteps] = useState<ProgressStep[]>([]);
+  const [activeRunId, setActiveRunId] = useState<string | null>(null);
+  const [progressHistory, setProgressHistory] = useState<Record<string, ProgressStep[]>>({});
   const [isThinkingActive, setIsThinkingActive] = useState(false);
+  const progressSteps = activeRunId ? (progressHistory[activeRunId] || []) : [];
+  const [showSlideModal, setShowSlideModal] = useState(false);
+
+  // Artifact system — multiple outputs in same session
+  type Artifact = { id: string; type: 'output' | 'slides'; label: string; data: any };
+  const [artifacts, setArtifacts] = useState<Artifact[]>([]);
+  const [activeArtifactId, setActiveArtifactId] = useState<string>('output');
+  const activeArtifact = artifacts.find(a => a.id === activeArtifactId) || artifacts[0];
+  const [showSlidePreview, setShowSlidePreview] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [mobileView, setMobileView] = useState<'chat' | 'output'>('output');
   const [isMobile, setIsMobile] = useState(false);
@@ -270,11 +285,13 @@ export default function ExperienceCenterWorkflowPage() {
     const industryLabel = industries.find(ind => ind.id === (scenarioConfig?.industry || industry))?.label || industry;
     const skillLabel = familyDef?.label || scenarioConfig?.skillFamily || 'AI';
 
-    setProgressSteps([]);
+    const runId = `gen-${Date.now()}`;
+    setActiveRunId(runId);
+    setProgressHistory(prev => ({ ...prev, [runId]: [] }));
     setIsThinkingActive(true);
 
     const addStep = (message: string, stage?: ProgressStep['stage']) => {
-      setProgressSteps(prev => [...prev, { message, stage }]);
+      setProgressHistory(prev => ({ ...prev, [runId]: [...(prev[runId] || []), { message, stage }] }));
     };
 
     // Initial step
@@ -302,11 +319,14 @@ export default function ExperienceCenterWorkflowPage() {
       addStep('Strategy complete — review results in the panel', 'ui_update');
       setIsThinkingActive(false);
       finishGeneration(result);
+      // Register as artifact
+      setArtifacts([{ id: 'output', type: 'output', label: scenarioConfig?.title || 'Recommendation', data: result }]);
+      setActiveArtifactId('output');
       setMessages(prev => {
         const filtered = prev.filter(m => m.type !== 'generation');
         return [
           ...filtered,
-          { id: `ai-output-${Date.now()}`, role: 'ai' as const, content: 'Here\'s your initial recommendation. You can refine it below.', type: 'output-ready' as const },
+          { id: `ai-output-${Date.now()}`, role: 'ai' as const, content: 'Here\'s your initial recommendation. You can refine it below.', type: 'output-ready' as const, runId },
           { id: `ai-refine-${Date.now() + 1}`, role: 'ai' as const, content: 'Want to adjust? Try one of these:', type: 'refinements' as const },
           { id: `ai-cta-${Date.now() + 2}`, role: 'ai' as const, content: '', type: 'cta' as const },
         ];
@@ -347,11 +367,17 @@ export default function ExperienceCenterWorkflowPage() {
     const familyDef = scenarioConfig ? skillFamilies[scenarioConfig.skillFamily] : null;
     const skillLabel = familyDef?.label || 'AI';
 
-    setProgressSteps([{ message: 'Adjusting recommendations', stage: 'intent' }]);
+    const runId = `refine-${Date.now()}`;
+    setActiveRunId(runId);
+    setProgressHistory(prev => ({ ...prev, [runId]: [{ message: 'Adjusting recommendations', stage: 'intent' }] }));
     setIsThinkingActive(true);
 
+    const addStep = (message: string, stage?: ProgressStep['stage']) => {
+      setProgressHistory(prev => ({ ...prev, [runId]: [...(prev[runId] || []), { message, stage }] }));
+    };
+
     const completeRefinement = (result: import('../stores/experienceLabStore').OutputData) => {
-      setProgressSteps(prev => [...prev, { message: 'Refinement complete — review updated results', stage: 'ui_update' }]);
+      addStep('Refinement complete — review updated results', 'ui_update');
       setIsThinkingActive(false);
       finishGeneration(result);
       setMessages(prev => {
@@ -366,11 +392,11 @@ export default function ExperienceCenterWorkflowPage() {
     };
 
     if (scenarioConfig) {
-      setProgressSteps(prev => [...prev, { message: `Routing to ${skillLabel}`, stage: 'route' }]);
+      addStep(`Routing to ${skillLabel}`, 'route');
 
       experienceCenterApi.generate(scenarioConfig)
         .then((result: any) => {
-          setProgressSteps(prev => [...prev, { message: 'Refined output generated', stage: 'skill_result' }]);
+          addStep('Refined output generated', 'skill_result');
           completeRefinement(result);
         })
         .catch((err: Error) => {
@@ -385,6 +411,83 @@ export default function ExperienceCenterWorkflowPage() {
       }, refinementGenerationSteps.length * 800);
     }
   }, [goal, industry, setGenerationPhase, finishGeneration]);
+
+  // Slide generation
+  const handleGenerateSlides = useCallback(async (config: DeckConfig) => {
+    if (!output) return;
+    setShowSlideModal(false);
+
+    // Add progress to chat
+    const runId = `slides-${Date.now()}`;
+    setActiveRunId(runId);
+    setProgressHistory(prev => ({ ...prev, [runId]: [{ message: 'Preparing slide outline', stage: 'intent' }] }));
+    setIsThinkingActive(true);
+
+    const addStep = (message: string, stage?: ProgressStep['stage']) => {
+      setProgressHistory(prev => ({ ...prev, [runId]: [...(prev[runId] || []), { message, stage }] }));
+    };
+
+    setMessages(prev => [
+      ...prev,
+      { id: `user-slides-${Date.now()}`, role: 'user' as const, content: `Create ${config.length}-slide ${config.style} deck` },
+      { id: `ai-slides-${Date.now()}`, role: 'ai' as const, content: 'Creating your presentation...', type: 'generation' as const },
+    ]);
+
+    const slideSteps: Array<{ message: string; stage?: ProgressStep['stage'] }> = [
+      { message: 'Mapping output into presentation structure', stage: 'route' },
+      { message: 'Generating slide summaries', stage: 'skill_call' },
+      { message: 'Building slide preview', stage: 'skill_call' },
+    ];
+
+    let phase = 0;
+    const interval = setInterval(() => {
+      if (phase < slideSteps.length) {
+        addStep(slideSteps[phase].message, slideSteps[phase].stage);
+        phase++;
+      }
+    }, 1200);
+
+    try {
+      const scenarioConfig = getScenarioConfig(scenario);
+      const result = await experienceCenterApi.generateSlides({
+        outputData: output,
+        deckLength: config.length,
+        deckStyle: config.style,
+        customTitle: config.customTitle,
+        scenarioContext: {
+          outcome: goals.find(g => g.id === goal)?.label,
+          industry: industries.find(ind => ind.id === industry)?.label,
+          scenario: scenarioConfig?.title,
+          kpi: scenarioConfig?.kpi,
+          outputFormatKey: scenarioConfig?.outputFormatKey,
+        },
+      });
+      clearInterval(interval);
+      addStep('Deck ready — view in the panel', 'ui_update');
+      setIsThinkingActive(false);
+
+      // Add slides as artifact
+      const deckData = result as DeckData;
+      setArtifacts(prev => [
+        ...prev.filter(a => a.id !== 'slides'),
+        { id: 'slides', type: 'slides', label: deckData.title || 'Slide Deck', data: deckData },
+      ]);
+      setActiveArtifactId('slides');
+
+      setMessages(prev => {
+        const filtered = prev.filter(m => !(m.type === 'generation' && m.content === 'Creating your presentation...'));
+        return [
+          ...filtered,
+          { id: `ai-slides-done-${Date.now()}`, role: 'ai' as const, content: 'Your presentation is ready. You can view it in the output panel.', type: 'output-ready' as const, runId },
+        ];
+      });
+    } catch (err) {
+      clearInterval(interval);
+      addStep('Slide generation failed', 'skill_result');
+      setIsThinkingActive(false);
+      console.error('[ExperienceCenter] Slide generation failed:', err);
+    }
+  }, [output, scenario, goal, industry]);
 
   // Progressive output reveal
   useEffect(() => {
@@ -554,23 +657,68 @@ export default function ExperienceCenterWorkflowPage() {
                   output={output}
                   onEditMessage={handleEditMessage}
                   progressSteps={progressSteps}
+                  progressHistory={progressHistory}
                   isThinkingActive={isThinkingActive}
                 />
               ) : (
-                <div className="flex-1 relative overflow-hidden bg-[#F7F8FB] rounded-2xl">
-                  <div className="h-full overflow-y-auto p-4 pb-20">
+                <div className="flex-1 relative overflow-hidden bg-[#F7F8FB] rounded-2xl flex flex-col">
+                  {/* Sticky header */}
+                  {output && visibleOutputSections >= 1 && (
+                    <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-200/60 bg-[#F7F8FB] z-10 flex-shrink-0">
+                      {artifacts.length > 1 ? (
+                        <div className="inline-flex items-center bg-gray-200/60 rounded-lg p-0.5 max-w-md">
+                          {artifacts.map(a => {
+                            const isActive = a.id === activeArtifactId;
+                            const typeConfig = a.type === 'slides'
+                              ? { icon: <Presentation className="w-3 h-3" />, color: 'text-indigo-600' }
+                              : { icon: <Sparkles className="w-3 h-3" />, color: 'text-blue-600' };
+                            return (
+                              <button
+                                key={a.id}
+                                onClick={() => setActiveArtifactId(a.id)}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-md cursor-pointer transition-all min-w-0 ${
+                                  isActive ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                              >
+                                <span className={isActive ? typeConfig.color : 'text-gray-400'}>{typeConfig.icon}</span>
+                                <span className="truncate">{a.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : <div />}
+                      <button
+                        onClick={() => setShowSlideModal(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50/50 transition-all cursor-pointer shadow-sm flex-shrink-0"
+                      >
+                        <Presentation className="w-3.5 h-3.5" />
+                        Create slides
+                      </button>
+                    </div>
+                  )}
+                  {/* Scrollable content */}
+                  <div className="flex-1 overflow-y-auto p-4 pb-20">
                     {output && (
-                      <ModularOutputRenderer
-                        output={output}
-                        outputFormatKey={getScenarioConfig(scenario)?.outputFormatKey}
-                        visibleSections={visibleOutputSections}
-                        scenarioContext={{
-                          outcome: goals.find(g => g.id === goal)?.label,
-                          industry: industries.find(ind => ind.id === industry)?.label,
-                          scenario: getScenarioConfig(scenario)?.title,
-                          kpi: getScenarioConfig(scenario)?.kpi,
-                        }}
-                      />
+                      <>
+                        {activeArtifact?.type === 'slides' ? (
+                          <SlideOutput
+                            deck={activeArtifact.data as DeckData}
+                            onExpand={() => setShowSlidePreview(true)}
+                          />
+                        ) : (
+                          <ModularOutputRenderer
+                            output={output}
+                            outputFormatKey={getScenarioConfig(scenario)?.outputFormatKey}
+                            visibleSections={visibleOutputSections}
+                            scenarioContext={{
+                              outcome: goals.find(g => g.id === goal)?.label,
+                              industry: industries.find(ind => ind.id === industry)?.label,
+                              scenario: getScenarioConfig(scenario)?.title,
+                              kpi: getScenarioConfig(scenario)?.kpi,
+                            }}
+                          />
+                        )}
+                      </>
                     )}
                   </div>
                   {visibleOutputSections >= 8 && output && (
@@ -606,23 +754,68 @@ export default function ExperienceCenterWorkflowPage() {
                   onCollapse={() => setCollapsed(true)}
                   onEditMessage={handleEditMessage}
                   progressSteps={progressSteps}
+                  progressHistory={progressHistory}
                   isThinkingActive={isThinkingActive}
                 />
                 {/* Right: Output */}
-                <div className="h-full relative bg-[#F7F8FB] rounded-2xl">
-                  <div className="h-full overflow-y-auto p-6 pb-20">
+                <div className="h-full relative bg-[#F7F8FB] rounded-2xl flex flex-col">
+                  {/* Sticky header */}
+                  {output && visibleOutputSections >= 1 && (
+                    <div className="flex items-center justify-between px-6 py-2.5 border-b border-gray-200/60 bg-[#F7F8FB] z-10 flex-shrink-0">
+                      {artifacts.length > 1 ? (
+                        <div className="inline-flex items-center bg-gray-200/60 rounded-lg p-0.5 max-w-md">
+                          {artifacts.map(a => {
+                            const isActive = a.id === activeArtifactId;
+                            const typeConfig = a.type === 'slides'
+                              ? { icon: <Presentation className="w-3 h-3" />, color: 'text-indigo-600' }
+                              : { icon: <Sparkles className="w-3 h-3" />, color: 'text-blue-600' };
+                            return (
+                              <button
+                                key={a.id}
+                                onClick={() => setActiveArtifactId(a.id)}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-md cursor-pointer transition-all min-w-0 ${
+                                  isActive ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                              >
+                                <span className={isActive ? typeConfig.color : 'text-gray-400'}>{typeConfig.icon}</span>
+                                <span className="truncate">{a.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : <div />}
+                      <button
+                        onClick={() => setShowSlideModal(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50/50 transition-all cursor-pointer shadow-sm flex-shrink-0"
+                      >
+                        <Presentation className="w-3.5 h-3.5" />
+                        Create slides
+                      </button>
+                    </div>
+                  )}
+                  {/* Scrollable content */}
+                  <div className="flex-1 overflow-y-auto p-6 pb-20">
                     {output && (
-                      <ModularOutputRenderer
-                        output={output}
-                        outputFormatKey={getScenarioConfig(scenario)?.outputFormatKey}
-                        visibleSections={visibleOutputSections}
-                        scenarioContext={{
-                          outcome: goals.find(g => g.id === goal)?.label,
-                          industry: industries.find(ind => ind.id === industry)?.label,
-                          scenario: getScenarioConfig(scenario)?.title,
-                          kpi: getScenarioConfig(scenario)?.kpi,
-                        }}
-                      />
+                      <>
+                        {activeArtifact?.type === 'slides' ? (
+                          <SlideOutput
+                            deck={activeArtifact.data as DeckData}
+                            onExpand={() => setShowSlidePreview(true)}
+                          />
+                        ) : (
+                          <ModularOutputRenderer
+                            output={output}
+                            outputFormatKey={getScenarioConfig(scenario)?.outputFormatKey}
+                            visibleSections={visibleOutputSections}
+                            scenarioContext={{
+                              outcome: goals.find(g => g.id === goal)?.label,
+                              industry: industries.find(ind => ind.id === industry)?.label,
+                              scenario: getScenarioConfig(scenario)?.title,
+                              kpi: getScenarioConfig(scenario)?.kpi,
+                            }}
+                          />
+                        )}
+                      </>
                     )}
                   </div>
                   {visibleOutputSections >= 8 && output && (
@@ -668,6 +861,23 @@ export default function ExperienceCenterWorkflowPage() {
           scenario: scenarios.find(s => s.id === scenario)?.label,
         }}
       />
+
+      {/* Slide Modal */}
+      <SlideModal
+        isOpen={showSlideModal}
+        onClose={() => setShowSlideModal(false)}
+        onGenerate={handleGenerateSlides}
+        defaultTitle={getScenarioConfig(scenario)?.title}
+        isGenerating={isThinkingActive}
+      />
+
+      {/* Full-screen Slide Preview */}
+      {showSlidePreview && artifacts.find(a => a.type === 'slides') && (
+        <SlidePreview
+          deck={artifacts.find(a => a.type === 'slides')!.data as DeckData}
+          onClose={() => setShowSlidePreview(false)}
+        />
+      )}
     </div>
   );
 }
@@ -681,7 +891,7 @@ function ChatPanel({
   onIndustrySelect, onScenarioSelect, onRefinement,
   onExploreAnother, messagesEndRef,
   showCollapse, onCollapse, output, onEditMessage,
-  progressSteps = [], isThinkingActive = false,
+  progressSteps = [], progressHistory = {}, isThinkingActive = false,
 }: {
   messages: ConversationMessage[];
   currentStep: FlowStep;
@@ -700,6 +910,7 @@ function ChatPanel({
   output?: OutputData | null;
   onEditMessage?: (msgId: string) => void;
   progressSteps?: ProgressStep[];
+  progressHistory?: Record<string, ProgressStep[]>;
   isThinkingActive?: boolean;
 }) {
   return (
@@ -724,10 +935,10 @@ function ChatPanel({
       <div className={`flex-1 overflow-y-auto p-4 md:p-6 flex flex-col max-w-2xl mx-auto w-full ${currentStep === 'generating' ? 'gap-3' : 'gap-5 md:gap-6'}`}>
         {messages.map((msg, msgIdx) => (
           <div key={msg.id}>
-            {/* Show collapsed progress before the output-ready message */}
-            {msg.type === 'output-ready' && !isThinkingActive && progressSteps.length > 0 && (
+            {/* Show collapsed progress before the output-ready message, using that run's saved steps */}
+            {msg.type === 'output-ready' && msg.runId && progressHistory[msg.runId]?.length > 0 && (
               <div className="px-1 animate-fade-in max-w-2xl mx-auto w-full mb-3">
-                <SkillProgressBlock steps={progressSteps} isActive={false} />
+                <SkillProgressBlock steps={progressHistory[msg.runId]} isActive={false} />
               </div>
             )}
             {msg.type === 'cta' && currentStep === 'output' ? (

@@ -146,6 +146,11 @@ export const experienceCenterApi = {
       method: 'POST',
       body: { scenarioConfig },
     }),
+  generateSlides: (input: { outputData: any; deckLength: number; deckStyle: string; customTitle?: string; scenarioContext: any }) =>
+    request<any>('/experience-center/generate-slides', {
+      method: 'POST',
+      body: input,
+    }),
 };
 
 // Parent Segments API (Treasure Data CDP)
