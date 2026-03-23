@@ -2,29 +2,38 @@
  * Structured slide output contract for Experience Center deck generation.
  */
 
-export type SlideLayout = 'title' | 'summary' | 'content' | 'kpi' | 'actions' | 'two-column' | 'journey' | 'segments';
+export type SlideLayout = 'cover' | 'hero' | 'strategy' | 'segments' | 'journey' | 'kpi' | 'diagnosis' | 'channels' | 'actions' | 'impact';
 
 export interface Slide {
+  layout: SlideLayout;
   title: string;
   subtitle?: string;
-  layout: SlideLayout;
+  // hero / impact
+  stat?: string;
+  statLabel?: string;
+  // strategy / hero
+  highlight?: string;
   bullets?: string[];
-  speakerNotes?: string;
+  // segments
+  segments?: Array<{ name: string; score: number; description: string; level: string }>;
+  // journey
+  stages?: Array<{ name: string; description: string; channel?: string }>;
+  // kpi
   kpis?: Array<{ name: string; value: string; note?: string }>;
+  // diagnosis
+  findings?: Array<{ label: string; detail: string; severity: string }>;
+  // channels
+  channels?: Array<{ name: string; role: string; percent: number }>;
+  // actions
   actions?: Array<{ action: string; priority: string }>;
-  columns?: { left: string[]; right: string[] };
+  // speaker notes
+  speakerNotes?: string;
 }
 
 export interface DeckData {
   title: string;
   subtitle?: string;
   slides: Slide[];
-  meta?: {
-    outcome?: string;
-    industry?: string;
-    scenario?: string;
-    generatedAt?: string;
-  };
 }
 
 export type DeckLength = 3 | 5 | 7;
