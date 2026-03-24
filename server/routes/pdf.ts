@@ -9,6 +9,7 @@ let pdfParse: ((buffer: Buffer) => Promise<{ text: string }>) | null = null;
 async function loadPdfParse() {
   if (pdfParse) return pdfParse;
   try {
+    // @ts-ignore -- no type declarations available
     const mod = await import('pdf-parse');
     pdfParse = (mod as any).default || mod;
     return pdfParse;
