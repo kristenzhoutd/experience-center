@@ -82,8 +82,8 @@ export { app };
 if (!process.env.VERCEL) {
   const clientDir = path.join(__dirname, '../dist/client');
   app.use(express.static(clientDir));
-  app.get('/experience-lab-presentation', (_req, res) => {
-    res.sendFile(path.join(clientDir, 'experience-lab-presentation.html'));
+  app.get('/experience-center-presentation', (_req, res) => {
+    res.sendFile(path.join(clientDir, 'experience-center-presentation.html'));
   });
   app.get('*', (_req, res) => {
     res.sendFile(path.join(clientDir, 'index.html'));

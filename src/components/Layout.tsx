@@ -297,7 +297,7 @@ export default function Layout() {
         {/* Placeholder nav items (disabled) */}
         <nav className="flex-1 flex flex-col items-center space-y-1">
           <a
-            href="/experience-lab-presentation"
+            href="/experience-center-presentation"
             title="Leadership Presentation"
             className="group w-10 h-10 flex items-center justify-center rounded-lg transition-colors text-gray-400 hover:text-gray-600 hover:bg-gray-100"
           >
