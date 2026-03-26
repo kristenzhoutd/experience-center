@@ -1,9 +1,10 @@
 /**
- * Chat History Storage — localStorage-backed CRUD for chat messages, keyed per brief ID.
+ * Chat History Storage — storage-backed CRUD for chat messages, keyed per brief ID.
  * Handles Date serialization for ChatMessage.timestamp.
  */
 
 import type { ChatMessage } from '../types/shared';
+import { storage } from '../utils/storage';
 
 const KEY_PREFIX = 'paid-media-suite:chat:';
 
@@ -34,7 +35,7 @@ function deserialize(raw: string): ChatMessage[] {
 export const chatHistoryStorage = {
   getMessages(briefId: string): ChatMessage[] {
     try {
-      const raw = localStorage.getItem(storageKey(briefId));
+      const raw = storage.getItem(storageKey(briefId));
       if (!raw) return [];
       return deserialize(raw);
     } catch {
@@ -44,13 +45,13 @@ export const chatHistoryStorage = {
 
   saveMessages(briefId: string, messages: ChatMessage[]): void {
     try {
-      localStorage.setItem(storageKey(briefId), serialize(messages));
+      storage.setItem(storageKey(briefId), serialize(messages));
     } catch (e) {
       console.warn('[chatHistoryStorage] Failed to save messages:', e);
     }
   },
 
   deleteMessages(briefId: string): void {
-    localStorage.removeItem(storageKey(briefId));
+    storage.removeItem(storageKey(briefId));
   },
 };

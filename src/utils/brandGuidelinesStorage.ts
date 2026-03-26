@@ -1,3 +1,5 @@
+import { storage } from './storage';
+
 export interface BrandGuideline {
   id: string;
   name: string;
@@ -11,7 +13,7 @@ const BRAND_GUIDELINES_KEY = 'personalization-studio:brand-guidelines';
 
 export function loadBrandGuidelines(): BrandGuideline[] {
   try {
-    const raw = localStorage.getItem(BRAND_GUIDELINES_KEY);
+    const raw = storage.getItem(BRAND_GUIDELINES_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -19,7 +21,7 @@ export function loadBrandGuidelines(): BrandGuideline[] {
 }
 
 export function saveBrandGuidelines(guidelines: BrandGuideline[]): void {
-  localStorage.setItem(BRAND_GUIDELINES_KEY, JSON.stringify(guidelines));
+  storage.setItem(BRAND_GUIDELINES_KEY, JSON.stringify(guidelines));
 }
 
 export function deleteBrandGuideline(id: string): void {

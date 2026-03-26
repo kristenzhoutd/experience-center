@@ -1,9 +1,10 @@
 /**
- * Brief Storage Service — localStorage-backed CRUD for CampaignBrief.
+ * Brief Storage Service — storage-backed CRUD for CampaignBrief.
  * Interface is swappable to IndexedDB or API later.
  */
 
 import type { CampaignBrief } from '../types/brief';
+import { storage } from '../utils/storage';
 
 const STORAGE_KEY = 'paid-media-suite:briefs';
 
@@ -17,7 +18,7 @@ export interface BriefStorageService {
 
 function readAll(): CampaignBrief[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = storage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -25,7 +26,7 @@ function readAll(): CampaignBrief[] {
 }
 
 function writeAll(briefs: CampaignBrief[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(briefs));
+  storage.setItem(STORAGE_KEY, JSON.stringify(briefs));
 }
 
 export const localBriefStorage: BriefStorageService = {

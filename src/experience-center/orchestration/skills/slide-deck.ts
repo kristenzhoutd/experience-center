@@ -1,15 +1,3 @@
-/**
- * Slide Deck Creation skill family — designer-quality, brand-native slides.
- *
- * Uses TD 2026 brand guidelines:
- * - Colors: Deep Blue #2D40AA, Purple #847BF2, Sky Blue #8BBCFD, Peach #FDB893
- * - Typography: Poppins (titles), Manrope (body)
- * - Layouts: cover, divider, content, gradient, kpi, actions
- *
- * Content is sourced from structured output, then compressed and
- * rewritten for slide-native presentation (not copy-pasted from product UI).
- */
-
 interface SlideSkillInput {
   outputData: Record<string, unknown>;
   deckLength: number;

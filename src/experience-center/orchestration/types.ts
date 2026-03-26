@@ -1,8 +1,3 @@
-/**
- * Server-side types for Experience Center.
- * Mirrors the client-side types for use in server code.
- */
-
 export type SkillFamily =
   | 'campaign-brief'
   | 'journey'

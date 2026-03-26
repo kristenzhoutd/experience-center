@@ -1,10 +1,5 @@
-/**
- * Skill Request Assembly — combines skill family prompt, industry context,
- * scenario overlay, and output format instructions into a final LLM request.
- */
-
-import type { ScenarioConfig, IndustryContext } from '../types.js';
-import { buildSkillPrompt } from '../skills/families/index.js';
+import type { ScenarioConfig, IndustryContext } from './types';
+import { buildSkillPrompt } from './skills/index';
 
 export interface AssembledRequest {
   systemPrompt: string;

@@ -10,12 +10,6 @@ import * as http from 'node:http';
 import * as https from 'node:https';
 import { URL } from 'node:url';
 import type { ChatStreamEvent } from '../types.js';
-import { loadSettings } from './storage.js';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // ── Auth Proxy ──
 // The Claude Agent SDK sends x-api-key (Anthropic format), but the TD LLM proxy
@@ -129,54 +123,18 @@ async function loadSDK(): Promise<QueryFunction> {
   }
 }
 
-// ── System Prompt ──
-
-function loadSystemPrompt(): string {
-  // Try to load skill files from the ai-suites project
-  const skillsDir = path.resolve(__dirname, '../../skills');
-  let skillContent = '';
-  if (fs.existsSync(skillsDir)) {
-    const walkSkills = (dir: string): string[] => {
-      const results: string[] = [];
-      try {
-        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-          if (entry.isDirectory()) results.push(...walkSkills(path.join(dir, entry.name)));
-          else if (entry.name === 'SKILL.md') results.push(path.join(dir, entry.name));
-        }
-      } catch { /* skip */ }
-      return results;
-    };
-    const skillFiles = walkSkills(skillsDir);
-    skillContent = skillFiles.map(f => {
-      try { return fs.readFileSync(f, 'utf-8'); } catch { return ''; }
-    }).filter(Boolean).join('\n\n---\n\n');
-  }
-
-  return `You are AI Suites, a unified AI-native platform for web personalization and paid media campaign management by Treasure Data.
-
-You help users with:
-- Creating and managing web personalization campaigns
-- Creating and managing paid media campaigns across Meta, Google, and TikTok
-- Audience selection and targeting
-- Content creation and A/B testing
-- Campaign optimization and reporting
-
-${skillContent}`;
-}
-
 // ── Initialization ──
 
 export function initClaudeAgent(): void {
-  const settings = loadSettings();
-  const apiKey = process.env.API_KEY || settings.apiKey;
-  const llmProxyUrl = process.env.LLM_PROXY_URL || settings.llmProxyUrl || 'https://llm-proxy.us01.treasuredata.com';
-  const model = process.env.MODEL || settings.model;
+  const apiKey = process.env.API_KEY || '';
+  const llmProxyUrl = process.env.LLM_PROXY_URL || 'https://llm-proxy.us01.treasuredata.com';
+  const model = process.env.MODEL;
 
   if (apiKey) {
     config = { apiKey, llmProxyUrl, model };
     console.log('[ClaudeAgent] Initialized with API key');
   } else {
-    console.warn('[ClaudeAgent] No API key found. Chat will not work until configured.');
+    console.warn('[ClaudeAgent] No API key in env. Chat requires x-api-key header.');
   }
 
   // Start the auth proxy for TD LLM Proxy authentication
@@ -337,7 +295,7 @@ async function pumpResponses(session: ChatSession): Promise<void> {
 
   try {
     const queryFn = await loadSDK();
-    const systemPrompt = loadSystemPrompt();
+    const systemPrompt = 'You are an AI assistant for Treasure Data Experience Center. Help users with marketing campaigns, audience targeting, and data-driven strategies.';
     const messageGenerator = createMessageGenerator(session);
 
     const queryOptions = {
@@ -473,56 +431,4 @@ export function stopSession(sessionId: string): void {
 export function hasSession(sessionId: string): boolean {
   const session = sessions.get(sessionId);
   return session !== undefined && !session.isEnded;
-}
-
-// ── Connection Test ──
-
-export async function testConnection(): Promise<{ success: boolean; error?: string }> {
-  // On serverless (Vercel), config may not be initialized yet — read from storage
-  if (!config?.apiKey) {
-    const settings = loadSettings();
-    const apiKey = process.env.API_KEY || settings.apiKey;
-    if (apiKey) {
-      updateConfig({
-        apiKey,
-        llmProxyUrl: process.env.LLM_PROXY_URL || settings.llmProxyUrl || 'https://llm-proxy.us01.treasuredata.com',
-        model: process.env.MODEL || settings.model,
-      });
-    }
-  }
-  if (!config?.apiKey) {
-    return { success: false, error: 'No API key configured.' };
-  }
-  const baseUrl = (config.llmProxyUrl || 'https://llm-proxy.us01.treasuredata.com').trim();
-  // Sanitize API key: replace smart quotes/dashes from copy-paste with ASCII equivalents
-  const sanitizedKey = config.apiKey
-    .replace(/[\u2018\u2019\u201C\u201D]/g, "'")  // smart quotes → straight
-    .replace(/[\u2013\u2014]/g, '-')                // en/em dash → hyphen
-    .replace(/[^\x20-\x7E]/g, '')                   // strip any remaining non-ASCII
-    .trim();
-  try {
-    const response = await fetch(`${baseUrl}/v1/messages`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `TD1 ${sanitizedKey}`,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: config.model || 'claude-sonnet-4-20250514',
-        max_tokens: 1,
-        messages: [{ role: 'user', content: 'ping' }],
-      }),
-      signal: AbortSignal.timeout(15_000),
-    });
-    if (response.ok || response.status === 200) return { success: true };
-    const body = await response.text().catch(() => '');
-    if (response.status === 401) return { success: false, error: `Authentication failed (401). ${body.substring(0, 200)}` };
-    if (response.status === 403) return { success: false, error: 'Access denied (403).' };
-    if (response.status === 400 && !body.includes('Authentication')) return { success: true };
-    return { success: false, error: `HTTP ${response.status}: ${body.substring(0, 200)}` };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return { success: false, error: `Connection failed: ${msg}` };
-  }
 }

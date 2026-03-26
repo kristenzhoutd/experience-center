@@ -1,10 +1,11 @@
 /**
  * Report Store — Zustand store for AI-generated reports.
  * Holds the latest generated report, generation state,
- * and a history of saved reports persisted to localStorage.
+ * and a history of saved reports persisted to storage.
  */
 
 import { create } from 'zustand';
+import { storage } from '../utils/storage';
 import type { ReportOutput } from '../services/skillParsers';
 
 const STORAGE_KEY = 'ai-suites:saved-reports';
@@ -19,7 +20,7 @@ export interface SavedReport {
 
 function readSavedReports(): SavedReport[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = storage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -27,7 +28,7 @@ function readSavedReports(): SavedReport[] {
 }
 
 function writeSavedReports(reports: SavedReport[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(reports));
+  storage.setItem(STORAGE_KEY, JSON.stringify(reports));
 }
 
 interface ReportState {

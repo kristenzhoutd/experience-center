@@ -6,38 +6,40 @@
  * Electron (IPC) and web (HTTP) modes.
  */
 
+import { storage } from '../utils/storage';
+
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 const APP_PASSWORD = import.meta.env.VITE_APP_PASSWORD || '';
 
 // ── Local API Key Storage ──
 // On Vercel (serverless), server-side /tmp is ephemeral. We store the
-// API key in localStorage and send it as x-api-key on every request.
+// API key in storage and send it as x-api-key on every request.
 
 const STORAGE_KEY = 'ai-suites-api-key';
 const TDX_STORAGE_KEY = 'ai-suites-tdx-api-key';
 
 function getSavedApiKey(): string {
-  try { return localStorage.getItem(STORAGE_KEY) || ''; } catch { return ''; }
+  try { return storage.getItem(STORAGE_KEY) || ''; } catch { return ''; }
 }
 
 function saveApiKey(key: string): void {
-  try { localStorage.setItem(STORAGE_KEY, key); } catch { /* ignore */ }
+  try { storage.setItem(STORAGE_KEY, key); } catch { /* ignore */ }
 }
 
 function clearApiKey(): void {
-  try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+  try { storage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
 }
 
 function getSavedTdxApiKey(): string {
-  try { return localStorage.getItem(TDX_STORAGE_KEY) || ''; } catch { return ''; }
+  try { return storage.getItem(TDX_STORAGE_KEY) || ''; } catch { return ''; }
 }
 
 function saveTdxApiKey(key: string): void {
-  try { localStorage.setItem(TDX_STORAGE_KEY, key); } catch { /* ignore */ }
+  try { storage.setItem(TDX_STORAGE_KEY, key); } catch { /* ignore */ }
 }
 
 function clearTdxApiKey(): void {
-  try { localStorage.removeItem(TDX_STORAGE_KEY); } catch { /* ignore */ }
+  try { storage.removeItem(TDX_STORAGE_KEY); } catch { /* ignore */ }
 }
 
 // ── HTTP Helpers ──
@@ -73,6 +75,8 @@ let activeStreamCallbacks: StreamCallback[] = [];
 let currentSessionId: string | null = null;
 
 // ── Chat API (SSE-based streaming) ──
+
+const CHATS_STORAGE_KEY = 'ai-suites:saved-chats';
 
 const chat = {
   startSession: async (): Promise<{ success: boolean; sessionId?: string; error?: string }> => {
@@ -206,65 +210,115 @@ const chat = {
     await chat.stopSession();
   },
 
-  // Chat storage
-  save: async (chatData: unknown) => request('/chats', { method: 'POST', body: chatData }),
-  load: async (chatId: string) => request(`/chats/${chatId}`),
-  list: async () => request('/chats'),
-  delete: async (chatId: string) => request(`/chats/${chatId}`, { method: 'DELETE' }),
+  // Chat storage (sessionStorage-backed)
+  save: async (chatData: any) => {
+    try {
+      const raw = storage.getItem(CHATS_STORAGE_KEY);
+      const arr: any[] = raw ? JSON.parse(raw) : [];
+      const id = chatData.id || `chat-${Date.now()}`;
+      const idx = arr.findIndex((c: any) => c.id === id);
+      const entry = { ...chatData, id, updatedAt: new Date().toISOString() };
+      if (idx >= 0) {
+        arr[idx] = entry;
+      } else {
+        entry.createdAt = entry.createdAt || entry.updatedAt;
+        arr.push(entry);
+      }
+      storage.setItem(CHATS_STORAGE_KEY, JSON.stringify(arr));
+      return { success: true, data: entry };
+    } catch { return { success: false, error: 'Failed to save chat' }; }
+  },
+  load: async (chatId: string) => {
+    try {
+      const raw = storage.getItem(CHATS_STORAGE_KEY);
+      const arr: any[] = raw ? JSON.parse(raw) : [];
+      const found = arr.find((c: any) => c.id === chatId);
+      return found
+        ? { success: true, data: found }
+        : { success: false, error: 'Chat not found' };
+    } catch { return { success: false, error: 'Failed to load chat' }; }
+  },
+  list: async () => {
+    try {
+      const raw = storage.getItem(CHATS_STORAGE_KEY);
+      return { success: true, data: raw ? JSON.parse(raw) : [] };
+    } catch { return { success: true, data: [] }; }
+  },
+  delete: async (chatId: string) => {
+    try {
+      const raw = storage.getItem(CHATS_STORAGE_KEY);
+      const arr: any[] = raw ? JSON.parse(raw) : [];
+      storage.setItem(CHATS_STORAGE_KEY, JSON.stringify(arr.filter((c: any) => c.id !== chatId)));
+      return { success: true };
+    } catch { return { success: false, error: 'Failed to delete chat' }; }
+  },
 };
 
-// ── Settings API ──
+// ── Settings API (sessionStorage-backed) ──
+
+const SETTINGS_STORAGE_KEY = 'ai-suites:settings';
+
+const DEFAULT_SETTINGS: Record<string, unknown> = {
+  model: 'claude-sonnet-4-20250514',
+  maxTokens: 4096,
+  temperature: 0.7,
+};
 
 const settings = {
   get: async () => {
-    const result = await request<{ success: boolean; data: Record<string, unknown> }>('/settings');
-    const data = result.data || result;
-    // Report stored keys so Settings page shows masked values
-    if (getSavedApiKey()) {
-      (data as any).hasStoredApiKey = true;
+    try {
+      const raw = storage.getItem(SETTINGS_STORAGE_KEY);
+      const data = raw ? JSON.parse(raw) : { ...DEFAULT_SETTINGS };
+      // Report stored keys so Settings page shows masked values
+      if (getSavedApiKey()) {
+        (data as any).hasStoredApiKey = true;
+      }
+      if (getSavedTdxApiKey()) {
+        (data as any).hasStoredTdxApiKey = true;
+      }
+      return data;
+    } catch {
+      return { ...DEFAULT_SETTINGS };
     }
-    if (getSavedTdxApiKey()) {
-      (data as any).hasStoredTdxApiKey = true;
-    }
-    return data;
   },
   set: async (newSettings: Record<string, unknown>) => {
-    // Save API keys to localStorage for persistence across serverless invocations
+    // Save API keys to storage for persistence
     if (newSettings.apiKey && typeof newSettings.apiKey === 'string') {
       saveApiKey(newSettings.apiKey);
     }
     if (newSettings.tdxApiKey && typeof newSettings.tdxApiKey === 'string') {
       saveTdxApiKey(newSettings.tdxApiKey);
     }
-    await request('/settings', { method: 'PUT', body: newSettings });
+    // Merge with existing settings and persist
+    try {
+      const raw = storage.getItem(SETTINGS_STORAGE_KEY);
+      const existing = raw ? JSON.parse(raw) : { ...DEFAULT_SETTINGS };
+      const merged = { ...existing, ...newSettings };
+      // Don't persist raw keys in the settings blob
+      delete merged.apiKey;
+      delete merged.tdxApiKey;
+      storage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(merged));
+    } catch { /* ignore */ }
   },
-  testConnection: async () => request('/settings/test-connection', { method: 'POST' }),
+  testConnection: async () => request('/test-connection', { method: 'POST' }),
   hasCredentials: async () => !!getSavedApiKey(),
   saveCredentials: async (key: string, type: 'apiKey' | 'tdxApiKey') => {
     if (type === 'apiKey') saveApiKey(key);
     if (type === 'tdxApiKey') saveTdxApiKey(key);
-    return request('/settings/credentials', { method: 'POST', body: { key, type } });
+    return { success: true };
   },
   deleteCredentials: async (type: 'apiKey' | 'tdxApiKey') => {
     if (type === 'apiKey') clearApiKey();
     if (type === 'tdxApiKey') clearTdxApiKey();
-    return request(`/settings/credentials/${type}`, { method: 'DELETE' });
+    return { success: true };
   },
   parentSegments: async () => {
-    try {
-      return await request('/segments/parents');
-    } catch (error) {
-      console.error('[WebBackend] Failed to fetch parent segments:', error);
-      return { success: false, error: 'Failed to fetch parent segments' };
-    }
+    const { fetchParentSegments } = await import('./cdp-api');
+    return fetchParentSegments();
   },
   parentSegmentChildren: async (parentId: string) => {
-    try {
-      return await request(`/segments/children/${encodeURIComponent(parentId)}`);
-    } catch (error) {
-      console.error('[WebBackend] Failed to fetch child segments:', error);
-      return { success: false, error: 'Failed to fetch child segments' };
-    }
+    const { fetchChildSegments } = await import('./cdp-api');
+    return fetchChildSegments(parentId);
   },
   listProjects: async () => ({ success: true, data: [] }),
   listAgents: async (_projectName: string) => ({ success: true, data: [] }),
@@ -274,12 +328,8 @@ const settings = {
 
 const audiences = {
   list: async (parentSegmentId: string) => {
-    try {
-      return await request(`/segments/children/${encodeURIComponent(parentSegmentId)}`);
-    } catch (error) {
-      console.error('[WebBackend] Failed to fetch audiences:', error);
-      return { success: false, error: 'Failed to fetch audiences' };
-    }
+    const { fetchChildSegments } = await import('./cdp-api');
+    return fetchChildSegments(parentSegmentId);
   },
 };
 
@@ -291,53 +341,63 @@ const windowApi = {
   close: () => {},
 };
 
-// ── Blueprints API ──
+// ── Blueprints API (sessionStorage-backed) ──
+
+const BLUEPRINTS_STORAGE_KEY = 'ai-suites:blueprints';
+
+function readBlueprints(): any[] {
+  try {
+    const raw = storage.getItem(BLUEPRINTS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function writeBlueprints(arr: any[]): void {
+  storage.setItem(BLUEPRINTS_STORAGE_KEY, JSON.stringify(arr));
+}
 
 const blueprints = {
-  save: async (blueprint: unknown) => request('/blueprints', { method: 'POST', body: blueprint }),
-  list: async () => request('/blueprints'),
-  get: async (id: string) => request(`/blueprints/${id}`),
-  delete: async (id: string) => request(`/blueprints/${id}`, { method: 'DELETE' }),
-  export: async (id: string) => request(`/blueprints/${id}/export`, { method: 'POST' }),
+  save: async (blueprint: any) => {
+    const arr = readBlueprints();
+    const id = blueprint.id || `bp-${Date.now()}`;
+    const idx = arr.findIndex((b: any) => b.id === id);
+    const entry = { ...blueprint, id, updatedAt: new Date().toISOString() };
+    if (idx >= 0) {
+      arr[idx] = entry;
+    } else {
+      entry.createdAt = entry.createdAt || entry.updatedAt;
+      arr.push(entry);
+    }
+    writeBlueprints(arr);
+    return { success: true, data: entry };
+  },
+  list: async () => {
+    return { success: true, data: readBlueprints() };
+  },
+  get: async (id: string) => {
+    const found = readBlueprints().find((b: any) => b.id === id);
+    return found
+      ? { success: true, data: found }
+      : { success: false, error: 'Blueprint not found' };
+  },
+  delete: async (id: string) => {
+    const arr = readBlueprints().filter((b: any) => b.id !== id);
+    writeBlueprints(arr);
+    return { success: true };
+  },
+  export: async (id: string) => {
+    const found = readBlueprints().find((b: any) => b.id === id);
+    return found
+      ? { success: true, data: JSON.stringify(found, null, 2) }
+      : { success: false, error: 'Blueprint not found' };
+  },
 };
 
-// ── Platforms API ──
+// ── Removed: platforms, campaigns, adsets (no longer needed) ──
 
-const platforms = {
-  connect: async (platform: string, credentials: Record<string, string>) => {
-    return request('/platforms/connect', { method: 'POST', body: { platform, credentials } });
-  },
-  disconnect: async (platform: string) => {
-    return request('/platforms/disconnect', { method: 'POST', body: { platform } });
-  },
-  status: async () => request('/platforms/status'),
-  syncAudience: async (platform: string, segmentId: string, segmentName: string) => {
-    return request('/platforms/sync-audience', { method: 'POST', body: { platform, segmentId, segmentName } });
-  },
-  metrics: async (platform: string) => {
-    return request('/platforms/metrics', { method: 'POST', body: { platform } });
-  },
-  oauthLogin: async (_platform: string) => {
-    return { success: false, error: 'OAuth login requires redirect flow in web mode. Use access token connection instead.' };
-  },
-};
-
-// ── Campaigns API ──
-
-const campaigns = {
-  list: async () => request('/platforms/campaigns'),
-  get: async (_campaignId: string) => ({ success: false, error: 'Not implemented in web mode' }),
-  metrics: async (_campaignId: string) => ({ success: false, error: 'Not implemented in web mode' }),
-  create: async (params: unknown) => request('/platforms/campaigns', { method: 'POST', body: params }),
-  update: async (_campaignId: string, _params: unknown) => ({ success: false, error: 'Not implemented in web mode' }),
-  delete: async (_campaignId: string) => ({ success: false, error: 'Not implemented in web mode' }),
-};
-
-// ── Ad Sets API ──
-
-const adsets = {
-  create: async (_params: unknown) => ({ success: false, error: 'Not implemented in web mode' }),
-};
+const platforms = {} as any;
+const campaigns = {} as any;
+const adsets = {} as any;
 
 // ── TD CDP API ──
 
@@ -349,42 +409,11 @@ const td = {
   createSegment: async () => ({ success: true, data: { id: `sim-${Date.now()}`, name: 'Simulated' } }),
 };
 
-// ── Launch API ──
+// ── Removed: launch, pdf, web (no longer needed) ──
 
-const launch = {
-  uploadImage: async (_filePath: string) => ({ success: false, error: 'Use file upload in web mode' }),
-  createAdCreative: async (_params: unknown) => ({ success: false, error: 'Not implemented in web mode' }),
-  createAd: async (_params: unknown) => ({ success: false, error: 'Not implemented in web mode' }),
-  getPages: async () => ({ success: true, data: [] }),
-  selectFile: async () => {
-    // In web mode, we use <input type="file"> on the frontend
-    return { success: false, error: 'Use file input in web mode' };
-  },
-  searchStockPhotos: async (query: string) => {
-    return request('/launch/stock-search', { method: 'POST', body: { query } });
-  },
-  fetchImage: async (url: string) => {
-    return request('/launch/fetch-image', { method: 'POST', body: { url } });
-  },
-  generateImage: async (_prompt: string) => {
-    return { success: false, error: 'Image generation requires TDX CLI (not available in web mode)' };
-  },
-};
-
-// ── PDF API ──
-
-const pdf = {
-  extract: async (pdfBase64: string, _fileName: string) => {
-    return request('/pdf/extract', { method: 'POST', body: { base64Data: pdfBase64 } });
-  },
-};
-
-// ── Web extraction API ──
-
-const web = {
-  extract: async (url: string) => request('/web/extract', { method: 'POST', body: { url } }),
-  extractText: async (url: string) => request('/web/extract-text', { method: 'POST', body: { url } }),
-};
+const launch = {} as any;
+const pdf = {} as any;
+const web = {} as any;
 
 // ── MCP API (stubs for web mode) ──
 
@@ -400,16 +429,9 @@ const usage = {
   getStats: async () => ({ success: true, data: { sessionCredits: 0, todayCredits: 0, monthCredits: 0 } }),
 };
 
-// ── AEM API ──
+// ── Removed: aem (no longer needed) ──
 
-const aem = {
-  connect: async (_config: unknown) => ({ success: false, error: 'AEM OAuth not available in web mode. Use token auth.' }),
-  disconnect: async () => ({ success: true }),
-  status: async () => ({ success: true, data: { connected: false } }),
-  browse: async () => ({ success: true, data: { path: '', items: [], hasMore: false, total: 0 } }),
-  search: async () => ({ success: true, data: { path: '', items: [], hasMore: false, total: 0 } }),
-  assetDetails: async () => ({ success: true, data: {} }),
-};
+const aem = {} as any;
 
 // ── Exported API object ──
 

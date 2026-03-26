@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import mammoth from 'mammoth';
+import { storage } from '../utils/storage';
 import {
   loadBrandGuidelines,
   saveBrandGuidelines,
@@ -29,7 +29,7 @@ const categories = ['All', 'Images', 'Brand Guidelines', 'Company Context'];
 
 function loadUploadedAssets(): Asset[] {
   try {
-    const raw = localStorage.getItem(UPLOADED_ASSETS_KEY);
+    const raw = storage.getItem(UPLOADED_ASSETS_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -37,7 +37,7 @@ function loadUploadedAssets(): Asset[] {
 }
 
 function saveUploadedAssets(assets: Asset[]) {
-  localStorage.setItem(UPLOADED_ASSETS_KEY, JSON.stringify(assets));
+  storage.setItem(UPLOADED_ASSETS_KEY, JSON.stringify(assets));
 }
 
 interface UploadPreview {
@@ -194,32 +194,17 @@ export default function AssetsPage() {
       };
       reader.readAsText(file);
     } else if (ext === 'pdf') {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const dataUrl = reader.result as string;
-        const base64 = dataUrl.replace(/^data:[^;]+;base64,/, '');
-        try {
-          const result = await window.aiSuites.pdf.extract(base64, file.name);
-          if (result.success && result.text) {
-            setGuidelinePreview(result.text);
-          } else {
-            setGuidelinePreview(`[PDF extraction failed: ${result.error || 'Unknown error'}]`);
-          }
-        } catch {
-          setGuidelinePreview('[PDF extraction unavailable — text could not be extracted]');
-        }
-        setGuidelineName(baseName);
-        setGuidelineFile(file);
-        setShowGuidelineModal(true);
-      };
-      reader.readAsDataURL(file);
+      // PDF extraction removed — feature not available in browser-only mode
+      setGuidelinePreview('[PDF extraction is not available in this version]');
+      setGuidelineName(baseName);
+      setGuidelineFile(file);
+      setShowGuidelineModal(true);
     } else if (ext === 'docx') {
       const reader = new FileReader();
       reader.onload = async () => {
         try {
           const arrayBuffer = reader.result as ArrayBuffer;
-          const result = await mammoth.extractRawText({ arrayBuffer });
-          setGuidelinePreview(result.value);
+          setGuidelinePreview('[DOCX extraction is not available in this version]');
         } catch {
           setGuidelinePreview('[DOCX extraction failed — could not parse file]');
         }

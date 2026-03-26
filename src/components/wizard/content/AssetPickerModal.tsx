@@ -9,6 +9,7 @@
  */
 
 import { useState, useMemo, useCallback } from 'react';
+import { storage } from '../../../utils/storage';
 import DAMBrowserInline from './DAMBrowserInline';
 
 // ── Asset library data ──────────────────────────────────────────────
@@ -22,10 +23,10 @@ export interface LibraryAsset {
 
 const UPLOADED_ASSETS_KEY = 'personalization-studio:uploaded-assets';
 
-/** Load user-uploaded assets from localStorage (same store as AssetsPage). */
+/** Load user-uploaded assets from storage (same store as AssetsPage). */
 export function loadAssetLibrary(): LibraryAsset[] {
   try {
-    const raw = localStorage.getItem(UPLOADED_ASSETS_KEY);
+    const raw = storage.getItem(UPLOADED_ASSETS_KEY);
     if (!raw) return [];
     const assets: Array<{ id: string; name: string; url: string; category: string }> = JSON.parse(raw);
     return assets
@@ -66,7 +67,7 @@ export default function AssetPickerModal({ onSelect, onClose }: AssetPickerModal
   const [aiGenPreview, setAiGenPreview] = useState<{ previewUrl: string; fileName: string; fileSize: number } | null>(null);
   const [saveToLibrary, setSaveToLibrary] = useState(true);
 
-  // Load user-uploaded assets from localStorage
+  // Load user-uploaded assets from storage
   const assets = useMemo(() => loadAssetLibrary(), []);
   const categories = useMemo(() => {
     const cats = new Set(assets.map((a) => a.category));
@@ -137,7 +138,7 @@ export default function AssetPickerModal({ onSelect, onClose }: AssetPickerModal
     // Optionally save to asset library
     if (saveToLibrary) {
       try {
-        const raw = localStorage.getItem(UPLOADED_ASSETS_KEY);
+        const raw = storage.getItem(UPLOADED_ASSETS_KEY);
         const existing = raw ? JSON.parse(raw) : [];
         existing.push({
           id: `ai-gen-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -146,7 +147,7 @@ export default function AssetPickerModal({ onSelect, onClose }: AssetPickerModal
           type: 'image',
           category: 'Images',
         });
-        localStorage.setItem(UPLOADED_ASSETS_KEY, JSON.stringify(existing));
+        storage.setItem(UPLOADED_ASSETS_KEY, JSON.stringify(existing));
       } catch {
         // Best-effort save; don't block insertion
       }

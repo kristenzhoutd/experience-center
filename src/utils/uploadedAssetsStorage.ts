@@ -1,3 +1,5 @@
+import { storage } from './storage';
+
 const STORAGE_KEY = 'pm_uploaded_assets';
 
 export interface UploadedAsset {
@@ -11,7 +13,7 @@ export interface UploadedAsset {
 
 export function loadUploadedAssets(): UploadedAsset[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = storage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -19,5 +21,5 @@ export function loadUploadedAssets(): UploadedAsset[] {
 }
 
 export function saveUploadedAssets(assets: UploadedAsset[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(assets));
+  storage.setItem(STORAGE_KEY, JSON.stringify(assets));
 }

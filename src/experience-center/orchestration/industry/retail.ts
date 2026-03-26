@@ -1,4 +1,4 @@
-import type { IndustryContext } from '../types.js';
+import type { IndustryContext } from '../types';
 
 export const retailContext: IndustryContext = {
   id: 'retail',

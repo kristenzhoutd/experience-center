@@ -1,11 +1,4 @@
-/**
- * Insight Summary skill family.
- *
- * Surfaces actionable business insights from customer
- * and campaign signals with strategic implications.
- */
-
-import type { ScenarioConfig, IndustryContext } from '../../types.js';
+import type { ScenarioConfig, IndustryContext } from '../types';
 
 export function buildInsightSummaryPrompt(scenario: ScenarioConfig, industry: IndustryContext): string {
   return `You are generating a Business Insight Summary for the Treasure AI Experience Center.

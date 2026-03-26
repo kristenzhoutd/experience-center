@@ -1,11 +1,4 @@
-/**
- * Journey Creation skill family.
- *
- * Designs multi-step customer journeys with triggers, channels,
- * messaging, wait times, and success metrics.
- */
-
-import type { ScenarioConfig, IndustryContext } from '../../types.js';
+import type { ScenarioConfig, IndustryContext } from '../types';
 
 export function buildJourneyPrompt(scenario: ScenarioConfig, industry: IndustryContext): string {
   return `You are generating a Lifecycle Journey for the Treasure AI Experience Center.

@@ -1,15 +1,16 @@
 /**
- * Page Storage Service — localStorage-backed CRUD for SavedPage.
+ * Page Storage Service — storage-backed CRUD for SavedPage.
  * Mirrors briefStorage.ts pattern.
  */
 
 import type { SavedPage } from '../types/page';
+import { storage } from '../utils/storage';
 
 const STORAGE_KEY = 'paid-media-suite:pages';
 
 function readAll(): SavedPage[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = storage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -17,7 +18,7 @@ function readAll(): SavedPage[] {
 }
 
 function writeAll(pages: SavedPage[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(pages));
+  storage.setItem(STORAGE_KEY, JSON.stringify(pages));
 }
 
 export const localPageStorage = {

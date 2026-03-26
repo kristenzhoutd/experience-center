@@ -1,38 +1,27 @@
 /**
- * Parent segments routes — fetches parent segments and child segments
- * from the Treasure Data CDP API using the stored TDX API key.
+ * Browser-side Treasure Data CDP API client.
+ * Calls the TD CDP API directly (CORS supported).
  */
 
-import { Router } from 'express';
-import { loadSettings } from '../services/storage.js';
+import { storage } from '../utils/storage';
 
-export const segmentsRouter = Router();
-
-// ---------- Helpers ----------
-
-function getTdxApiKey(req: any): string {
-  return req.headers['x-tdx-api-key'] as string
-    || loadSettings().tdxApiKey
-    || '';
+function getTdxApiKey(): string {
+  return storage.getItem('ai-suites-tdx-api-key') || '';
 }
 
 function getCdpEndpoint(): string {
-  // The CDP API lives on api-cdp.treasuredata.com, not the regular api.treasuredata.com.
-  // If the stored endpoint is the regular API, derive the CDP endpoint from it.
-  const stored = loadSettings().tdxEndpoint || '';
-  if (!stored) return 'https://api-cdp.treasuredata.com';
-
-  // Convert api.treasuredata.com → api-cdp.treasuredata.com
-  // Convert api.eu01.treasuredata.com → api-cdp.eu01.treasuredata.com
-  // Convert api.ap01.treasuredata.com → api-cdp.ap01.treasuredata.com
   try {
+    const settingsJson = storage.getItem('ai-suites:settings');
+    const stored = settingsJson ? JSON.parse(settingsJson).tdxEndpoint || '' : '';
+    if (!stored) return 'https://api-cdp.treasuredata.com';
+
     const url = new URL(stored);
     if (url.hostname.startsWith('api.')) {
       url.hostname = url.hostname.replace('api.', 'api-cdp.');
       return url.toString().replace(/\/$/, '');
     }
     if (url.hostname.startsWith('api-cdp.')) {
-      return stored; // Already a CDP endpoint
+      return stored;
     }
   } catch { /* fall through */ }
 
@@ -62,14 +51,26 @@ function formatPopulation(population: number | null | undefined): string | null 
   return String(num);
 }
 
-// ---------- Routes ----------
+export interface ParentSegment {
+  id: string;
+  name: string;
+  count: string | null;
+  description: string;
+  masterTable: string | null;
+}
 
-// GET /api/segments/parents — list all parent segments
-segmentsRouter.get('/parents', async (req, res) => {
-  const apiKey = getTdxApiKey(req);
+export interface ChildSegment {
+  id: string;
+  name: string;
+  count: string | null;
+  description: string;
+  folderPath: string | null;
+}
+
+export async function fetchParentSegments(): Promise<{ success: boolean; data?: ParentSegment[]; error?: string }> {
+  const apiKey = getTdxApiKey();
   if (!apiKey) {
-    res.json({ success: false, error: 'TDX API key is not configured. Please set it in Settings.' });
-    return;
+    return { success: false, error: 'TDX API key is not configured. Please set it in Settings.' };
   }
 
   const baseUrl = getCdpEndpoint();
@@ -77,20 +78,18 @@ segmentsRouter.get('/parents', async (req, res) => {
     const response = await tdApiGet('/audiences', apiKey, baseUrl);
 
     if (response.statusCode >= 400) {
-      console.error(`[Segments] Parent segments request failed (${response.statusCode}):`, response.body.slice(0, 500));
-      res.json({
+      return {
         success: false,
         error: response.statusCode === 401
           ? 'TDX API key is invalid or expired. Please update it in Settings.'
           : `Failed to fetch parent segments (HTTP ${response.statusCode})`,
-      });
-      return;
+      };
     }
 
     const data = JSON.parse(response.body);
     const audiences = Array.isArray(data) ? data : (data.audiences || data.data || []);
 
-    const parentSegments = audiences.map((seg: any) => ({
+    const parentSegments: ParentSegment[] = audiences.map((seg: any) => ({
       id: String(seg.id ?? seg.audienceId ?? ''),
       name: seg.name ?? seg.audienceName ?? '',
       count: formatPopulation(seg.population ?? seg.count ?? null),
@@ -98,30 +97,20 @@ segmentsRouter.get('/parents', async (req, res) => {
       masterTable: seg.masterTable ?? seg.master?.parentTableName ?? null,
     }));
 
-    parentSegments.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''));
-
-    console.log(`[Segments] Found ${parentSegments.length} parent segments`);
-    res.json({ success: true, data: parentSegments });
-  } catch (error: any) {
-    console.error('[Segments] Error fetching parent segments:', error);
-    res.json({
-      success: false,
-      error: 'Failed to fetch parent segments from Treasure Data',
-    });
+    parentSegments.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    return { success: true, data: parentSegments };
+  } catch {
+    return { success: false, error: 'Failed to fetch parent segments from Treasure Data' };
   }
-});
+}
 
-// GET /api/segments/children/:parentId — list child segments for a parent
-segmentsRouter.get('/children/:parentId', async (req, res) => {
-  const apiKey = getTdxApiKey(req);
+export async function fetchChildSegments(parentId: string): Promise<{ success: boolean; data?: ChildSegment[]; error?: string }> {
+  const apiKey = getTdxApiKey();
   if (!apiKey) {
-    res.json({ success: false, error: 'TDX API key is not configured.' });
-    return;
+    return { success: false, error: 'TDX API key is not configured.' };
   }
 
   const baseUrl = getCdpEndpoint();
-  const { parentId } = req.params;
-
   try {
     const response = await tdApiGet(
       `/audiences/${encodeURIComponent(parentId)}/segments`,
@@ -130,18 +119,15 @@ segmentsRouter.get('/children/:parentId', async (req, res) => {
     );
 
     if (response.statusCode >= 400) {
-      console.error(`[Segments] Child segments request failed (${response.statusCode}):`, response.body.slice(0, 500));
-      res.json({
+      return {
         success: false,
         error: `Failed to fetch child segments (HTTP ${response.statusCode})`,
-      });
-      return;
+      };
     }
 
     const data = JSON.parse(response.body);
     const segments = Array.isArray(data) ? data : (data.segments || data.data || []);
 
-    // Flatten nested folder structures if present
     const flatSegments: any[] = [];
     const flatten = (items: any[], folderPath = '') => {
       for (const item of items) {
@@ -149,17 +135,14 @@ segmentsRouter.get('/children/:parentId', async (req, res) => {
           const subPath = folderPath ? `${folderPath}/${item.name}` : item.name;
           flatten(item.segments || item.children, subPath);
         } else {
-          flatSegments.push({
-            ...item,
-            folderPath: folderPath || undefined,
-          });
+          flatSegments.push({ ...item, folderPath: folderPath || undefined });
         }
       }
     };
     flatten(segments);
 
     const seenIds = new Set<string>();
-    const childSegments = flatSegments
+    const childSegments: ChildSegment[] = flatSegments
       .filter((seg: any) => {
         const id = String(seg.id ?? seg.segmentId ?? '');
         if (!id || seenIds.has(id)) return false;
@@ -174,15 +157,9 @@ segmentsRouter.get('/children/:parentId', async (req, res) => {
         folderPath: seg.folderPath ?? null,
       }));
 
-    childSegments.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''));
-
-    console.log(`[Segments] Found ${childSegments.length} child segments for parent ${parentId}`);
-    res.json({ success: true, data: childSegments });
-  } catch (error: any) {
-    console.error('[Segments] Error fetching child segments:', error);
-    res.json({
-      success: false,
-      error: 'Failed to fetch child segments from Treasure Data',
-    });
+    childSegments.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    return { success: true, data: childSegments };
+  } catch {
+    return { success: false, error: 'Failed to fetch child segments from Treasure Data' };
   }
-});
+}

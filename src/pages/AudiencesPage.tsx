@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { storage } from '../utils/storage';
 import { campaignConfigStorage } from '../services/campaignConfigStorage';
 import { localBriefStorage } from '../services/briefStorage';
 import { Tag } from '@/design-system';
@@ -105,7 +106,7 @@ export default function AudiencesPage() {
       a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
     );
 
-    // 4. Persist new segments to localStorage
+    // 4. Persist new segments to storage
     const newSegments: Audience[] = sorted
       .filter((entry) => entry.isNew)
       .map((entry) => ({
@@ -121,9 +122,9 @@ export default function AudiencesPage() {
 
     if (newSegments.length > 0) {
       try {
-        localStorage.setItem(LOCAL_AUDIENCES_KEY, JSON.stringify(newSegments));
+        storage.setItem(LOCAL_AUDIENCES_KEY, JSON.stringify(newSegments));
       } catch {
-        // localStorage full or unavailable — ignore
+        // storage full or unavailable — ignore
       }
     }
 
