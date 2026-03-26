@@ -1,4 +1,5 @@
 import { useState, useEffect, ReactNode } from 'react'
+import { storage } from '../utils/storage'
 
 const APP_PASSWORD = import.meta.env.VITE_APP_PASSWORD || ''
 const SESSION_KEY = 'app_authenticated_v2'
@@ -14,7 +15,7 @@ export default function PasswordGate({ children }: PasswordGateProps) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const storedAuth = localStorage.getItem(SESSION_KEY)
+    const storedAuth = storage.getItem(SESSION_KEY)
     if (storedAuth === 'true') {
       setIsAuthenticated(true)
     }
@@ -24,7 +25,7 @@ export default function PasswordGate({ children }: PasswordGateProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (password === APP_PASSWORD) {
-      localStorage.setItem(SESSION_KEY, 'true')
+      storage.setItem(SESSION_KEY, 'true')
       setIsAuthenticated(true)
       setError('')
     } else {
@@ -40,7 +41,8 @@ export default function PasswordGate({ children }: PasswordGateProps) {
     )
   }
 
-  if (isAuthenticated) {
+  // No password configured — skip gate entirely
+  if (!APP_PASSWORD || isAuthenticated) {
     return <>{children}</>
   }
 

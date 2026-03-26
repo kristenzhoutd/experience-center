@@ -1,15 +1,16 @@
 /**
- * Launch Config Storage Service — localStorage-backed CRUD for SavedLaunchConfig.
+ * Launch Config Storage Service — storage-backed CRUD for SavedLaunchConfig.
  * Follows the same pattern as briefStorage.ts.
  */
 
 import type { SavedLaunchConfig } from '../types/campaignLaunch';
+import { storage } from '../utils/storage';
 
 const STORAGE_KEY = 'paid-media-launch-configs';
 
 function readAll(): SavedLaunchConfig[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = storage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -18,9 +19,9 @@ function readAll(): SavedLaunchConfig[] {
 
 function writeAll(configs: SavedLaunchConfig[]): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(configs));
+    storage.setItem(STORAGE_KEY, JSON.stringify(configs));
   } catch (err) {
-    // localStorage quota exceeded — strip previewUrl data URIs and retry
+    // storage quota exceeded — strip previewUrl data URIs and retry
     console.warn('[LaunchConfigStorage] Save failed, stripping preview data URIs and retrying:', err);
     const stripped = configs.map((c) => ({
       ...c,
@@ -32,7 +33,7 @@ function writeAll(configs: SavedLaunchConfig[]): void {
       },
     }));
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(stripped));
+      storage.setItem(STORAGE_KEY, JSON.stringify(stripped));
     } catch (retryErr) {
       console.error('[LaunchConfigStorage] Save failed even after stripping previews:', retryErr);
     }

@@ -1,11 +1,4 @@
-/**
- * Segment Opportunity Discovery skill family.
- *
- * Identifies high-potential customer segments with opportunity scoring,
- * sizing, and activation strategies.
- */
-
-import type { ScenarioConfig, IndustryContext } from '../../types.js';
+import type { ScenarioConfig, IndustryContext } from '../types';
 
 export function buildSegmentOpportunityPrompt(scenario: ScenarioConfig, industry: IndustryContext): string {
   return `You are generating a Segment Opportunity Discovery for the Treasure AI Experience Center.

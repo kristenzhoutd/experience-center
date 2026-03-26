@@ -1,11 +1,13 @@
 /**
- * Skill Execution — calls the LLM proxy and parses the structured output.
+ * Browser-side Skill Execution — calls the LLM proxy and parses structured output.
+ * Routes through /api/llm proxy (until TD LLM Proxy supports CORS).
  */
 
-import { loadSettings } from '../../services/storage.js';
-import type { ScenarioConfig, IndustryContext } from '../types.js';
-import { resolveScenario } from './resolveScenario.js';
-import { buildSkillRequest } from './buildSkillRequest.js';
+import { storage } from '../../utils/storage';
+import type { ScenarioConfig } from './types';
+import { resolveScenario } from './resolveScenario';
+import { buildSkillRequest } from './buildSkillRequest';
+import { buildSlidePrompt } from './skills/slide-deck';
 
 interface OutputData {
   summaryBanner: { goal: string; audience: string; topRecommendation: string; impactFraming: string };
@@ -18,23 +20,33 @@ interface OutputData {
   insightPanel: { whyThisRecommendation: string; businessImpact: string[]; whatChanged: string[]; howTreasureHelps: string[] };
 }
 
-async function callLLM(systemPrompt: string, userPrompt: string, apiKeyOverride?: string): Promise<string> {
-  const settings = loadSettings();
-  const apiKey = apiKeyOverride || process.env.API_KEY || settings.apiKey;
-  const llmProxyUrl = (process.env.LLM_PROXY_URL || settings.llmProxyUrl || 'https://llm-proxy.us01.treasuredata.com').replace(/\/$/, '');
-  const model = process.env.MODEL || settings.model || 'claude-sonnet-4-20250514';
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
+function getApiKey(): string {
+  return storage.getItem('ai-suites-api-key') || '';
+}
+
+function getModel(): string {
+  try {
+    const settingsJson = storage.getItem('ai-suites:settings');
+    return settingsJson ? JSON.parse(settingsJson).model || 'claude-sonnet-4-20250514' : 'claude-sonnet-4-20250514';
+  } catch {
+    return 'claude-sonnet-4-20250514';
+  }
+}
+
+async function callLLM(systemPrompt: string, userPrompt: string): Promise<string> {
+  const apiKey = getApiKey();
   if (!apiKey) throw new Error('No API key configured. Please set your API key in Settings.');
 
-  const response = await fetch(`${llmProxyUrl}/v1/messages`, {
+  const response = await fetch(`${API_BASE}/llm`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `TD1 ${apiKey}`,
-      'anthropic-version': '2023-06-01',
+      'x-api-key': apiKey,
     },
     body: JSON.stringify({
-      model,
+      model: getModel(),
       max_tokens: 3000,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
@@ -48,7 +60,7 @@ async function callLLM(systemPrompt: string, userPrompt: string, apiKeyOverride?
   }
 
   const data = await response.json() as { content: Array<{ type: string; text?: string }> };
-  const textBlock = data.content?.find(b => b.type === 'text');
+  const textBlock = data.content?.find((b: { type: string }) => b.type === 'text');
   if (!textBlock?.text) throw new Error('No text content in LLM response');
   return textBlock.text;
 }
@@ -74,12 +86,12 @@ export type ExecutionResult = {
   error: string;
 };
 
-export async function executeScenarioSkill(scenarioConfig: ScenarioConfig, opts?: { apiKeyOverride?: string }): Promise<ExecutionResult> {
+export async function executeScenarioSkill(scenarioConfig: ScenarioConfig): Promise<ExecutionResult> {
   const start = Date.now();
   try {
     const { config, industry } = resolveScenario(scenarioConfig);
     const { systemPrompt, userPrompt } = buildSkillRequest(config, industry);
-    const rawResponse = await callLLM(systemPrompt, userPrompt, opts?.apiKeyOverride);
+    const rawResponse = await callLLM(systemPrompt, userPrompt);
     const outputData = parseOutput(rawResponse);
 
     return {
@@ -94,14 +106,11 @@ export async function executeScenarioSkill(scenarioConfig: ScenarioConfig, opts?
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error('[ExperienceCenter] Skill execution failed:', message);
     return { success: false, error: message };
   }
 }
 
 // ── Slide Deck Generation ──
-
-import { buildSlidePrompt } from '../skills/families/slide-deck.js';
 
 interface SlideSkillInput {
   outputData: Record<string, unknown>;
@@ -119,11 +128,11 @@ export type SlideResult = {
   error: string;
 };
 
-export async function executeSlideSkill(input: SlideSkillInput, opts?: { apiKeyOverride?: string }): Promise<SlideResult> {
+export async function executeSlideSkill(input: SlideSkillInput): Promise<SlideResult> {
   try {
     const systemPrompt = 'You are the Treasure AI Experience Center, generating presentation decks from structured AI output for enterprise marketers.';
     const userPrompt = buildSlidePrompt(input);
-    const rawResponse = await callLLM(systemPrompt, userPrompt, opts?.apiKeyOverride);
+    const rawResponse = await callLLM(systemPrompt, userPrompt);
 
     const fenceMatch = rawResponse.match(/```slide-deck-json\s*\n([\s\S]*?)\n```/);
     const jsonStr = fenceMatch ? fenceMatch[1] : rawResponse;
@@ -136,7 +145,6 @@ export async function executeSlideSkill(input: SlideSkillInput, opts?: { apiKeyO
     return { success: true, data: parsed };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error('[ExperienceCenter] Slide generation failed:', message);
     return { success: false, error: message };
   }
 }

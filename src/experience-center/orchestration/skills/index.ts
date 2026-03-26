@@ -1,9 +1,9 @@
-import type { SkillFamily, ScenarioConfig, IndustryContext } from '../../types.js';
-import { buildCampaignBriefPrompt } from './campaign-brief.js';
-import { buildJourneyPrompt } from './journey.js';
-import { buildSegmentOpportunityPrompt } from './segment-opportunity.js';
-import { buildPerformanceAnalysisPrompt } from './performance-analysis.js';
-import { buildInsightSummaryPrompt } from './insight-summary.js';
+import type { SkillFamily, ScenarioConfig, IndustryContext } from '../types';
+import { buildCampaignBriefPrompt } from './campaign-brief';
+import { buildJourneyPrompt } from './journey';
+import { buildSegmentOpportunityPrompt } from './segment-opportunity';
+import { buildPerformanceAnalysisPrompt } from './performance-analysis';
+import { buildInsightSummaryPrompt } from './insight-summary';
 
 const builders: Record<SkillFamily, (scenario: ScenarioConfig, industry: IndustryContext) => string> = {
   'campaign-brief': buildCampaignBriefPrompt,

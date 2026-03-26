@@ -1,14 +1,4 @@
-/**
- * Campaign Brief Creation skill family.
- *
- * Generates strategic campaign briefs with audience strategy,
- * channel plan, messaging direction, and KPI framework.
- *
- * Used by scenarios like: re-engage lapsed shoppers, replenishment campaign,
- * seasonal offer strategy, win-back campaign, etc.
- */
-
-import type { ScenarioConfig, IndustryContext } from '../../types.js';
+import type { ScenarioConfig, IndustryContext } from '../types';
 
 export function buildCampaignBriefPrompt(scenario: ScenarioConfig, industry: IndustryContext): string {
   return `You are generating a Campaign Brief for the Treasure AI Experience Center.

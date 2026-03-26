@@ -1,11 +1,5 @@
-/**
- * Scenario Resolution — maps a scenario ID to its full runtime context.
- *
- * Flow: scenarioId → ScenarioConfig + IndustryContext + skill prompt
- */
-
-import type { ScenarioConfig, IndustryContext } from '../types.js';
-import { getIndustryContext } from '../industry/index.js';
+import type { ScenarioConfig, IndustryContext } from './types';
+import { getIndustryContext } from './industry/index';
 
 export interface ResolvedScenario {
   config: ScenarioConfig;

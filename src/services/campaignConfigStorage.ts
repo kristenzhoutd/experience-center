@@ -1,5 +1,5 @@
 /**
- * Campaign Config Storage — localStorage-backed CRUD for CampaignConfig.
+ * Campaign Config Storage — storage-backed CRUD for CampaignConfig.
  * Follows the same pattern as briefStorage.ts.
  *
  * Includes schema migration so older drafts are upgraded automatically.
@@ -12,6 +12,7 @@ import type {
   ContentStepData,
   ReviewStepData,
 } from '../types/campaignConfig';
+import { storage } from '../utils/storage';
 
 const STORAGE_KEY = 'personalization-studio:campaign-configs';
 
@@ -90,7 +91,7 @@ function migrateConfig(raw: Record<string, unknown>, index: number): CampaignCon
 
 function readAll(): CampaignConfig[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = storage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -98,7 +99,7 @@ function readAll(): CampaignConfig[] {
 }
 
 function writeAll(configs: CampaignConfig[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(configs));
+  storage.setItem(STORAGE_KEY, JSON.stringify(configs));
 }
 
 /**

@@ -491,23 +491,9 @@ export default function PageEditorPage() {
       };
       window.addEventListener('message', onMessage);
 
-      // Run extraction
+      // Web extraction removed — feature not available in browser-only mode
       if (websiteUrl) {
-        setIsAnalyzing(true);
-        setAnalysisComplete(false);
-        (window as any).aiSuites?.web?.extract(websiteUrl).then((result: any) => {
-          if (result.success && result.data?.spots) {
-            setExtractedSpots(result.data.spots.map((s: any) => ({
-              name: s.name,
-              type: s.type,
-              selector: s.selector,
-              confidence: s.confidence,
-            })));
-            setAnalysisComplete(true);
-          }
-        }).catch(() => {}).finally(() => {
-          setIsAnalyzing(false);
-        });
+        setAnalysisComplete(true);
       }
       return () => { window.removeEventListener('message', onMessage); };
     }
@@ -524,22 +510,9 @@ export default function PageEditorPage() {
     const onStopLoading = () => {
       setIsWebviewLoading(false);
       injectPickerScript();
+      // Web extraction removed — feature not available in browser-only mode
       if (websiteUrl) {
-        setIsAnalyzing(true);
-        setAnalysisComplete(false);
-        window.aiSuites.web.extract(websiteUrl).then((result) => {
-          if (result.success && result.data?.spots) {
-            setExtractedSpots(result.data.spots.map((s: any) => ({
-              name: s.name,
-              type: s.type,
-              selector: s.selector,
-              confidence: s.confidence,
-            })));
-            setAnalysisComplete(true);
-          }
-        }).catch(() => {}).finally(() => {
-          setIsAnalyzing(false);
-        });
+        setAnalysisComplete(true);
       }
     };
     const onFailLoad = (_e: Event) => {

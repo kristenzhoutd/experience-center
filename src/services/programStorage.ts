@@ -1,15 +1,16 @@
 /**
- * Program Storage Service — localStorage-backed CRUD for PaidMediaProgram.
+ * Program Storage Service — storage-backed CRUD for PaidMediaProgram.
  * Follows the same pattern as launchConfigStorage.ts.
  */
 
 import type { PaidMediaProgram } from '../types/program';
+import { storage } from '../utils/storage';
 
 const STORAGE_KEY = 'paid-media-suite:programs';
 
 function readAll(): PaidMediaProgram[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = storage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -17,7 +18,7 @@ function readAll(): PaidMediaProgram[] {
 }
 
 function writeAll(programs: PaidMediaProgram[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(programs));
+  storage.setItem(STORAGE_KEY, JSON.stringify(programs));
 }
 
 export const programStorage = {

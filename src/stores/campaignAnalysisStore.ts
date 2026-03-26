@@ -1,10 +1,11 @@
 /**
  * Campaign Analysis Store — Zustand store for AI-generated campaign analyses.
  * Holds the latest analysis, generation state,
- * and a history of saved analyses persisted to localStorage.
+ * and a history of saved analyses persisted to storage.
  */
 
 import { create } from 'zustand';
+import { storage } from '../utils/storage';
 import type { CampaignAnalysisOutput } from '../types/campaignAnalysis';
 
 const STORAGE_KEY = 'ai-suites:saved-analyses';
@@ -19,7 +20,7 @@ export interface SavedAnalysis {
 
 function readSavedAnalyses(): SavedAnalysis[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = storage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -27,7 +28,7 @@ function readSavedAnalyses(): SavedAnalysis[] {
 }
 
 function writeSavedAnalyses(analyses: SavedAnalysis[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(analyses));
+  storage.setItem(STORAGE_KEY, JSON.stringify(analyses));
 }
 
 interface CampaignAnalysisState {

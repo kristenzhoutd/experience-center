@@ -9,25 +9,19 @@
 
 import { Router } from 'express';
 import { startSession, pushMessage, stopSession, isInitialized, hasSession, updateConfig } from '../services/claude-agent.js';
-import { loadSettings } from '../services/storage.js';
 
 export const chatRouter = Router();
 
 /**
- * Ensure Claude Agent is initialized from request headers + storage.
- * On Vercel, each invocation may be a cold start.
+ * Ensure Claude Agent is initialized from request headers + env vars.
  */
 function ensureInit(req: any): void {
-  const apiKey = req.headers['x-api-key'] as string
-    || loadSettings().apiKey
-    || process.env.API_KEY
-    || '';
+  const apiKey = req.headers['x-api-key'] as string || process.env.API_KEY || '';
   if (apiKey) {
-    const settings = loadSettings();
     updateConfig({
       apiKey,
-      llmProxyUrl: settings.llmProxyUrl || process.env.LLM_PROXY_URL || 'https://llm-proxy.us01.treasuredata.com',
-      model: settings.model || process.env.MODEL,
+      llmProxyUrl: process.env.LLM_PROXY_URL || 'https://llm-proxy.us01.treasuredata.com',
+      model: process.env.MODEL,
     });
   }
 }

@@ -1,3 +1,5 @@
+import { storage } from './storage';
+
 const STORAGE_KEY = 'pm_documents';
 
 export interface StoredDocument {
@@ -15,7 +17,7 @@ export interface StoredDocument {
 
 export function loadDocuments(): StoredDocument[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = storage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -23,5 +25,5 @@ export function loadDocuments(): StoredDocument[] {
 }
 
 export function saveDocuments(docs: StoredDocument[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(docs));
+  storage.setItem(STORAGE_KEY, JSON.stringify(docs));
 }

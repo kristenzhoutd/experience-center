@@ -1,7 +1,7 @@
-import type { IndustryContext } from '../types.js';
-import { retailContext } from './retail.js';
-import { cpgContext } from './cpg.js';
-import { travelContext } from './travel.js';
+import type { IndustryContext } from '../types';
+import { retailContext } from './retail';
+import { cpgContext } from './cpg';
+import { travelContext } from './travel';
 
 const industryContexts: Record<string, IndustryContext> = {
   retail: retailContext,

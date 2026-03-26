@@ -5,7 +5,6 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Send, ChevronLeft, MessageSquare } from 'lucide-react';
-import FeedbackModal from './FeedbackModal';
 
 interface ChatMessage {
   id: string;
@@ -56,7 +55,6 @@ export default function CampaignChatPanel({ isOpen, onClose }: CampaignChatPanel
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -202,20 +200,12 @@ export default function CampaignChatPanel({ isOpen, onClose }: CampaignChatPanel
             </div>
           </div>
 
-          {/* Feedback */}
+          {/* Footer */}
           <div className="shrink-0 pb-3 text-center">
             <p className="text-[11px] text-gray-400 mb-0.5">AI-generated recommendation designed for human review</p>
-            <button
-              onClick={() => setIsFeedbackOpen(true)}
-              className="text-[12px] text-[#4a7ec2] hover:text-[#3a6eb2] font-medium cursor-pointer bg-transparent border-none transition-colors"
-            >
-              Share feedback
-            </button>
           </div>
         </>
       )}
-
-      <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
     </div>
   );
 }

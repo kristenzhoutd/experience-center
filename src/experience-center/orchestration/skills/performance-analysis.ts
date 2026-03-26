@@ -1,11 +1,4 @@
-/**
- * Performance Analysis skill family.
- *
- * Diagnoses campaign performance issues and generates
- * optimization recommendations with impact forecasts.
- */
-
-import type { ScenarioConfig, IndustryContext } from '../../types.js';
+import type { ScenarioConfig, IndustryContext } from '../types';
 
 export function buildPerformanceAnalysisPrompt(scenario: ScenarioConfig, industry: IndustryContext): string {
   return `You are generating a Performance Analysis for the Treasure AI Experience Center.

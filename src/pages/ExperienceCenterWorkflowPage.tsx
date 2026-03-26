@@ -5,11 +5,9 @@ import {
   ShoppingBag, Plane, Package, Car, Film, Landmark,
   Clock, Star, Send, RotateCcw,
   Target, Lightbulb, TrendingUp, Shield,
-  Loader2, Pencil, Presentation, ChevronDown, Share2, X, MessageSquare,
+  Loader2, Pencil, Presentation, ChevronDown, Share2, X,
 } from 'lucide-react';
 import SplitPaneLayout from '../components/campaign/SplitPaneLayout';
-import BookWalkthroughModal from '../components/BookWalkthroughModal';
-import FeedbackModal from '../components/campaigns/FeedbackModal';
 import { useExperienceLabStore, type FlowStep, type OutputData } from '../stores/experienceLabStore';
 import { goals, industries, scenarios, generationSteps, refinementGenerationSteps, getDefaultInputs, getRefinementChips, getIndustriesForOutcome, getScenariosForOutcome, type ScenarioOption, type RefinementChip } from '../data/experienceLabConfig';
 import { generateExperienceLabOutput } from '../services/experienceLabOutputs';
@@ -122,7 +120,6 @@ export default function ExperienceCenterWorkflowPage() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileView, setMobileView] = useState<'chat' | 'output'>('output');
   const [isMobile, setIsMobile] = useState(false);
-  const [showBookingModal, setShowBookingModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasOutput = currentStep === 'output' && !!output;
   const [hasEverOutput, setHasEverOutput] = useState(false);
@@ -136,13 +133,6 @@ export default function ExperienceCenterWorkflowPage() {
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
-  }, []);
-
-  // Listen for booking modal event from top nav
-  useEffect(() => {
-    const handler = () => setShowBookingModal(true);
-    window.addEventListener('open-booking-modal', handler);
-    return () => window.removeEventListener('open-booking-modal', handler);
   }, []);
 
   // Listen for API key modal event from nav bar
@@ -758,7 +748,7 @@ export default function ExperienceCenterWorkflowPage() {
                   </div>
                   {visibleOutputSections >= 8 && output && (
                     <div className="absolute bottom-3 right-3 z-10">
-                      <FloatingContextCard output={output} onBook={() => setShowBookingModal(true)} />
+                      <FloatingContextCard output={output} onBook={() => {}} />
                     </div>
                   )}
                 </div>
@@ -872,7 +862,7 @@ export default function ExperienceCenterWorkflowPage() {
                   </div>
                   {visibleOutputSections >= 8 && output && (
                     <div className="absolute bottom-4 right-4 z-10">
-                      <FloatingContextCard output={output} onBook={() => setShowBookingModal(true)} />
+                      <FloatingContextCard output={output} onBook={() => {}} />
                     </div>
                   )}
                 </div>
@@ -902,17 +892,6 @@ export default function ExperienceCenterWorkflowPage() {
           </div>
         </div>
       </div>
-
-      {/* Booking Modal */}
-      <BookWalkthroughModal
-        isOpen={showBookingModal}
-        onClose={() => setShowBookingModal(false)}
-        context={{
-          goal: goals.find(g => g.id === goal)?.label,
-          industry: industries.find(i => i.id === industry)?.label,
-          scenario: scenarios.find(s => s.id === scenario)?.label,
-        }}
-      />
 
       {/* Share Modal */}
       {showShareModal && (
@@ -999,8 +978,6 @@ function ChatPanel({
   isThinkingActive?: boolean;
   usedScenarios?: Set<string>;
 }) {
-  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
-
   return (
     <div className="flex flex-col h-full w-full bg-white">
       {/* Header — only shown with collapse button */}
@@ -1107,16 +1084,7 @@ function ChatPanel({
             ? 'AI-generated recommendation designed for human review'
             : 'Select an option above to continue'}
         </div>
-        <button
-          onClick={() => setIsFeedbackOpen(true)}
-          className="text-[11px] text-blue-600 hover:text-blue-700 font-medium cursor-pointer bg-transparent border-none transition-colors flex items-center gap-1"
-        >
-          <MessageSquare className="w-3 h-3" />
-          Feedback
-        </button>
       </div>
-
-      <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
     </div>
   );
 }

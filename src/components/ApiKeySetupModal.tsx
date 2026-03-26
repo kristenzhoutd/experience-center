@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Key, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useSettingsStore } from '../stores/settingsStore';
+import { storage } from '../utils/storage';
 
 interface ApiKeySetupModalProps {
   isOpen: boolean;
@@ -30,8 +31,8 @@ export default function ApiKeySetupModal({ isOpen, onClose }: ApiKeySetupModalPr
   const [status, setStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
 
-  const hasStoredApiKey = (() => { try { return !!localStorage.getItem('ai-suites-api-key'); } catch { return false; } })();
-  const hasStoredTdxKey = (() => { try { return !!localStorage.getItem('ai-suites-tdx-api-key'); } catch { return false; } })();
+  const hasStoredApiKey = (() => { try { return !!storage.getItem('ai-suites-api-key'); } catch { return false; } })();
+  const hasStoredTdxKey = (() => { try { return !!storage.getItem('ai-suites-tdx-api-key'); } catch { return false; } })();
 
   useEffect(() => {
     if (isOpen) {
@@ -243,7 +244,7 @@ export default function ApiKeySetupModal({ isOpen, onClose }: ApiKeySetupModalPr
 /** Check if both API keys are configured */
 export function isApiKeyConfigured(): boolean {
   try {
-    return !!localStorage.getItem('ai-suites-api-key') && !!localStorage.getItem('ai-suites-tdx-api-key');
+    return !!storage.getItem('ai-suites-api-key') && !!storage.getItem('ai-suites-tdx-api-key');
   } catch {
     return false;
   }

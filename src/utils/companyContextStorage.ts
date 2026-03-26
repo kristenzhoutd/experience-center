@@ -1,3 +1,5 @@
+import { storage } from './storage';
+
 export interface CompanyDescription {
   name: string;
   description: string;
@@ -65,40 +67,8 @@ export interface CompanyContext {
 
 const CONTEXTS_KEY = 'ai-suites:company-contexts';
 const ACTIVE_ID_KEY = 'ai-suites:company-context-active-id';
-// Legacy single-object key (for migration)
-const LEGACY_KEY = 'ai-suites:company-context';
-
 function generateId(): string {
   return `cc-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-}
-
-/**
- * Migrate the old single-context localStorage key into the new array format.
- * Runs once — deletes the legacy key after migration.
- */
-function migrateIfNeeded(): void {
-  const legacy = localStorage.getItem(LEGACY_KEY);
-  if (!legacy) return;
-
-  try {
-    const existing = JSON.parse(legacy) as Omit<CompanyContext, 'id'> & { id?: string };
-    const id = existing.id || generateId();
-    const ctx: CompanyContext = { ...existing, id };
-
-    const list = loadCompanyContexts();
-    // Only migrate if the list doesn't already contain this context
-    if (!list.some((c) => c.id === id)) {
-      list.push(ctx);
-      localStorage.setItem(CONTEXTS_KEY, JSON.stringify(list));
-    }
-
-    // Set as active so behaviour is unchanged for existing users
-    localStorage.setItem(ACTIVE_ID_KEY, id);
-    localStorage.removeItem(LEGACY_KEY);
-  } catch {
-    // Corrupt legacy data — just remove it
-    localStorage.removeItem(LEGACY_KEY);
-  }
 }
 
 // ──────────────────────────────────────────────
@@ -106,9 +76,8 @@ function migrateIfNeeded(): void {
 // ──────────────────────────────────────────────
 
 export function loadCompanyContexts(): CompanyContext[] {
-  migrateIfNeeded();
   try {
-    const raw = localStorage.getItem(CONTEXTS_KEY);
+    const raw = storage.getItem(CONTEXTS_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -116,15 +85,14 @@ export function loadCompanyContexts(): CompanyContext[] {
 }
 
 export function getActiveContextId(): string | null {
-  migrateIfNeeded();
-  return localStorage.getItem(ACTIVE_ID_KEY);
+  return storage.getItem(ACTIVE_ID_KEY);
 }
 
 export function setActiveContextId(id: string | null): void {
   if (id) {
-    localStorage.setItem(ACTIVE_ID_KEY, id);
+    storage.setItem(ACTIVE_ID_KEY, id);
   } else {
-    localStorage.removeItem(ACTIVE_ID_KEY);
+    storage.removeItem(ACTIVE_ID_KEY);
   }
 }
 
@@ -163,7 +131,7 @@ export function saveCompanyContext(context: CompanyContext | (Omit<CompanyContex
     list.push(ctx);
   }
 
-  localStorage.setItem(CONTEXTS_KEY, JSON.stringify(list));
+  storage.setItem(CONTEXTS_KEY, JSON.stringify(list));
   setActiveContextId(id);
   return ctx;
 }
@@ -174,7 +142,7 @@ export function saveCompanyContext(context: CompanyContext | (Omit<CompanyContex
  */
 export function deleteCompanyContext(id: string): void {
   const list = loadCompanyContexts().filter((c) => c.id !== id);
-  localStorage.setItem(CONTEXTS_KEY, JSON.stringify(list));
+  storage.setItem(CONTEXTS_KEY, JSON.stringify(list));
 
   if (getActiveContextId() === id) {
     setActiveContextId(null);

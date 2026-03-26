@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { storage } from '../utils/storage';
 
 const STORAGE_KEY = 'ai-suites-pm-onboarding';
 
@@ -23,7 +24,7 @@ interface OnboardingState {
 
 function loadFromStorage(): { completed: boolean; profile: OnboardingProfile | null } {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = storage.getItem(STORAGE_KEY);
     if (raw) {
       const data = JSON.parse(raw);
       return { completed: !!data.completed, profile: data.profile || null };
@@ -34,7 +35,7 @@ function loadFromStorage(): { completed: boolean; profile: OnboardingProfile | n
 
 function saveToStorage(completed: boolean, profile: OnboardingProfile | null) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ completed, profile }));
+    storage.setItem(STORAGE_KEY, JSON.stringify({ completed, profile }));
   } catch { /* ignore */ }
 }
 

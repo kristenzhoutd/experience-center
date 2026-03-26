@@ -1,3 +1,5 @@
+import { storage } from '../utils/storage';
+
 // Use relative /api path for Vercel serverless functions, or localhost for development
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 const APP_PASSWORD = import.meta.env.VITE_APP_PASSWORD || '';
@@ -8,7 +10,7 @@ interface ApiOptions {
 }
 
 function getStoredKey(key: string): string {
-  try { return localStorage.getItem(key) || ''; } catch { return ''; }
+  try { return storage.getItem(key) || ''; } catch { return ''; }
 }
 
 async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
@@ -139,18 +141,20 @@ export const templateApi = {
     request<void>(`/templates/${id}`, { method: 'DELETE' }),
 };
 
-// Experience Center API
+// Experience Center API — runs in browser, calls /api/llm proxy
 export const experienceCenterApi = {
-  generate: (scenarioConfig: any) =>
-    request<any>('/experience-center/generate', {
-      method: 'POST',
-      body: { scenarioConfig },
-    }),
-  generateSlides: (input: { outputData: any; deckLength: number; deckStyle: string; customTitle?: string; scenarioContext: any }) =>
-    request<any>('/experience-center/generate-slides', {
-      method: 'POST',
-      body: input,
-    }),
+  generate: async (scenarioConfig: any) => {
+    const { executeScenarioSkill } = await import('../experience-center/orchestration/executeSkill');
+    const result = await executeScenarioSkill(scenarioConfig);
+    if (!result.success) throw new Error(result.error);
+    return result.data;
+  },
+  generateSlides: async (input: { outputData: any; deckLength: number; deckStyle: string; customTitle?: string; scenarioContext: any }) => {
+    const { executeSlideSkill } = await import('../experience-center/orchestration/executeSkill');
+    const result = await executeSlideSkill(input);
+    if (!result.success) throw new Error(result.error);
+    return result.data;
+  },
 };
 
 // Parent Segments API (Treasure Data CDP)

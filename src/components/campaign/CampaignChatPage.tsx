@@ -8,6 +8,7 @@
 
 import React, { useState, useRef, useEffect, useCallback, Suspense } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { storage } from '../../utils/storage';
 import { useChatStore } from '../../stores/chatStore';
 import { useTraceStore } from '../../stores/traceStore';
 import { useNotificationStore } from '../../stores/notificationStore';
@@ -504,18 +505,7 @@ const CampaignChatPage = () => {
           return;
         }
 
-        // Fallback: Extract text from PDF via IPC (for backward compatibility)
-        if (pendingFile.base64 && window.aiSuites?.pdf) {
-          trace.addEvent(runId, 'skill_call', `Extracting PDF text from ${pendingFile.name}`);
-          window.aiSuites.pdf.extract(pendingFile.base64, pendingFile.name).then((result) => {
-            if (result.success && result.text) {
-              const fullMessage = `I've uploaded a PDF campaign brief. The full text content has already been extracted below — do NOT attempt to read any file paths, the text is provided inline. Please extract and structure all the campaign information from this document using the extract-brief-from-pdf skill. Output the complete campaign brief as a campaign-brief-json code fence so it populates the editor.\n\n<pdf-content filename="${pendingFile.name}">\n${result.text.substring(0, 10000)}\n</pdf-content>`;
-              trace.addEvent(runId, 'skill_call', 'Sending extracted PDF to Claude Agent SDK');
-              sendChatMessage(fullMessage, runId);
-            }
-          }).catch(console.error);
-          return;
-        }
+        // PDF extraction via IPC removed — feature not available in browser-only mode
       } catch {
         // Ignore parse errors
       }
@@ -595,7 +585,7 @@ const CampaignChatPage = () => {
       useChatStore.getState().loadMessages(savedMessages);
     }
 
-    const editorDataRaw = localStorage.getItem(`paid-media-suite:editor:${briefId}`);
+    const editorDataRaw = storage.getItem(`paid-media-suite:editor:${briefId}`);
     if (editorDataRaw) {
       try {
         const editorData = JSON.parse(editorDataRaw);
@@ -641,11 +631,11 @@ const CampaignChatPage = () => {
     window.history.replaceState({}, document.title);
   }, [chatSessionReady, location.state]);
 
-  // ---- Load chat sessions from localStorage on mount ----
+  // ---- Load chat sessions from storage on mount ----
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(CHAT_SESSIONS_KEY);
+      const saved = storage.getItem(CHAT_SESSIONS_KEY);
       if (saved) {
         const sessions: ChatSession[] = JSON.parse(saved).map((s: ChatSession & { timestamp: string }) => ({
           ...s,
@@ -716,7 +706,7 @@ const CampaignChatPage = () => {
 
   const saveChatSessions = (sessions: ChatSession[]) => {
     try {
-      localStorage.setItem(CHAT_SESSIONS_KEY, JSON.stringify(sessions));
+      storage.setItem(CHAT_SESSIONS_KEY, JSON.stringify(sessions));
     } catch (e) {
       console.error('Failed to save chat sessions:', e);
     }
@@ -724,9 +714,9 @@ const CampaignChatPage = () => {
 
   const saveMessagesForSession = (sessionId: string, msgs: ChatMessage[]) => {
     try {
-      const allMessages = JSON.parse(localStorage.getItem(CHAT_MESSAGES_KEY) || '{}');
+      const allMessages = JSON.parse(storage.getItem(CHAT_MESSAGES_KEY) || '{}');
       allMessages[sessionId] = msgs;
-      localStorage.setItem(CHAT_MESSAGES_KEY, JSON.stringify(allMessages));
+      storage.setItem(CHAT_MESSAGES_KEY, JSON.stringify(allMessages));
     } catch (e) {
       console.error('Failed to save messages:', e);
     }
@@ -734,7 +724,7 @@ const CampaignChatPage = () => {
 
   const loadMessagesForSession = (sessionId: string): ChatMessage[] => {
     try {
-      const allMessages = JSON.parse(localStorage.getItem(CHAT_MESSAGES_KEY) || '{}');
+      const allMessages = JSON.parse(storage.getItem(CHAT_MESSAGES_KEY) || '{}');
       const sessionMessages = allMessages[sessionId] || [];
       return sessionMessages.map((m: ChatMessage & { timestamp: string }) => ({
         ...m,
@@ -901,7 +891,7 @@ const CampaignChatPage = () => {
       creativeMix: false,
     });
 
-    // Load from localStorage
+    // Load from storage
     const loadedMessages = loadMessagesForSession(session.id);
     useChatStore.setState({ messages: loadedMessages as any });
 
@@ -971,35 +961,9 @@ const CampaignChatPage = () => {
 
       setAttachedFiles((prev) => [...prev, attachedFile]);
 
-      // Auto-extract PDF text via IPC
-      if (file.type === 'application/pdf' && window.aiSuites?.pdf) {
-        try {
-          const base64 = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => {
-              const result = reader.result as string;
-              resolve(result.split(',')[1]);
-            };
-            reader.onerror = reject;
-          });
-
-          const result = await window.aiSuites.pdf.extract(base64, file.name);
-          if (result.success && result.text) {
-            // Store extracted text for sending with the message
-            attachedFile.base64Data = result.text;
-            attachedFile.preview = `Extracted ${result.text.length} characters from ${file.name}`;
-            setAttachedFiles((prev) =>
-              prev.map((f) => (f.id === attachedFile.id ? { ...f, base64Data: result.text, preview: attachedFile.preview } : f))
-            );
-            setToast({ message: `PDF text extracted from ${file.name}`, type: 'success' });
-          } else {
-            setToast({ message: result.error || 'Failed to extract PDF text', type: 'warning' });
-          }
-        } catch (err) {
-          console.error('PDF extraction failed:', err);
-          setToast({ message: 'PDF extraction failed', type: 'warning' });
-        }
+      // PDF extraction removed — feature not available in browser-only mode
+      if (file.type === 'application/pdf') {
+        setToast({ message: 'PDF extraction is not available in this version', type: 'warning' });
       }
     }
 
