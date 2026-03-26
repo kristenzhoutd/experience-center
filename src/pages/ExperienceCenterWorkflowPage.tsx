@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Check, Sparkles, ArrowRight,
@@ -7,7 +7,37 @@ import {
   Target, Lightbulb, TrendingUp, Shield,
   Loader2, Pencil, Presentation, ChevronDown, Share2, X,
 } from 'lucide-react';
-import SplitPaneLayout from '../components/campaign/SplitPaneLayout';
+// Minimal inline SplitPaneLayout replacement (original was deleted with campaign components)
+function SplitPaneLayout({ children, initialLeftWidth = 35, collapsed, onToggleCollapse }: {
+  children: React.ReactNode[];
+  initialLeftWidth?: number;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+}) {
+  const kids = React.Children.toArray(children);
+  return (
+    <div className="flex flex-1 overflow-hidden h-full gap-2">
+      {!collapsed ? (
+        <div className="overflow-y-auto" style={{ width: `${initialLeftWidth}%`, minWidth: 280 }}>
+          {kids[0]}
+        </div>
+      ) : (
+        <button
+          onClick={onToggleCollapse}
+          className="w-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors flex-shrink-0"
+          title="Expand chat"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      )}
+      <div className="flex-1 overflow-hidden">
+        {kids[1]}
+      </div>
+    </div>
+  );
+}
 import { useExperienceLabStore, type FlowStep, type OutputData } from '../stores/experienceLabStore';
 import { goals, industries, scenarios, generationSteps, refinementGenerationSteps, getDefaultInputs, getRefinementChips, getIndustriesForOutcome, getScenariosForOutcome, type ScenarioOption, type RefinementChip } from '../data/experienceLabConfig';
 import { generateExperienceLabOutput } from '../services/experienceLabOutputs';
