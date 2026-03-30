@@ -19,7 +19,7 @@ const STORAGE_KEY = 'ai-suites-api-key';
 const TDX_STORAGE_KEY = 'ai-suites-tdx-api-key';
 
 function getSavedApiKey(): string {
-  try { return storage.getItem(STORAGE_KEY) || ''; } catch { return ''; }
+  try { return import.meta.env.VITE_SANDBOX_API_KEY || storage.getItem(STORAGE_KEY) || ''; } catch { return import.meta.env.VITE_SANDBOX_API_KEY || ''; }
 }
 
 function saveApiKey(key: string): void {
@@ -67,147 +67,62 @@ async function request<T>(
   return response.json();
 }
 
-// ── SSE Stream Management ──
+// ── Chat API (direct Messages API, no Agent SDK) ──
 
-type StreamCallback = (event: unknown) => void;
-let activeSSE: EventSource | null = null;
-let activeStreamCallbacks: StreamCallback[] = [];
-let currentSessionId: string | null = null;
-
-// ── Chat API (SSE-based streaming) ──
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 const CHATS_STORAGE_KEY = 'ai-suites:saved-chats';
+const CHAT_HISTORY_KEY = 'ai-suites:chat-history';
+
+function getChatHistory(): ChatMessage[] {
+  try {
+    const raw = storage.getItem(CHAT_HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveChatHistory(messages: ChatMessage[]): void {
+  try { storage.setItem(CHAT_HISTORY_KEY, JSON.stringify(messages)); } catch { /* ignore */ }
+}
 
 const chat = {
-  startSession: async (): Promise<{ success: boolean; sessionId?: string; error?: string }> => {
-    // Close any existing SSE connection
-    if (activeSSE) {
-      activeSSE.close();
-      activeSSE = null;
-    }
+  send: async (userMessage: string): Promise<string> => {
+    const history = getChatHistory();
+    history.push({ role: 'user', content: userMessage });
 
-    return new Promise((resolve) => {
-      // Use fetch for the SSE connection since EventSource only supports GET
-      const controller = new AbortController();
-
-      fetch(`${API_BASE}/chat/sessions`, {
-        method: 'POST',
-        headers: getHeaders(),
-        signal: controller.signal,
-      }).then(async (response) => {
-        if (!response.ok) {
-          const data = await response.json();
-          resolve({ success: false, error: data.error || `HTTP ${response.status}` });
-          return;
-        }
-
-        // Get session ID from header
-        const headerSessionId = response.headers.get('X-Session-Id');
-
-        const reader = response.body?.getReader();
-        if (!reader) {
-          resolve({ success: false, error: 'No response body' });
-          return;
-        }
-
-        const decoder = new TextDecoder();
-        let buffer = '';
-        let resolved = false;
-
-        // Store abort controller for cleanup
-        const sseConnection = {
-          close: () => controller.abort(),
-        };
-        activeSSE = sseConnection as unknown as EventSource;
-
-        const pump = async () => {
-          try {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-
-              buffer += decoder.decode(value, { stream: true });
-              const lines = buffer.split('\n');
-              buffer = lines.pop() || '';
-
-              for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                  try {
-                    const event = JSON.parse(line.slice(6));
-
-                    // First event is session_started
-                    if (!resolved && event.type === 'session_started') {
-                      currentSessionId = event.sessionId || headerSessionId;
-                      resolved = true;
-                      resolve({ success: true, sessionId: currentSessionId! });
-                      continue;
-                    }
-
-                    // Forward all other events to stream callbacks
-                    for (const cb of activeStreamCallbacks) {
-                      cb(event);
-                    }
-                  } catch {
-                    // skip malformed JSON
-                  }
-                }
-              }
-            }
-          } catch (err) {
-            if ((err as Error).name !== 'AbortError') {
-              console.error('[WebBackend] SSE stream error:', err);
-            }
-          }
-        };
-
-        pump();
-
-        // If we haven't resolved after 5s with a session_started event,
-        // use the header session ID
-        setTimeout(() => {
-          if (!resolved) {
-            currentSessionId = headerSessionId || `session-${Date.now()}`;
-            resolved = true;
-            resolve({ success: true, sessionId: currentSessionId });
-          }
-        }, 5000);
-      }).catch((err) => {
-        resolve({ success: false, error: err instanceof Error ? err.message : String(err) });
-      });
-    });
-  },
-
-  sendToSession: async (content: string | unknown[]): Promise<{ success: boolean; error?: string }> => {
-    if (!currentSessionId) {
-      return { success: false, error: 'No active session' };
-    }
-    return request(`/chat/sessions/${currentSessionId}/messages`, {
+    const response = await fetch(`${API_BASE}/llm`, {
       method: 'POST',
-      body: { content },
+      headers: getHeaders(),
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4096,
+        system: 'You are a marketing assistant for Treasure Data. Help users with campaign planning, audience targeting, and data-driven marketing strategies.',
+        messages: history,
+      }),
     });
-  },
 
-  stopSession: async (): Promise<void> => {
-    if (currentSessionId) {
-      await request(`/chat/sessions/${currentSessionId}/stop`, { method: 'POST' });
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      throw new Error(`LLM proxy returned HTTP ${response.status}: ${body.substring(0, 200)}`);
     }
-    if (activeSSE) {
-      activeSSE.close();
-      activeSSE = null;
-    }
+
+    const data = await response.json() as { content: Array<{ type: string; text?: string }> };
+    const textBlock = data.content?.find((b: { type: string }) => b.type === 'text');
+    const assistantMessage = textBlock?.text || '';
+
+    history.push({ role: 'assistant', content: assistantMessage });
+    saveChatHistory(history);
+
+    return assistantMessage;
   },
 
-  onStream: (callback: StreamCallback): (() => void) => {
-    activeStreamCallbacks.push(callback);
-    return () => {
-      activeStreamCallbacks = activeStreamCallbacks.filter((cb) => cb !== callback);
-    };
-  },
+  stop: async (): Promise<void> => {},
 
-  // Legacy one-shot (stub)
-  send: async (_message: string): Promise<void> => {},
-  stop: async (): Promise<void> => {
-    await chat.stopSession();
+  clearHistory: (): void => {
+    try { storage.removeItem(CHAT_HISTORY_KEY); } catch { /* ignore */ }
   },
 
   // Chat storage (sessionStorage-backed)

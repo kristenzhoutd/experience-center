@@ -49,6 +49,12 @@ export default function ApiKeySetupModal({ isOpen, onClose }: ApiKeySetupModalPr
 
   if (!isOpen) return null;
 
+  // Skip modal if sandbox API key is embedded at build time
+  if (import.meta.env.VITE_SANDBOX_API_KEY) {
+    onClose();
+    return null;
+  }
+
   const handleSave = async () => {
     if (!apiKey.trim() && !hasStoredApiKey) return;
     setStatus('testing');
@@ -241,8 +247,9 @@ export default function ApiKeySetupModal({ isOpen, onClose }: ApiKeySetupModalPr
   );
 }
 
-/** Check if both API keys are configured */
+/** Check if API keys are configured (sandbox key or user-provided) */
 export function isApiKeyConfigured(): boolean {
+  if (import.meta.env.VITE_SANDBOX_API_KEY) return true;
   try {
     return !!storage.getItem('ai-suites-api-key') && !!storage.getItem('ai-suites-tdx-api-key');
   } catch {

@@ -1,24 +1,17 @@
 /**
  * AI Suites Web Server — Minimal Stateless Proxy
+ *
+ * Only two routes:
+ * - POST /api/llm          — forwards to TD LLM Proxy with TD1 auth header
+ * - POST /api/test-connection — tests the LLM proxy connection
  */
 
 import 'dotenv/config';
-
-// Prevent EPIPE crashes when SDK subprocess pipe closes
-process.on('uncaughtException', (error) => {
-  if (error.message?.includes('EPIPE') || error.message?.includes('write EPIPE')) {
-    console.warn('[Server] EPIPE error suppressed (subprocess pipe closed)');
-    return;
-  }
-  console.error('[Server] Uncaught exception:', error);
-});
 
 import express from 'express';
 import cors from 'cors';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chatRouter } from './routes/chat.js';
-import { initClaudeAgent } from './services/claude-agent.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT || '3001', 10);
@@ -41,9 +34,6 @@ if (APP_PASSWORD) {
     next();
   });
 }
-
-// API routes
-app.use('/api/chat', chatRouter);
 
 // Stateless LLM proxy — forwards to TD LLM Proxy with TD1 auth header
 app.post('/api/llm', async (req, res) => {
@@ -88,9 +78,6 @@ app.post('/api/test-connection', async (req, res) => {
     res.json({ success: false, error: `HTTP ${response.status}: ${body.substring(0, 200)}` });
   } catch (err) { res.json({ success: false, error: `Connection failed: ${err instanceof Error ? err.message : String(err)}` }); }
 });
-
-// Initialize Claude Agent SDK
-initClaudeAgent();
 
 // Export for Vercel serverless
 export { app };

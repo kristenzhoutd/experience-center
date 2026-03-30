@@ -1,6 +1,12 @@
 import { useState, useEffect, ReactNode } from 'react'
 import { storage } from '../utils/storage'
 
+/**
+ * Casual visitor filter — NOT real security.
+ * VITE_APP_PASSWORD is embedded in the JS bundle and extractable by anyone
+ * who inspects the source. This only filters casual visitors, not determined users.
+ * For a public website with a sandbox API key, this is acceptable.
+ */
 const APP_PASSWORD = import.meta.env.VITE_APP_PASSWORD || ''
 const SESSION_KEY = 'app_authenticated_v2'
 
