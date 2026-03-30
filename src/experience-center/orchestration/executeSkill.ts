@@ -1,6 +1,8 @@
 /**
  * Browser-side Skill Execution — calls the LLM proxy and parses structured output.
- * Routes through /api/llm proxy (until TD LLM Proxy supports CORS).
+ *
+ * Routes through /api/llm proxy by default.
+ * Set VITE_LLM_DIRECT=true to call TD LLM Proxy directly (requires CORS support).
  */
 
 import { storage } from '../../utils/storage';
@@ -21,9 +23,11 @@ interface OutputData {
 }
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
+const LLM_DIRECT = import.meta.env.VITE_LLM_DIRECT === 'true';
+const LLM_PROXY_URL = (import.meta.env.VITE_LLM_PROXY_URL || 'https://llm-proxy.us01.treasuredata.com').replace(/\/$/, '');
 
 function getApiKey(): string {
-  return storage.getItem('ai-suites-api-key') || '';
+  return import.meta.env.VITE_SANDBOX_API_KEY || storage.getItem('ai-suites-api-key') || '';
 }
 
 function getModel(): string {
@@ -39,12 +43,19 @@ async function callLLM(systemPrompt: string, userPrompt: string): Promise<string
   const apiKey = getApiKey();
   if (!apiKey) throw new Error('No API key configured. Please set your API key in Settings.');
 
-  const response = await fetch(`${API_BASE}/llm`, {
+  // When VITE_LLM_DIRECT is set, call TD LLM Proxy directly (requires CORS support)
+  const url = LLM_DIRECT ? `${LLM_PROXY_URL}/v1/messages` : `${API_BASE}/llm`;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (LLM_DIRECT) {
+    headers['Authorization'] = `TD1 ${apiKey}`;
+    headers['anthropic-version'] = '2023-06-01';
+  } else {
+    headers['x-api-key'] = apiKey;
+  }
+
+  const response = await fetch(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-    },
+    headers,
     body: JSON.stringify({
       model: getModel(),
       max_tokens: 3000,
