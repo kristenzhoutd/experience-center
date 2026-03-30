@@ -25,7 +25,8 @@ Generate a JSON object matching this schema exactly. Every field is required.
       "name": "string — industry-specific segment name",
       "whyItMatters": "string — why this segment matters for the objective",
       "opportunityLevel": "High | Medium | Low",
-      "suggestedAction": "string — recommended activation tactic"
+      "suggestedAction": "string — recommended activation tactic",
+      "score": "integer 40-95 — opportunity score, High=80-95, Medium=55-75, Low=40-54"
     }
   ],
   "channelStrategy": [
@@ -43,7 +44,7 @@ Generate a JSON object matching this schema exactly. Every field is required.
     ]
   },
   "kpiFramework": [
-    { "type": "Primary | Secondary | Leading Indicator | Optimization", "name": "string", "note": "string" }
+    { "type": "Primary | Secondary | Leading Indicator | Optimization", "name": "string", "note": "string", "trend": "[8 integers 20-80 showing upward trend]" }
   ],
   "nextActions": [
     { "action": "string — specific action", "priority": "Do now | Test next | Scale later" }

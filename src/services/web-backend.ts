@@ -67,62 +67,20 @@ async function request<T>(
   return response.json();
 }
 
-// ── Chat API (direct Messages API, no Agent SDK) ──
-
-interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-}
+// ── Chat API (delegates to chat-client.ts — direct Messages API, no Agent SDK) ──
 
 const CHATS_STORAGE_KEY = 'ai-suites:saved-chats';
-const CHAT_HISTORY_KEY = 'ai-suites:chat-history';
-
-function getChatHistory(): ChatMessage[] {
-  try {
-    const raw = storage.getItem(CHAT_HISTORY_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
-}
-
-function saveChatHistory(messages: ChatMessage[]): void {
-  try { storage.setItem(CHAT_HISTORY_KEY, JSON.stringify(messages)); } catch { /* ignore */ }
-}
 
 const chat = {
   send: async (userMessage: string): Promise<string> => {
-    const history = getChatHistory();
-    history.push({ role: 'user', content: userMessage });
-
-    const response = await fetch(`${API_BASE}/llm`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4096,
-        system: 'You are a marketing assistant for Treasure Data. Help users with campaign planning, audience targeting, and data-driven marketing strategies.',
-        messages: history,
-      }),
-    });
-
-    if (!response.ok) {
-      const body = await response.text().catch(() => '');
-      throw new Error(`LLM proxy returned HTTP ${response.status}: ${body.substring(0, 200)}`);
-    }
-
-    const data = await response.json() as { content: Array<{ type: string; text?: string }> };
-    const textBlock = data.content?.find((b: { type: string }) => b.type === 'text');
-    const assistantMessage = textBlock?.text || '';
-
-    history.push({ role: 'assistant', content: assistantMessage });
-    saveChatHistory(history);
-
-    return assistantMessage;
+    const { sendChatMessage } = await import('./chat-client');
+    return sendChatMessage(userMessage);
   },
 
   stop: async (): Promise<void> => {},
 
   clearHistory: (): void => {
-    try { storage.removeItem(CHAT_HISTORY_KEY); } catch { /* ignore */ }
+    import('./chat-client').then(({ clearChatHistory }) => clearChatHistory());
   },
 
   // Chat storage (sessionStorage-backed)

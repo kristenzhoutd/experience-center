@@ -52,8 +52,8 @@ function ExecutiveSummaryModule({ output }: ModuleProps) {
 // ── KPI Framework ──
 
 function KpiFrameworkModule({ output }: ModuleProps) {
-  // Generate illustrative sparkline values for each KPI
-  const sparklineData = [
+  // Fallback sparkline values if LLM doesn't generate trend data
+  const fallbackSparklines = [
     [30, 35, 32, 40, 45, 48, 55, 62],
     [20, 22, 25, 23, 28, 30, 35, 38],
     [15, 18, 16, 20, 24, 22, 28, 32],
@@ -80,7 +80,7 @@ function KpiFrameworkModule({ output }: ModuleProps) {
               }`}>
                 {kpi.type}
               </div>
-              <MiniSparkline values={sparklineData[i] || sparklineData[0]} color={sparkColors[i] || 'blue'} height={20} />
+              <MiniSparkline values={(kpi as any).trend || fallbackSparklines[i] || fallbackSparklines[0]} color={sparkColors[i] || 'blue'} height={20} />
             </div>
             <div className="text-sm font-semibold text-gray-900 mb-0.5">{kpi.name}</div>
             <div className="flex items-center gap-2">
@@ -144,7 +144,7 @@ function JourneyMapModule({ output }: ModuleProps) {
 // ── Segment Cards ──
 
 function SegmentCardsModule({ output }: ModuleProps) {
-  const scoreValues = [85, 68, 45];
+  const fallbackScores = [85, 68, 45];
   const scoreColors: Array<'emerald' | 'blue' | 'amber'> = ['emerald', 'blue', 'amber'];
 
   return (
@@ -170,7 +170,7 @@ function SegmentCardsModule({ output }: ModuleProps) {
             <p className="text-xs text-gray-500 mb-2 leading-relaxed">{card.whyItMatters}</p>
             {/* Opportunity score bar */}
             <div className="mb-2">
-              <ScoreBar value={scoreValues[i] || 50} label="Score" color={scoreColors[i] || 'blue'} />
+              <ScoreBar value={(card as any).score || fallbackScores[i] || 50} label="Score" color={scoreColors[i] || 'blue'} />
             </div>
             <p className="text-xs text-blue-600 font-medium">{card.suggestedAction}</p>
           </div>
