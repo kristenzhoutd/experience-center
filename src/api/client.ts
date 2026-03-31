@@ -1,7 +1,6 @@
 import { storage } from '../utils/storage';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
-const APP_PASSWORD = import.meta.env.VITE_APP_PASSWORD || '';
 
 function getStoredKey(key: string): string {
   try { return storage.getItem(key) || ''; } catch { return ''; }
@@ -16,7 +15,6 @@ async function request<T>(endpoint: string, options: { method?: string; body?: a
     method,
     headers: {
       'Content-Type': 'application/json',
-      'x-app-password': APP_PASSWORD,
       ...(apiKey ? { 'x-api-key': apiKey } : {}),
       ...(tdxApiKey ? { 'x-tdx-api-key': tdxApiKey } : {}),
     },

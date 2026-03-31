@@ -9,7 +9,6 @@
 import { storage } from '../utils/storage';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
-const APP_PASSWORD = import.meta.env.VITE_APP_PASSWORD || '';
 
 // ── Local API Key Storage ──
 // On Vercel (serverless), server-side /tmp is ephemeral. We store the
@@ -46,7 +45,6 @@ function clearTdxApiKey(): void {
 
 function getHeaders(): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (APP_PASSWORD) headers['x-app-password'] = APP_PASSWORD;
   const apiKey = getSavedApiKey();
   if (apiKey) headers['x-api-key'] = apiKey;
   const tdxApiKey = getSavedTdxApiKey();

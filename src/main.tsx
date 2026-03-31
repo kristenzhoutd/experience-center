@@ -17,7 +17,6 @@ import '@fontsource/manrope/600.css';
 import '@fontsource/manrope/700.css';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
-import PasswordGate from './components/PasswordGate';
 import './styles/globals.css';
 
 console.log('AI Suites Web - Starting...');
@@ -34,9 +33,7 @@ async function bootstrap() {
   root.render(
     <React.StrictMode>
       <ErrorBoundary>
-        <PasswordGate>
-          <App />
-        </PasswordGate>
+        <App />
       </ErrorBoundary>
     </React.StrictMode>
   );
