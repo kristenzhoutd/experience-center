@@ -87,6 +87,24 @@ function parseOutput(raw: string): OutputData {
   for (const field of required) {
     if (!(field in parsed)) throw new Error(`Missing required field: ${field}`);
   }
+
+  // Ensure array fields are actually arrays (LLM may return objects)
+  const arrayFields = ['audienceCards', 'channelStrategy', 'kpiFramework', 'nextActions'] as const;
+  for (const field of arrayFields) {
+    if (!Array.isArray(parsed[field])) {
+      parsed[field] = [];
+    }
+  }
+  // Ensure nested arrays
+  if (parsed.insightPanel) {
+    if (!Array.isArray(parsed.insightPanel.businessImpact)) parsed.insightPanel.businessImpact = [];
+    if (!Array.isArray(parsed.insightPanel.whatChanged)) parsed.insightPanel.whatChanged = [];
+    if (!Array.isArray(parsed.insightPanel.howTreasureHelps)) parsed.insightPanel.howTreasureHelps = [];
+  }
+  if (parsed.scenarioCore && !Array.isArray(parsed.scenarioCore.sections)) {
+    parsed.scenarioCore.sections = [];
+  }
+
   return parsed as OutputData;
 }
 
