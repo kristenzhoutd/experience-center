@@ -22,6 +22,14 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
+// Runtime config — serves API key to the client at runtime
+// (VITE_ env vars only work at Vite build time; this endpoint provides them at runtime for Docker deploys)
+app.get('/api/config', (_req, res) => {
+  res.json({
+    sandboxApiKey: process.env.VITE_SANDBOX_API_KEY || process.env.API_KEY || '',
+  });
+});
+
 // Optional password gate
 const APP_PASSWORD = process.env.APP_PASSWORD;
 if (APP_PASSWORD) {
