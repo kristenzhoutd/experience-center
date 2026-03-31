@@ -8,7 +8,6 @@
 import { storage } from '../utils/storage';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
-const APP_PASSWORD = import.meta.env.VITE_APP_PASSWORD || '';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -23,7 +22,6 @@ function getApiKey(): string {
 
 function getHeaders(): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (APP_PASSWORD) headers['x-app-password'] = APP_PASSWORD;
   const apiKey = getApiKey();
   if (apiKey) headers['x-api-key'] = apiKey;
   return headers;

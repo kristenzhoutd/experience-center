@@ -30,18 +30,6 @@ app.get('/api/config', (_req, res) => {
   });
 });
 
-// Optional password gate
-const APP_PASSWORD = process.env.APP_PASSWORD;
-if (APP_PASSWORD) {
-  app.use('/api', (req, res, next) => {
-    const provided = req.headers['x-app-password'] as string;
-    if (provided !== APP_PASSWORD) {
-      res.status(401).json({ success: false, error: 'Invalid password' });
-      return;
-    }
-    next();
-  });
-}
 
 // Stateless LLM proxy — forwards to TD LLM Proxy with TD1 auth header
 app.post('/api/llm', async (req, res) => {

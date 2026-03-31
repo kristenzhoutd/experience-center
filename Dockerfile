@@ -14,10 +14,8 @@ RUN npm install
 # Copy source
 COPY . .
 
-# Build frontend with env vars baked in via build args
-ARG VITE_APP_PASSWORD=TDsuperhuman
+# Build frontend
 ARG VITE_SANDBOX_API_KEY
-ENV VITE_APP_PASSWORD=$VITE_APP_PASSWORD
 ENV VITE_SANDBOX_API_KEY=$VITE_SANDBOX_API_KEY
 RUN npm run build:client
 
