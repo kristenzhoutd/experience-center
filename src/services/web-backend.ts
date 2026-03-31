@@ -31,7 +31,7 @@ function clearApiKey(): void {
 }
 
 function getSavedTdxApiKey(): string {
-  try { return storage.getItem(TDX_STORAGE_KEY) || ''; } catch { return ''; }
+  try { return storage.getItem(TDX_STORAGE_KEY) || import.meta.env.VITE_SANDBOX_API_KEY || ''; } catch { return import.meta.env.VITE_SANDBOX_API_KEY || ''; }
 }
 
 function saveTdxApiKey(key: string): void {
