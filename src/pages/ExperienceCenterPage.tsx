@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { TrendingUp, BarChart3, Shield, Lightbulb } from 'lucide-react';
 import { Button } from '@/design-system';
 import ApiKeySetupModal, { isApiKeyConfigured } from '../components/ApiKeySetupModal';
+import BookWalkthroughModal from '../components/BookWalkthroughModal';
 import { useExperienceLabStore } from '../stores/experienceLabStore';
 import { goals } from '../data/experienceLabConfig';
 
@@ -41,6 +42,14 @@ export default function ExperienceCenterPage() {
     const handler = () => setShowApiKeyModal(true);
     window.addEventListener('open-api-key-modal', handler);
     return () => window.removeEventListener('open-api-key-modal', handler);
+  }, []);
+
+  // Listen for booking modal event from nav bar
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  useEffect(() => {
+    const handler = () => setShowBookingModal(true);
+    window.addEventListener('open-booking-modal', handler);
+    return () => window.removeEventListener('open-booking-modal', handler);
   }, []);
 
   useEffect(() => {
@@ -124,6 +133,11 @@ export default function ExperienceCenterPage() {
       <ApiKeySetupModal
         isOpen={showApiKeyModal}
         onClose={() => setShowApiKeyModal(false)}
+      />
+
+      <BookWalkthroughModal
+        isOpen={showBookingModal}
+        onClose={() => setShowBookingModal(false)}
       />
     </div>
   );
