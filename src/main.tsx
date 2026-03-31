@@ -7,7 +7,6 @@
 
 // Initialize backend BEFORE any React code runs
 import { initBackend } from './services/backend';
-initBackend();
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
@@ -23,18 +22,24 @@ import './styles/globals.css';
 
 console.log('AI Suites Web - Starting...');
 
-const rootElement = document.getElementById('root');
-if (!rootElement) {
-  throw new Error('Root element not found');
+async function bootstrap() {
+  await initBackend();
+
+  const rootElement = document.getElementById('root');
+  if (!rootElement) {
+    throw new Error('Root element not found');
+  }
+
+  const root = ReactDOM.createRoot(rootElement);
+  root.render(
+    <React.StrictMode>
+      <ErrorBoundary>
+        <PasswordGate>
+          <App />
+        </PasswordGate>
+      </ErrorBoundary>
+    </React.StrictMode>
+  );
 }
 
-const root = ReactDOM.createRoot(rootElement);
-root.render(
-  <React.StrictMode>
-    <ErrorBoundary>
-      <PasswordGate>
-        <App />
-      </PasswordGate>
-    </ErrorBoundary>
-  </React.StrictMode>
-);
+bootstrap();
