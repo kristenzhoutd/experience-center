@@ -23,6 +23,7 @@ interface OutputData {
 }
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
+const APP_PASSWORD = import.meta.env.VITE_APP_PASSWORD || '';
 const LLM_DIRECT = import.meta.env.VITE_LLM_DIRECT === 'true';
 const LLM_PROXY_URL = (import.meta.env.VITE_LLM_PROXY_URL || 'https://llm-proxy.us01.treasuredata.com').replace(/\/$/, '');
 
@@ -46,6 +47,7 @@ async function callLLM(systemPrompt: string, userPrompt: string): Promise<string
   // When VITE_LLM_DIRECT is set, call TD LLM Proxy directly (requires CORS support)
   const url = LLM_DIRECT ? `${LLM_PROXY_URL}/v1/messages` : `${API_BASE}/llm`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (APP_PASSWORD) headers['x-app-password'] = APP_PASSWORD;
   if (LLM_DIRECT) {
     headers['Authorization'] = `TD1 ${apiKey}`;
     headers['anthropic-version'] = '2023-06-01';
