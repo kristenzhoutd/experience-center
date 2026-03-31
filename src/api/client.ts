@@ -9,8 +9,8 @@ function getStoredKey(key: string): string {
 
 async function request<T>(endpoint: string, options: { method?: string; body?: any } = {}): Promise<T> {
   const { method = 'GET', body } = options;
-  const apiKey = getStoredKey('ai-suites-api-key');
-  const tdxApiKey = getStoredKey('ai-suites-tdx-api-key');
+  const apiKey = getStoredKey('ai-suites-api-key') || import.meta.env.VITE_SANDBOX_API_KEY || '';
+  const tdxApiKey = getStoredKey('ai-suites-tdx-api-key') || import.meta.env.VITE_SANDBOX_API_KEY || '';
 
   const response = await fetch(`${API_BASE}${endpoint}`, {
     method,

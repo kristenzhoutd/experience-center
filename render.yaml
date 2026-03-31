@@ -8,5 +8,7 @@ services:
         value: TDsuperhuman
       - key: VITE_APP_PASSWORD
         value: TDsuperhuman
+      - key: VITE_SANDBOX_API_KEY
+        sync: false
       - key: NODE_ENV
         value: production

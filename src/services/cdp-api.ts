@@ -6,7 +6,7 @@
 import { storage } from '../utils/storage';
 
 function getTdxApiKey(): string {
-  return storage.getItem('ai-suites-tdx-api-key') || '';
+  return storage.getItem('ai-suites-tdx-api-key') || import.meta.env.VITE_SANDBOX_API_KEY || '';
 }
 
 function getCdpEndpoint(): string {
