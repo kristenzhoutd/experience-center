@@ -52,6 +52,7 @@ import SlidePreview from '../experience-center/output-formats/slides/SlidePrevie
 import SlideOutput from '../experience-center/output-formats/slides/SlideOutput';
 import type { DeckConfig, DeckData } from '../experience-center/output-formats/slides/types';
 import ApiKeySetupModal from '../components/ApiKeySetupModal';
+import BookWalkthroughModal from '../components/BookWalkthroughModal';
 
 // ============================================================
 // Icon maps
@@ -171,6 +172,14 @@ export default function ExperienceCenterWorkflowPage() {
     const handler = () => setShowApiKeyModal(true);
     window.addEventListener('open-api-key-modal', handler);
     return () => window.removeEventListener('open-api-key-modal', handler);
+  }, []);
+
+  // Listen for booking modal event from nav bar and floating card
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  useEffect(() => {
+    const handler = () => setShowBookingModal(true);
+    window.addEventListener('open-booking-modal', handler);
+    return () => window.removeEventListener('open-booking-modal', handler);
   }, []);
 
   // Redirect if no goal selected
@@ -778,7 +787,7 @@ export default function ExperienceCenterWorkflowPage() {
                   </div>
                   {visibleOutputSections >= 8 && output && (
                     <div className="absolute bottom-3 right-3 z-10">
-                      <FloatingContextCard output={output} onBook={() => {}} />
+                      <FloatingContextCard output={output} onBook={() => setShowBookingModal(true)} />
                     </div>
                   )}
                 </div>
@@ -892,7 +901,7 @@ export default function ExperienceCenterWorkflowPage() {
                   </div>
                   {visibleOutputSections >= 8 && output && (
                     <div className="absolute bottom-4 right-4 z-10">
-                      <FloatingContextCard output={output} onBook={() => {}} />
+                      <FloatingContextCard output={output} onBook={() => setShowBookingModal(true)} />
                     </div>
                   )}
                 </div>
@@ -970,6 +979,12 @@ export default function ExperienceCenterWorkflowPage() {
       <ApiKeySetupModal
         isOpen={showApiKeyModal}
         onClose={() => setShowApiKeyModal(false)}
+      />
+
+      {/* Book a Walkthrough Modal */}
+      <BookWalkthroughModal
+        isOpen={showBookingModal}
+        onClose={() => setShowBookingModal(false)}
       />
     </div>
   );
