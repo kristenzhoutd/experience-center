@@ -333,3 +333,8 @@ button, a, input, select, textarea {
 .window-no-drag {
   -webkit-app-region: no-drag;
 }
+
+/* ============ Custom Cursor ============ */
+body {
+  cursor: url('/cursor.svg') 4 2, auto;
+}
