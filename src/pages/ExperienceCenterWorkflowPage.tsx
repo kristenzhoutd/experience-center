@@ -654,13 +654,33 @@ export default function ExperienceCenterWorkflowPage() {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* ── Main Layout ── */}
-      <div className="flex-1 overflow-hidden px-4 pb-4 pt-1">
+      <div className="flex-1 overflow-hidden px-4 pb-4 pt-4">
         <div className="h-full flex flex-col rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden bg-white">
-          {/* ── Horizontal Stepper (inside card) ── */}
-          <HorizontalStepper
-            currentStep={currentVisualStep}
-            onStepClick={handleStepperClick}
-          />
+          {/* ── Inline Nav Bar (inside card) ── */}
+          <div className="h-12 px-4 md:px-5 flex items-center flex-shrink-0 border-b border-gray-100">
+            <button
+              onClick={() => navigate('/experience-center')}
+              className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity min-w-0"
+            >
+              <img src="/td-icon.svg" alt="Treasure AI" className="w-6 h-6 flex-shrink-0" />
+              <span className="text-xs font-semibold text-gray-900 truncate" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                Treasure AI Experience Center
+              </span>
+            </button>
+            <div className="flex-1" />
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('open-api-key-modal'))}
+              className="hidden md:flex items-center gap-2 text-[11px] mr-5 cursor-pointer hover:opacity-80 transition-opacity"
+            >
+              <span className="text-xs" style={{ background: 'linear-gradient(90deg, #0082DE, #3C00C0)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 500 }}>Powered by Treasure AI</span>
+            </button>
+            <button
+              onClick={() => setShowBookingModal(true)}
+              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-white bg-gray-900 rounded-full hover:bg-gray-800 transition-colors shadow-sm cursor-pointer"
+            >
+              Book a walkthrough
+            </button>
+          </div>
           {/* Mobile Chat/Output tab bar — always mounted once output exists, never inside a ternary */}
           {hasEverOutput && isMobile && (
             <div className="flex shrink-0 border-b border-gray-100 md:hidden">
@@ -683,7 +703,7 @@ export default function ExperienceCenterWorkflowPage() {
             </div>
           )}
 
-          <div className="flex-1 flex flex-col md:flex-row overflow-hidden pb-3">
+          <div className="flex-1 flex flex-col md:flex-row overflow-hidden pt-3 pb-3">
           {hasEverOutput ? (
             isMobile ? (
               /* Mobile post-output: content area (tabs rendered above) */
@@ -786,7 +806,7 @@ export default function ExperienceCenterWorkflowPage() {
                     )}
                   </div>
                   {visibleOutputSections >= 8 && output && (
-                    <div className="absolute bottom-3 right-3 z-10">
+                    <div className="absolute bottom-1 right-3 z-10">
                       <FloatingContextCard output={output} onBook={() => setShowBookingModal(true)} />
                     </div>
                   )}
@@ -900,7 +920,7 @@ export default function ExperienceCenterWorkflowPage() {
                     )}
                   </div>
                   {visibleOutputSections >= 8 && output && (
-                    <div className="absolute bottom-4 right-4 z-10">
+                    <div className="absolute bottom-1 right-4 z-10">
                       <FloatingContextCard output={output} onBook={() => setShowBookingModal(true)} />
                     </div>
                   )}
