@@ -122,9 +122,14 @@ export async function executeScenarioSkill(scenarioConfig: ScenarioConfig): Prom
     const settings = settingsJson ? JSON.parse(settingsJson) : {};
     let parentSegmentId: string | null = settings.selectedParentSegmentId ?? null;
 
-    // Default retail parent segment when using sandbox key and no explicit selection
-    if (!parentSegmentId && scenarioConfig.industry === 'retail' && import.meta.env.VITE_SANDBOX_API_KEY) {
-      parentSegmentId = '1312648'; // Retail Demo on us01:13232
+    // Default parent segments per industry when using sandbox key and no explicit selection
+    const defaultParentSegments: Record<string, string> = {
+      retail: '1312648',  // Retail Demo on us01:13232
+      travel: '1313380',  // Travel Demo on us01:13232
+      cpg: '1313389',     // CPG Demo on us01:13232
+    };
+    if (!parentSegmentId && import.meta.env.VITE_SANDBOX_API_KEY) {
+      parentSegmentId = defaultParentSegments[scenarioConfig.industry] ?? null;
     }
 
     console.log(`[EC] resolveScenario: industry=${scenarioConfig.industry}, parentSegmentId=${parentSegmentId}`);

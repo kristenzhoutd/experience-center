@@ -128,7 +128,7 @@ export async function fetchRetailMetrics(): Promise<{ success: boolean; data?: R
     const chatId = await createChat(apiKey);
     console.log('[llm-chat-api] Chat created:', chatId);
 
-    const query = 'Join master_customers with rfm_scores, loyalty_members, online_orders, and instore_transactions. ' +
+    const query = 'Join master_customers with rfm_scores, loyalty_members, online_orders, and instore_transactions in the retail_demo database. ' +
       'Return as a single JSON object with these exact keys: ' +
       'total_customers (count), avg_clv (avg predicted CLV), ' +
       'loyalty_tier_counts (object with tier name keys and count values), ' +
@@ -164,6 +164,164 @@ export async function fetchRetailMetrics(): Promise<{ success: boolean; data?: R
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.warn('[llm-chat-api] Failed to fetch metrics:', message);
+    return { success: false, error: message };
+  }
+}
+
+export interface TravelMetrics {
+  totalGuests: number;
+  avgBookingValue: number;
+  rebookingRate: number;
+  loyaltyTierCounts: Record<string, number>;
+  cabinPreferences: Record<string, number>;
+  churnRiskDistribution: Record<string, number>;
+  emailOpenRate: number;
+  emailClickRate: number;
+  avgAncillarySpend: number;
+  ancillaryAttachRate: number;
+  avgReviewRating: number;
+  bookingCompletionRate: number;
+  cancellationRate: number;
+}
+
+/**
+ * Fetch live travel metrics from the database via the Chat API + PlazmaQueryTool.
+ */
+export async function fetchTravelMetrics(): Promise<{ success: boolean; data?: TravelMetrics; error?: string }> {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    return { success: false, error: 'No API key configured' };
+  }
+
+  try {
+    console.log('[llm-chat-api] Creating chat session for travel metrics...');
+    const chatId = await createChat(apiKey);
+
+    const query = 'Query the travel_demo database. ' +
+      'From master_customers: count total guests, count by loyalty_tier, count by preferred_cabin, count by churn_risk. ' +
+      'From bookings: average amount, rebooking rate (customers with more than 1 booking / total unique bookers), count by booking_status as percentages. ' +
+      'From email_events: open rate (Opened count / Sent count), click rate (Clicked count / Sent count). ' +
+      'From ancillary_purchases: average amount, attach rate (unique purchasers / total guests). ' +
+      'From reviews: average rating. ' +
+      'Return as a single JSON object with these exact keys: ' +
+      'total_guests, avg_booking_value, rebooking_rate (decimal 0-1), ' +
+      'loyalty_tier_counts (object), cabin_preferences (object), churn_risk_distribution (object), ' +
+      'email_open_rate (decimal 0-1), email_click_rate (decimal 0-1), ' +
+      'avg_ancillary_spend, ancillary_attach_rate (decimal 0-1), avg_review_rating, ' +
+      'booking_completion_rate (decimal 0-1), cancellation_rate (decimal 0-1). ' +
+      'Return ONLY the JSON object, no explanation.';
+
+    console.log('[llm-chat-api] Sending travel query...');
+    const response = await sendMessage(chatId, query, apiKey);
+    console.log('[llm-chat-api] Travel response received, parsing...');
+
+    const parsed = extractJson(response);
+    if (!parsed) {
+      return { success: false, error: 'Could not parse JSON from agent response' };
+    }
+
+    const metrics: TravelMetrics = {
+      totalGuests: Number(parsed.total_guests) || 1000,
+      avgBookingValue: Number(parsed.avg_booking_value) || 0,
+      rebookingRate: Number(parsed.rebooking_rate) || 0,
+      loyaltyTierCounts: (parsed.loyalty_tier_counts as Record<string, number>) || {},
+      cabinPreferences: (parsed.cabin_preferences as Record<string, number>) || {},
+      churnRiskDistribution: (parsed.churn_risk_distribution as Record<string, number>) || {},
+      emailOpenRate: Number(parsed.email_open_rate) || 0,
+      emailClickRate: Number(parsed.email_click_rate) || 0,
+      avgAncillarySpend: Number(parsed.avg_ancillary_spend) || 0,
+      ancillaryAttachRate: Number(parsed.ancillary_attach_rate) || 0,
+      avgReviewRating: Number(parsed.avg_review_rating) || 0,
+      bookingCompletionRate: Number(parsed.booking_completion_rate) || 0,
+      cancellationRate: Number(parsed.cancellation_rate) || 0,
+    };
+
+    console.log('[llm-chat-api] Travel metrics parsed:', metrics);
+    return { success: true, data: metrics };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn('[llm-chat-api] Failed to fetch travel metrics:', message);
+    return { success: false, error: message };
+  }
+}
+
+export interface CpgMetrics {
+  totalHouseholds: number;
+  avgBasketSize: number;
+  avgPurchaseAmount: number;
+  activeBuyers: number;
+  buyerPenetration: number;
+  brandLoyaltyDistribution: Record<string, number>;
+  priceSensitivityDistribution: Record<string, number>;
+  promoRate: number;
+  couponRedemptionRate: number;
+  avgDiscount: number;
+  emailOpenRate: number;
+  emailClickRate: number;
+  lapsedRate: number;
+  avgCSAT: number;
+}
+
+/**
+ * Fetch live CPG metrics from the database via the Chat API + PlazmaQueryTool.
+ */
+export async function fetchCpgMetrics(): Promise<{ success: boolean; data?: CpgMetrics; error?: string }> {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    return { success: false, error: 'No API key configured' };
+  }
+
+  try {
+    console.log('[llm-chat-api] Creating chat session for CPG metrics...');
+    const chatId = await createChat(apiKey);
+
+    const query = 'Query the cpg_demo database. ' +
+      'From master_customers: count total households, average avg_basket_size, count by brand_loyalty, count by price_sensitivity, percentage where lapsed is Yes. ' +
+      'From purchases: average amount, count distinct buyers, percentage where on_promotion is Yes. ' +
+      'From coupon_redemptions: redemption rate (redeemed Yes count / total count), average discount_amount. ' +
+      'From email_events: open rate (Opened count / Sent count), click rate (Clicked count / Sent count). ' +
+      'From support_tickets: average csat_score. ' +
+      'Return as a single JSON object with these exact keys: ' +
+      'total_households, avg_basket_size, avg_purchase_amount, active_buyers, ' +
+      'buyer_penetration (active_buyers/total_households as decimal 0-1), ' +
+      'brand_loyalty_distribution (object with High/Medium/Low/Switcher keys and counts), ' +
+      'price_sensitivity_distribution (object with Low/Medium/High keys and counts), ' +
+      'promo_rate (decimal 0-1), coupon_redemption_rate (decimal 0-1), avg_discount, ' +
+      'email_open_rate (decimal 0-1), email_click_rate (decimal 0-1), ' +
+      'lapsed_rate (decimal 0-1), avg_csat. ' +
+      'Return ONLY the JSON object, no explanation.';
+
+    console.log('[llm-chat-api] Sending CPG query...');
+    const response = await sendMessage(chatId, query, apiKey);
+    console.log('[llm-chat-api] CPG response received, parsing...');
+
+    const parsed = extractJson(response);
+    if (!parsed) {
+      return { success: false, error: 'Could not parse JSON from agent response' };
+    }
+
+    const metrics: CpgMetrics = {
+      totalHouseholds: Number(parsed.total_households) || 1000,
+      avgBasketSize: Number(parsed.avg_basket_size) || 0,
+      avgPurchaseAmount: Number(parsed.avg_purchase_amount) || 0,
+      activeBuyers: Number(parsed.active_buyers) || 0,
+      buyerPenetration: Number(parsed.buyer_penetration) || 0,
+      brandLoyaltyDistribution: (parsed.brand_loyalty_distribution as Record<string, number>) || {},
+      priceSensitivityDistribution: (parsed.price_sensitivity_distribution as Record<string, number>) || {},
+      promoRate: Number(parsed.promo_rate) || 0,
+      couponRedemptionRate: Number(parsed.coupon_redemption_rate) || 0,
+      avgDiscount: Number(parsed.avg_discount) || 0,
+      emailOpenRate: Number(parsed.email_open_rate) || 0,
+      emailClickRate: Number(parsed.email_click_rate) || 0,
+      lapsedRate: Number(parsed.lapsed_rate) || 0,
+      avgCSAT: Number(parsed.avg_csat) || 0,
+    };
+
+    console.log('[llm-chat-api] CPG metrics parsed:', metrics);
+    return { success: true, data: metrics };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn('[llm-chat-api] Failed to fetch CPG metrics:', message);
     return { success: false, error: message };
   }
 }

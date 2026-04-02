@@ -3,7 +3,11 @@ import type { ScenarioConfig, IndustryContext } from '../types';
 export function buildInsightSummaryPrompt(scenario: ScenarioConfig, industry: IndustryContext): string {
   const isLive = industry.sampleDataContext.includes('live data from');
   const dataLabel = isLive ? 'Live CDP Data' : 'Sample Data';
-  const dataInstructions = isLive ? `
+
+  let dataInstructions = '';
+  if (isLive) {
+    if (industry.id === 'retail') {
+      dataInstructions = `
 
 ### Data-Driven Insight Requirements
 - Surface specific anomalies or opportunities from the real metrics (e.g., the gap between online $396 and in-store $253 avg order value)
@@ -11,7 +15,29 @@ export function buildInsightSummaryPrompt(scenario: ScenarioConfig, industry: In
 - Use real churn risk data (31.4% High) to frame urgency of retention insights
 - Cite email engagement metrics (68% open, 29.2% CTR) as evidence for channel effectiveness insights
 - Compare loyalty tier sizes to identify tier migration opportunities
-- Present findings as data-backed discoveries, not generic observations` : '';
+- Present findings as data-backed discoveries, not generic observations`;
+    } else if (industry.id === 'travel') {
+      dataInstructions = `
+
+### Data-Driven Insight Requirements
+- Surface gap between rebooking rate and churn risk as a retention insight
+- Reference ancillary attach rate as a revenue opportunity pattern
+- Use loyalty tier distribution to identify tier migration opportunities
+- Cite email click rate vs open rate for engagement gap insights
+- Compare cabin preferences to loyalty tiers for premium conversion patterns
+- Present review rating trends as satisfaction signals`;
+    } else if (industry.id === 'cpg') {
+      dataInstructions = `
+
+### Data-Driven Insight Requirements
+- Surface gap between buyer penetration and brand loyalty High as a loyalty conversion opportunity
+- Reference coupon redemption rate vs promo rate for promotional efficiency insights
+- Use price sensitivity distribution to identify premium migration opportunities
+- Cite lapsed rate alongside brand switcher rate for at-risk patterns
+- Compare email engagement to coupon source distribution for channel effectiveness
+- Present CSAT alongside support category distribution for VoC insights`;
+    }
+  }
 
   return `You are generating a Business Insight Summary for the Treasure AI Experience Center.
 

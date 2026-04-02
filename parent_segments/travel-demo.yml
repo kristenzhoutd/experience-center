@@ -1,0 +1,124 @@
+name: Travel Demo
+
+master:
+  database: travel_demo
+  table: master_customers
+
+schedule:
+  type: daily
+  time: 04:00:00
+  timezone: America/Los_Angeles
+
+attributes:
+  - name: Loyalty Account
+    source:
+      database: travel_demo
+      table: loyalty_accounts
+    join:
+      parent_key: customer_id
+      child_key: customer_id
+    columns:
+      - column: loyalty_id
+        type: string
+        label: Loyalty ID
+      - column: tier_status
+        type: string
+        label: Tier Status
+      - column: points_balance
+        type: number
+        label: Points Balance
+      - column: points_expiry_date
+        type: string
+        label: Points Expiry Date
+      - column: tier_qualification_date
+        type: string
+        label: Tier Qualification Date
+
+behaviors:
+  - name: Bookings
+    source:
+      database: travel_demo
+      table: bookings
+    join:
+      parent_key: customer_id
+      child_key: customer_id
+    columns:
+      - column: booking_id
+        type: string
+        label: Booking ID
+      - column: booking_type
+        type: string
+        label: Booking Type
+      - column: destination
+        type: string
+        label: Destination
+      - column: amount
+        type: number
+        label: Amount
+      - column: booking_status
+        type: string
+        label: Booking Status
+      - column: booking_channel
+        type: string
+        label: Booking Channel
+    default_time_filter: true
+  - name: Email Events
+    source:
+      database: travel_demo
+      table: email_events
+    join:
+      parent_key: customer_id
+      child_key: customer_id
+    columns:
+      - column: campaign_id
+        type: string
+        label: Campaign ID
+      - column: event_type
+        type: string
+        label: Event Type
+      - column: campaign_name
+        type: string
+        label: Campaign Name
+    default_time_filter: true
+  - name: Ancillary Purchases
+    source:
+      database: travel_demo
+      table: ancillary_purchases
+    join:
+      parent_key: customer_id
+      child_key: customer_id
+    columns:
+      - column: purchase_id
+        type: string
+        label: Purchase ID
+      - column: item_type
+        type: string
+        label: Item Type
+      - column: amount
+        type: number
+        label: Amount
+      - column: associated_booking_id
+        type: string
+        label: Associated Booking ID
+    default_time_filter: true
+  - name: Reviews
+    source:
+      database: travel_demo
+      table: reviews
+    join:
+      parent_key: customer_id
+      child_key: customer_id
+    columns:
+      - column: review_id
+        type: string
+        label: Review ID
+      - column: rating
+        type: number
+        label: Rating
+      - column: sentiment
+        type: string
+        label: Sentiment
+      - column: category
+        type: string
+        label: Category
+    default_time_filter: true

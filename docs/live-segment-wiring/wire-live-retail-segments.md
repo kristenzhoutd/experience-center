@@ -41,7 +41,7 @@ The `Retail Demo` parent segment (`id: 1312648`) has:
 - Customer Service (ticket_id, channel, category, priority, status, csat_score)
 - Product Reviews (product_name, rating, sentiment)
 
-**Child Segments:** Currently only `test` (1,000 people) — minimal for now.
+**Child Segments:** VIP Loyalists, Cart Abandoners, Lapsed High-Value, Rising Potentials, Seasonal Shoppers, New Customers (+ `test` which is filtered out).
 
 **Master Table:** `retail_demo.master_customers`
 
@@ -118,17 +118,39 @@ When live data is available, produce an `IndustryContext` where:
 
 **`sampleSegments`**: Use the live child segments if there are any (mapped to `{ name, description, size, valueLevel }`). If no child segments exist (like now, with just `test`), keep the hardcoded `sampleSegments` from `retailContext` — they represent realistic demo segments. Do NOT replace with a single meaningless `test` segment.
 
-**`sampleMetrics`**: Keep hardcoded from `retailContext` — the CDP API doesn't return metric values, only schema. The hardcoded values ($87 AOV, 34% repeat purchase rate, etc.) are realistic and should stay.
+**`sampleMetrics`**: Replace with real metrics queried from the `retail_demo` database:
+- `avgOrderValueOnline`: '$396'
+- `avgOrderValueInStore`: '$253'
+- `repeatPurchaseRate`: '86.6%'
+- `customerLifetimeValue`: '$7,589'
+- `cartAbandonmentRate`: '38%'
+- `avgAbandonedCartValue`: '$319'
+- `emailOpenRate`: '68%'
+- `emailClickThroughRate`: '29.2%'
+- `conversionRate`: '3.2%'
+- `totalCustomers`: '1,000'
+- `onlineBuyers`: '886'
+- `inStoreBuyers`: '846'
+- `loyaltyMembers`: '804'
+- `loyaltyOptInRate`: '80.4%'
+- `churnRiskHigh`: '31.4%'
+- `churnRiskMedium`: '32.4%'
+- `churnRiskLow`: '36.2%'
 
 **`channelPreferences`**: Derive from the Consents attributes available in the CDP data. The `Retail Demo` has Email, SMS, Push, and Direct Mail consents → map to `['Email', 'SMS', 'Mobile Push', 'Direct Mail', 'Web Personalization']`.
 
-**`sampleDataContext`**: Replace with a live-data-aware string, e.g.:
+**`sampleDataContext`**: Replace with a live-data-aware string including real stats:
 ```
-This analysis uses live data from the Retail Demo CDP audience (Treasure Data account us01:13232).
+This analysis uses live data from the Retail Demo CDP audience (Treasure Data).
 The audience includes {population} customers with {N} attribute groups ({attributes list}) and
-{M} behavioral data sources ({behavior names}). Segments are built from transactional and
-behavioral data including online purchases, in-store transactions, website activity, cart
-abandonment, email engagement, and customer service interactions.
+{M} behavioral data sources ({behavior names}). Key metrics: $396 avg online order value,
+$253 avg in-store order value, 86.6% repeat purchase rate, $7,589 avg predicted CLV, 38% cart
+abandonment rate ($319 avg abandoned cart), 68% email open rate, 29.2% email CTR. Loyalty
+program: 804 members across Bronze (310), Silver (246), Gold (166), Platinum (82). RFM segments:
+Potential Loyalists (122), Hibernating (112), About to Sleep (105), At Risk (103), Recent
+Customers (101), Promising (100), Can't Lose Them (98), Champions (95), Loyal Customers (89),
+Need Attention (75). Churn risk: 36.2% Low, 32.4% Medium, 31.4% High. Top product categories:
+Electronics, Beauty, Clothing, Books, Automotive.
 ```
 
 **`verticalTerminology`**: Keep from `retailContext` — no change needed.
@@ -159,12 +181,19 @@ const { config, industry } = await resolveScenario(scenarioConfig);
 ```
 
 Read `selectedParentSegmentId` from sessionStorage inside `executeScenarioSkill` and pass it to
-`resolveScenario`:
+`resolveScenario`. When no `selectedParentSegmentId` is set and the scenario is retail with
+`VITE_SANDBOX_API_KEY` configured, default to `'1312648'` (Retail Demo on us01:13232):
 
 ```ts
 const settingsJson = storage.getItem('ai-suites:settings');
 const settings = settingsJson ? JSON.parse(settingsJson) : {};
-const parentSegmentId = settings.selectedParentSegmentId ?? null;
+let parentSegmentId: string | null = settings.selectedParentSegmentId ?? null;
+
+// Default retail parent segment when using sandbox key and no explicit selection
+if (!parentSegmentId && scenarioConfig.industry === 'retail' && import.meta.env.VITE_SANDBOX_API_KEY) {
+  parentSegmentId = '1312648'; // Retail Demo on us01:13232
+}
+
 const { config, industry } = await resolveScenario(scenarioConfig, parentSegmentId);
 ```
 
@@ -204,10 +233,12 @@ sessionStorage in the orchestration layer to avoid coupling.
 
 ## Definition of Done
 
-- Running a Retail scenario with `selectedParentSegmentId = '1312648'` in sessionStorage causes
-  the LLM prompt to include live CDP context (attribute groups, behavior sources, population,
-  enriched `sampleDataContext`)
-- Running a Retail scenario with no `selectedParentSegmentId` works exactly as before
+- Running a Retail scenario with `VITE_SANDBOX_API_KEY` set auto-defaults to parent segment
+  `1312648` and the LLM prompt includes live CDP context (attribute groups, behavior sources,
+  population, real metrics, enriched `sampleDataContext`)
+- Running a Retail scenario with explicit `selectedParentSegmentId` in sessionStorage uses that ID
+- Running a Retail scenario with no `selectedParentSegmentId` and no `VITE_SANDBOX_API_KEY` uses
+  hardcoded `retailContext`
 - Running a CPG or Travel scenario is completely unaffected
 - A simulated CDP fetch failure (e.g. wrong key) does not break scenario execution — it falls
   back silently

@@ -3,7 +3,11 @@ import type { ScenarioConfig, IndustryContext } from '../types';
 export function buildJourneyPrompt(scenario: ScenarioConfig, industry: IndustryContext): string {
   const isLive = industry.sampleDataContext.includes('live data from');
   const dataLabel = isLive ? 'Live CDP Data' : 'Sample Data';
-  const dataInstructions = isLive ? `
+
+  let dataInstructions = '';
+  if (isLive) {
+    if (industry.id === 'retail') {
+      dataInstructions = `
 
 ### Data-Driven Journey Requirements
 - Reference actual repeat purchase rate (86.6%) when designing re-engagement triggers
@@ -11,7 +15,29 @@ export function buildJourneyPrompt(scenario: ScenarioConfig, industry: IndustryC
 - Design channel mix based on actual consent data and email performance (68% open rate, 29.2% CTR)
 - Reference RFM segments (Champions, At Risk, Hibernating, etc.) as journey entry/exit criteria
 - Use actual CLV ($7,589) to justify investment in high-value journey stages
-- Ground wait times and touchpoint frequency in real engagement patterns` : '';
+- Ground wait times and touchpoint frequency in real engagement patterns`;
+    } else if (industry.id === 'travel') {
+      dataInstructions = `
+
+### Data-Driven Journey Requirements
+- Use rebooking rate when designing re-engagement triggers
+- Reference churn risk distribution to set journey urgency
+- Design channel mix based on email performance metrics
+- Use loyalty tiers as journey entry/exit criteria
+- Reference ancillary attach rate for upsell journey stages
+- Ground wait times in booking patterns and lead time data`;
+    } else if (industry.id === 'cpg') {
+      dataInstructions = `
+
+### Data-Driven Journey Requirements
+- Use lapsed rate to trigger win-back journeys
+- Reference coupon redemption rate for promotional journey stages
+- Design replenishment triggers using purchase frequency patterns
+- Use brand loyalty levels as journey branching criteria
+- Reference CSAT score for post-purchase satisfaction touchpoints
+- Ground channel mix in email engagement metrics`;
+    }
+  }
 
   return `You are generating a Lifecycle Journey for the Treasure AI Experience Center.
 

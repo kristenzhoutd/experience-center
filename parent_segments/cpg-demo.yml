@@ -1,0 +1,104 @@
+name: CPG Demo
+
+master:
+  database: cpg_demo
+  table: master_customers
+
+schedule:
+  type: daily
+  time: 04:00:00
+  timezone: America/Los_Angeles
+
+behaviors:
+  - name: Purchases
+    source:
+      database: cpg_demo
+      table: purchases
+    join:
+      parent_key: customer_id
+      child_key: customer_id
+    columns:
+      - column: transaction_id
+        type: string
+        label: Transaction ID
+      - column: product_category
+        type: string
+        label: Product Category
+      - column: brand
+        type: string
+        label: Brand
+      - column: retailer_channel
+        type: string
+        label: Retailer Channel
+      - column: amount
+        type: number
+        label: Amount
+      - column: quantity
+        type: number
+        label: Quantity
+      - column: on_promotion
+        type: string
+        label: On Promotion
+  - name: Coupon Redemptions
+    source:
+      database: cpg_demo
+      table: coupon_redemptions
+    join:
+      parent_key: customer_id
+      child_key: customer_id
+    columns:
+      - column: coupon_id
+        type: string
+        label: Coupon ID
+      - column: coupon_type
+        type: string
+        label: Coupon Type
+      - column: source
+        type: string
+        label: Source
+      - column: discount_amount
+        type: number
+        label: Discount Amount
+      - column: redeemed
+        type: string
+        label: Redeemed
+  - name: Email Events
+    source:
+      database: cpg_demo
+      table: email_events
+    join:
+      parent_key: customer_id
+      child_key: customer_id
+    columns:
+      - column: campaign_id
+        type: string
+        label: Campaign ID
+      - column: event_type
+        type: string
+        label: Event Type
+      - column: campaign_name
+        type: string
+        label: Campaign Name
+  - name: Support Tickets
+    source:
+      database: cpg_demo
+      table: support_tickets
+    join:
+      parent_key: customer_id
+      child_key: customer_id
+    columns:
+      - column: ticket_id
+        type: string
+        label: Ticket ID
+      - column: channel
+        type: string
+        label: Channel
+      - column: category
+        type: string
+        label: Category
+      - column: csat_score
+        type: number
+        label: CSAT Score
+      - column: resolved
+        type: string
+        label: Resolved

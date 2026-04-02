@@ -3,7 +3,11 @@ import type { ScenarioConfig, IndustryContext } from '../types';
 export function buildPerformanceAnalysisPrompt(scenario: ScenarioConfig, industry: IndustryContext): string {
   const isLive = industry.sampleDataContext.includes('live data from');
   const dataLabel = isLive ? 'Live CDP Data' : 'Sample Data';
-  const dataInstructions = isLive ? `
+
+  let dataInstructions = '';
+  if (isLive) {
+    if (industry.id === 'retail') {
+      dataInstructions = `
 
 ### Data-Driven Performance Requirements
 - Use real metrics as baselines for diagnosis (e.g., 38% cart abandonment rate, 68% email open rate, 29.2% CTR)
@@ -11,7 +15,29 @@ export function buildPerformanceAnalysisPrompt(scenario: ScenarioConfig, industr
 - Reference actual churn risk segments (31.4% High risk) as performance concerns
 - Use real loyalty opt-in rate (80.4%) and tier distribution as retention performance indicators
 - Ground optimization recommendations in actual conversion rate (3.2%) and CLV ($7,589)
-- Cite specific RFM segments when identifying underperforming or high-opportunity groups` : '';
+- Cite specific RFM segments when identifying underperforming or high-opportunity groups`;
+    } else if (industry.id === 'travel') {
+      dataInstructions = `
+
+### Data-Driven Performance Requirements
+- Use email rates as channel performance baselines
+- Compare booking completion vs cancellation rates for conversion analysis
+- Reference ancillary revenue as upsell performance indicator
+- Use churn risk distribution for retention performance diagnosis
+- Cite review rating for guest satisfaction performance
+- Ground optimization recommendations in rebooking rate`;
+    } else if (industry.id === 'cpg') {
+      dataInstructions = `
+
+### Data-Driven Performance Requirements
+- Use promo rate and coupon redemption rate as promotion performance baselines
+- Reference avg basket vs avg purchase amount for basket composition analysis
+- Use brand loyalty distribution for brand health performance
+- Cite lapsed rate as retention performance concern
+- Reference CSAT score for customer satisfaction diagnosis
+- Ground recommendations in buyer penetration and email rates`;
+    }
+  }
 
   return `You are generating a Performance Analysis for the Treasure AI Experience Center.
 
