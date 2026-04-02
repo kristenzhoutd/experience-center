@@ -6,6 +6,7 @@ export default function Layout() {
   const navigate = useNavigate()
 
   const isSettings = location.pathname === '/settings'
+  const isWorkflow = location.pathname === '/experience-center/workflow'
 
   // Settings page: simple layout with back button
   if (isSettings) {
@@ -44,33 +45,35 @@ export default function Layout() {
           backgroundPosition: 'center',
         }}
       />
-      {/* Top bar */}
-      <div className="h-14 px-4 md:px-6 flex items-center flex-shrink-0 relative z-10 window-drag">
-        <Link
-          to="/experience-center"
-          onClick={(e) => { e.preventDefault(); navigate('/experience-center'); }}
-          className="flex items-center gap-2 md:gap-3 window-no-drag cursor-pointer hover:opacity-80 transition-opacity min-w-0"
-        >
-          <img src="/td-icon.svg" alt="Treasure AI" className="w-7 h-7 md:w-8 md:h-8 flex-shrink-0" />
-          <span className="text-xs md:text-sm font-semibold text-gray-900 truncate" style={{ fontFamily: "'Manrope', sans-serif" }}>
-            Treasure AI Experience Center
-          </span>
-        </Link>
-        <div className="flex-1" />
-        <button
-          onClick={() => window.dispatchEvent(new CustomEvent('open-api-key-modal'))}
-          className="hidden md:flex items-center gap-2 text-[11px] mr-6 window-no-drag cursor-pointer hover:opacity-80 transition-opacity"
-        >
-          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${(() => { try { return !!storage.getItem('ai-suites-api-key') && !!storage.getItem('ai-suites-tdx-api-key'); } catch { return false; } })() ? 'bg-emerald-400' : 'bg-gray-300'}`} />
-          <span style={{ background: 'linear-gradient(90deg, #0082DE, #3C00C0)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 500 }}>Powered by Treasure AI</span>
-        </button>
-        <button
-          onClick={() => window.dispatchEvent(new CustomEvent('open-booking-modal'))}
-          className="flex-shrink-0 flex items-center gap-1.5 px-3 md:px-4 py-1.5 text-[11px] md:text-xs font-semibold text-white bg-gray-900 rounded-full hover:bg-gray-800 transition-colors shadow-sm window-no-drag cursor-pointer"
-        >
-          Book a walkthrough
-        </button>
-      </div>
+      {/* Top bar — hidden on workflow page (nav is inline there) */}
+      {!isWorkflow && (
+        <div className="h-14 px-4 md:px-6 flex items-center flex-shrink-0 relative z-10 window-drag">
+          <Link
+            to="/experience-center"
+            onClick={(e) => { e.preventDefault(); navigate('/experience-center'); }}
+            className="flex items-center gap-2 md:gap-3 window-no-drag cursor-pointer hover:opacity-80 transition-opacity min-w-0"
+          >
+            <img src="/td-icon.svg" alt="Treasure AI" className="w-7 h-7 md:w-8 md:h-8 flex-shrink-0" />
+            <span className="text-xs md:text-sm font-semibold text-gray-900 truncate" style={{ fontFamily: "'Manrope', sans-serif" }}>
+              Treasure AI Experience Center
+            </span>
+          </Link>
+          <div className="flex-1" />
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('open-api-key-modal'))}
+            className="hidden md:flex items-center gap-2 text-[11px] mr-6 window-no-drag cursor-pointer hover:opacity-80 transition-opacity"
+          >
+            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${(() => { try { return !!storage.getItem('ai-suites-api-key') && !!storage.getItem('ai-suites-tdx-api-key'); } catch { return false; } })() ? 'bg-emerald-400' : 'bg-gray-300'}`} />
+            <span style={{ background: 'linear-gradient(90deg, #0082DE, #3C00C0)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 500 }}>Powered by Treasure AI</span>
+          </button>
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('open-booking-modal'))}
+            className="flex-shrink-0 flex items-center gap-1.5 px-3 md:px-4 py-1.5 text-[11px] md:text-xs font-semibold text-white bg-gray-900 rounded-full hover:bg-gray-800 transition-colors shadow-sm window-no-drag cursor-pointer"
+          >
+            Book a walkthrough
+          </button>
+        </div>
+      )}
       {/* Content */}
       <main className="flex-1 overflow-hidden relative z-10">
         <Outlet />
