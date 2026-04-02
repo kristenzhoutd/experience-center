@@ -39,8 +39,8 @@ async function fetchRuntimeConfig(): Promise<void> {
     if (!res.ok) return;
     const { sandboxApiKey } = await res.json();
     if (sandboxApiKey) {
-      if (!storage.getItem('ai-suites-api-key')) storage.setItem('ai-suites-api-key', sandboxApiKey);
-      if (!storage.getItem('ai-suites-tdx-api-key')) storage.setItem('ai-suites-tdx-api-key', sandboxApiKey);
+      storage.setItem('ai-suites-api-key', sandboxApiKey);
+      storage.setItem('ai-suites-tdx-api-key', sandboxApiKey);
     }
   } catch { /* ignore — VITE_SANDBOX_API_KEY may handle it at build time instead */ }
 }

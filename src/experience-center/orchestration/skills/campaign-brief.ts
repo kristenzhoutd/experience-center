@@ -1,6 +1,18 @@
 import type { ScenarioConfig, IndustryContext } from '../types';
 
 export function buildCampaignBriefPrompt(scenario: ScenarioConfig, industry: IndustryContext): string {
+  const isLive = industry.sampleDataContext.includes('live data from');
+  const dataLabel = isLive ? 'Live CDP Data' : 'Sample Data';
+  const dataInstructions = isLive ? `
+
+### Data-Driven Campaign Requirements
+- Define target audience using real segment sizes and actual CLV ($7,589 avg predicted CLV)
+- Use actual channel consent rates from the CDP data for channel strategy
+- Ground budget allocation in real email performance (68% open rate, 29.2% CTR)
+- Reference actual cart abandonment rate (38%, $319 avg abandoned cart) if relevant to the campaign
+- Use real loyalty tier distribution to inform offer strategy (Bronze/Silver/Gold/Platinum)
+- Set KPI targets based on actual baseline metrics, not generic industry benchmarks` : '';
+
   return `You are generating a Campaign Brief for the Treasure AI Experience Center.
 
 ## Scenario
@@ -12,7 +24,7 @@ Primary KPI: ${scenario.kpi}
 Outcome Goal: ${scenario.outcome}
 Industry: ${industry.label}
 
-## Industry Context
+## ${dataLabel} — Industry Context
 ${industry.sampleDataContext}
 
 ### Available Segments
@@ -23,6 +35,7 @@ ${Object.entries(industry.sampleMetrics).map(([k, v]) => `- ${k}: ${v}`).join('\
 
 ### Preferred Channels
 ${industry.channelPreferences.join(', ')}
+${dataInstructions}
 
 ## Output Instructions
 Generate the campaign brief using the scenarioCore sections:
@@ -33,5 +46,5 @@ Generate the campaign brief using the scenarioCore sections:
 5. Timeline — week-by-week or phase-by-phase (typically 6-8 weeks)
 6. Budget Guidance — allocation percentages across channels and phases
 
-Use industry-specific language for ${industry.label}. Reference sample segments by name where relevant.`;
+Use industry-specific language for ${industry.label}. Reference segments by name where relevant.`;
 }

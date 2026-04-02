@@ -1,6 +1,18 @@
 import type { ScenarioConfig, IndustryContext } from '../types';
 
 export function buildPerformanceAnalysisPrompt(scenario: ScenarioConfig, industry: IndustryContext): string {
+  const isLive = industry.sampleDataContext.includes('live data from');
+  const dataLabel = isLive ? 'Live CDP Data' : 'Sample Data';
+  const dataInstructions = isLive ? `
+
+### Data-Driven Performance Requirements
+- Use real metrics as baselines for diagnosis (e.g., 38% cart abandonment rate, 68% email open rate, 29.2% CTR)
+- Compare online ($396 avg) vs in-store ($253 avg) order values to identify channel performance gaps
+- Reference actual churn risk segments (31.4% High risk) as performance concerns
+- Use real loyalty opt-in rate (80.4%) and tier distribution as retention performance indicators
+- Ground optimization recommendations in actual conversion rate (3.2%) and CLV ($7,589)
+- Cite specific RFM segments when identifying underperforming or high-opportunity groups` : '';
+
   return `You are generating a Performance Analysis for the Treasure AI Experience Center.
 
 ## Scenario
@@ -11,7 +23,7 @@ Primary KPI: ${scenario.kpi}
 Outcome Goal: ${scenario.outcome}
 Industry: ${industry.label}
 
-## Industry Context
+## ${dataLabel} — Industry Context
 ${industry.sampleDataContext}
 
 ### Available Segments
@@ -22,6 +34,7 @@ ${Object.entries(industry.sampleMetrics).map(([k, v]) => `- ${k}: ${v}`).join('\
 
 ### Preferred Channels
 ${industry.channelPreferences.join(', ')}
+${dataInstructions}
 
 ## Output Instructions
 Generate performance analysis output:

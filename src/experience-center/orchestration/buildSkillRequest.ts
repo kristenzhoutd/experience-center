@@ -75,13 +75,34 @@ Generate a JSON object matching this schema exactly. Every field is required.
 \`\`\`\`
 `;
 
+function isLiveCdpData(industry: IndustryContext): boolean {
+  return industry.sampleDataContext.includes('live data from');
+}
+
+const LIVE_DATA_INSTRUCTIONS = `
+## Data-Driven Analysis Requirements
+You have access to REAL customer data from the Treasure Data CDP. Your output MUST be grounded in this data:
+- Reference specific metrics by their actual values (e.g., "$396 avg online order value", "86.6% repeat purchase rate")
+- Name specific RFM segments (Champions, Loyal Customers, At Risk, etc.) and their sizes when relevant
+- Use actual loyalty tier distributions (Bronze 310, Silver 246, Gold 166, Platinum 82) in recommendations
+- Ground KPI targets and impact projections in the real baseline metrics — don't invent numbers when real ones are provided
+- Reference actual churn risk distribution (36.2% Low, 32.4% Medium, 31.4% High) when discussing retention
+- In insightPanel.whatChanged, cite specific data points that shaped the recommendation
+- Reference at least 3 specific metrics from the CDP data in your output
+`;
+
 export function buildSkillRequest(scenario: ScenarioConfig, industry: IndustryContext): AssembledRequest {
   const skillPrompt = buildSkillPrompt(scenario.skillFamily, scenario, industry);
+  const usesLiveData = isLiveCdpData(industry);
 
-  const systemPrompt = `You are the Treasure AI Experience Center, generating polished, business-ready recommendations for enterprise marketers. All outputs use sample data and should be framed as illustrative recommendations that showcase Treasure AI capabilities.
+  const dataFraming = usesLiveData
+    ? 'Outputs are grounded in real customer data from the Treasure Data CDP. Generate specific, data-driven insights that reference actual metrics, segments, and behavioral patterns from the data provided.'
+    : 'All outputs use sample data and should be framed as illustrative recommendations that showcase Treasure AI capabilities.';
+
+  const systemPrompt = `You are the Treasure AI Experience Center, generating polished, business-ready recommendations for enterprise marketers. ${dataFraming}
 
 ${skillPrompt}
-
+${usesLiveData ? LIVE_DATA_INSTRUCTIONS : ''}
 ${OUTPUT_SCHEMA_INSTRUCTIONS}`;
 
   const userPrompt = `Generate the output for this scenario now. Output ONLY the JSON code fence.`;
