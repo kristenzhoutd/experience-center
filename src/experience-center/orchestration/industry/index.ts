@@ -4,6 +4,8 @@ import { cpgContext } from './cpg';
 import { travelContext } from './travel';
 import { fetchParentSegmentDetail, fetchChildSegments } from '../../../services/cdp-api';
 import type { ParentSegmentDetail } from '../../../services/cdp-api';
+import { fetchRetailMetrics } from '../../../services/llm-chat-api';
+import type { RetailMetrics } from '../../../services/llm-chat-api';
 
 const industryContexts: Record<string, IndustryContext> = {
   retail: retailContext,
@@ -35,43 +37,84 @@ export async function resolveIndustryContext(
   }
 
   try {
+    // Fetch CDP metadata and live metrics independently
+    // Either can fail without blocking the other
     console.log(`[EC] resolveIndustryContext: fetching live CDP data for parentSegmentId=${parentSegmentId}`);
-    const detailResult = await fetchParentSegmentDetail(parentSegmentId);
-    if (!detailResult.success || !detailResult.data) {
-      console.warn(`[EC] resolveIndustryContext: CDP fetch failed, falling back to hardcoded`, detailResult.error);
+
+    const [detailResult, liveMetrics, sampleSegments] = await Promise.all([
+      fetchParentSegmentDetail(parentSegmentId).catch(() => ({ success: false as const, error: 'CDP fetch failed' })),
+      fetchLiveRetailMetrics(),
+      resolveSampleSegments(parentSegmentId, baseContext),
+    ]);
+
+    // If both CDP and Chat API failed, fall back entirely
+    if ((!detailResult.success || !detailResult.data) && !liveMetrics) {
+      console.warn('[EC] resolveIndustryContext: both CDP and Chat API failed, using hardcoded');
       return baseContext;
     }
-    console.log(`[EC] resolveIndustryContext: CDP fetch succeeded — ${detailResult.data.attributeGroups.length} attribute groups, ${detailResult.data.behaviors.length} behaviors`);
 
-    const detail: ParentSegmentDetail = detailResult.data;
+    // CDP metadata (optional — may be null if CDP is down)
+    const detail = detailResult.success ? detailResult.data as ParentSegmentDetail : null;
+    if (detail) {
+      console.log(`[EC] CDP fetch succeeded — ${detail.attributeGroups.length} attribute groups, ${detail.behaviors.length} behaviors`);
+    } else {
+      console.warn('[EC] CDP fetch failed, continuing with Chat API metrics only');
+    }
 
-    // Derive channel preferences from consent attributes
-    const channelPreferences = deriveChannelPreferences(detail);
+    // Derive channel preferences from CDP consent data (falls back to hardcoded)
+    const channelPreferences = detail ? deriveChannelPreferences(detail) : baseContext.channelPreferences;
 
-    // Determine sample segments: use live child segments only if 2+ with real names
-    const sampleSegments = await resolveSampleSegments(parentSegmentId, baseContext);
+    // Build context string from whichever sources succeeded
+    const attrGroupNames = detail ? detail.attributeGroups.map(g => g.groupName).join(', ') : '';
+    const behaviorNames = detail ? detail.behaviors.map(b => b.name).join(', ') : '';
+    const populationStr = detail?.population != null ? String(detail.population) : 'unknown';
+    const audienceName = detail?.name || 'Retail Demo';
 
-    // Build the enriched sampleDataContext
-    const attrGroupNames = detail.attributeGroups.map(g => g.groupName).join(', ');
-    const behaviorNames = detail.behaviors.map(b => b.name).join(', ');
-    const populationStr = detail.population != null ? String(detail.population) : 'unknown';
+    const loyaltyStr = liveMetrics
+      ? Object.entries(liveMetrics.loyaltyTierCounts).map(([tier, count]) => `${tier} (${count})`).join(', ')
+      : 'Bronze (310), Silver (246), Gold (166), Platinum (82)';
+    const totalLoyalty = liveMetrics
+      ? Object.values(liveMetrics.loyaltyTierCounts).reduce((a, b) => a + b, 0)
+      : 804;
+    const churnStr = liveMetrics
+      ? Object.entries(liveMetrics.churnRiskDistribution).map(([level, count]) => {
+          const pct = ((count / liveMetrics.totalCustomers) * 100).toFixed(1);
+          return `${pct}% ${level}`;
+        }).join(', ')
+      : '36.2% Low, 32.4% Medium, 31.4% High';
+
+    const m = liveMetrics;
+    const avgOnline = m ? `$${m.avgOrderValue.online.toFixed(0)}` : '$396';
+    const avgInstore = m ? `$${m.avgOrderValue.instore.toFixed(0)}` : '$253';
+    const repeatRate = m ? `${(m.repeatPurchaseRate * 100).toFixed(1)}%` : '86.6%';
+    const avgClv = m ? `$${m.avgClv.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}` : '$7,589';
+    const totalCust = m ? m.totalCustomers.toLocaleString() : '1,000';
+
+    const dataSource = liveMetrics ? 'live data' : 'sample data';
+    const cdpInfo = detail
+      ? `The audience includes ${populationStr} customers with ${detail.attributeGroups.length} attribute groups (${attrGroupNames}) and ${detail.behaviors.length} behavioral data sources (${behaviorNames}). `
+      : '';
 
     const sampleDataContext =
-      `This analysis uses live data from the ${detail.name} CDP audience (Treasure Data). ` +
-      `The audience includes ${populationStr} customers with ${detail.attributeGroups.length} attribute groups ` +
-      `(${attrGroupNames}) and ${detail.behaviors.length} behavioral data sources (${behaviorNames}). ` +
-      `Key metrics: $396 avg online order value, $253 avg in-store order value, 86.6% repeat purchase rate, ` +
-      `$7,589 avg predicted CLV, 38% cart abandonment rate ($319 avg abandoned cart), 68% email open rate, ` +
-      `29.2% email CTR. Loyalty program: 804 members across Bronze (310), Silver (246), Gold (166), Platinum (82). ` +
-      `RFM segments: Potential Loyalists (122), Hibernating (112), About to Sleep (105), At Risk (103), ` +
-      `Recent Customers (101), Promising (100), Can't Lose Them (98), Champions (95), Loyal Customers (89), ` +
-      `Need Attention (75). Churn risk: 36.2% Low, 32.4% Medium, 31.4% High. ` +
+      `This analysis uses ${dataSource} from the ${audienceName} CDP audience (Treasure Data). ` +
+      cdpInfo +
+      `Key metrics: ${avgOnline} avg online order value, ${avgInstore} avg in-store order value, ${repeatRate} repeat purchase rate, ` +
+      `${avgClv} avg predicted CLV. ` +
+      `Loyalty program: ${totalLoyalty} members across ${loyaltyStr}. ` +
+      `Churn risk: ${churnStr}. ` +
       `Top product categories: Electronics, Beauty, Clothing, Books, Automotive.`;
 
-    // Real metrics from retail_demo database on us01:13232
-    // Queried from: master_customers, online_orders, instore_transactions,
-    //   abandoned_carts, loyalty_members, rfm_scores, email_events, consents
-    const sampleMetrics: Record<string, string> = {
+    const sampleMetrics: Record<string, string> = m ? {
+      avgOrderValueOnline: avgOnline,
+      avgOrderValueInStore: avgInstore,
+      repeatPurchaseRate: repeatRate,
+      customerLifetimeValue: avgClv,
+      totalCustomers: totalCust,
+      loyaltyMembers: String(totalLoyalty),
+      churnRiskHigh: `${((m.churnRiskDistribution['High'] || 0) / m.totalCustomers * 100).toFixed(1)}%`,
+      churnRiskMedium: `${((m.churnRiskDistribution['Medium'] || 0) / m.totalCustomers * 100).toFixed(1)}%`,
+      churnRiskLow: `${((m.churnRiskDistribution['Low'] || 0) / m.totalCustomers * 100).toFixed(1)}%`,
+    } : {
       avgOrderValueOnline: '$396',
       avgOrderValueInStore: '$253',
       repeatPurchaseRate: '86.6%',
@@ -174,5 +217,24 @@ async function resolveSampleSegments(
     }));
   } catch {
     return baseContext.sampleSegments;
+  }
+}
+
+/**
+ * Fetch live retail metrics from the database via Chat API + PlazmaQueryTool.
+ * Returns null on failure (caller falls back to hardcoded metrics).
+ */
+async function fetchLiveRetailMetrics(): Promise<RetailMetrics | null> {
+  try {
+    const result = await fetchRetailMetrics();
+    if (result.success && result.data) {
+      console.log('[EC] Live retail metrics fetched successfully');
+      return result.data;
+    }
+    console.warn('[EC] Live metrics fetch failed, using hardcoded:', result.error);
+    return null;
+  } catch {
+    console.warn('[EC] Live metrics fetch error, using hardcoded');
+    return null;
   }
 }
