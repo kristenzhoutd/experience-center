@@ -104,6 +104,90 @@ export async function fetchParentSegments(): Promise<{ success: boolean; data?: 
   }
 }
 
+export interface ParentSegmentDetail {
+  id: string;
+  name: string;
+  population: number | null;
+  masterTable: string | null;
+  attributeGroups: Array<{
+    groupName: string;
+    attributes: Array<{ name: string; type: string; column: string }>;
+  }>;
+  behaviors: Array<{
+    name: string;
+    fields: Array<{ name: string; type: string }>;
+  }>;
+}
+
+export async function fetchParentSegmentDetail(parentId: string): Promise<{ success: boolean; data?: ParentSegmentDetail; error?: string }> {
+  const apiKey = getTdxApiKey();
+  if (!apiKey) {
+    return { success: false, error: 'TDX API key is not configured.' };
+  }
+
+  const baseUrl = getCdpEndpoint();
+  try {
+    const response = await tdApiGet(
+      `/audiences/${encodeURIComponent(parentId)}`,
+      apiKey,
+      baseUrl
+    );
+
+    if (response.statusCode >= 400) {
+      return {
+        success: false,
+        error: `Failed to fetch parent segment detail (HTTP ${response.statusCode})`,
+      };
+    }
+
+    const data: any = JSON.parse(response.body);
+
+    const population: number | null = data.population ?? null;
+    const masterTable: string | null = data.master?.parentTableName ?? null;
+
+    // Group attributes by groupingName
+    const attrsByGroup = new Map<string, Array<{ name: string; type: string; column: string }>>();
+    const rawAttrs: any[] = Array.isArray(data.attributes) ? data.attributes : [];
+    for (const attr of rawAttrs) {
+      const groupName: string = attr.groupingName || 'Ungrouped';
+      if (!attrsByGroup.has(groupName)) {
+        attrsByGroup.set(groupName, []);
+      }
+      attrsByGroup.get(groupName)!.push({
+        name: attr.name ?? '',
+        type: attr.type ?? 'string',
+        column: attr.parentColumn ?? '',
+      });
+    }
+    const attributeGroups = Array.from(attrsByGroup.entries()).map(([groupName, attributes]) => ({
+      groupName,
+      attributes,
+    }));
+
+    // Map behaviors to name + schema fields
+    const rawBehaviors: any[] = Array.isArray(data.behaviors) ? data.behaviors : [];
+    const behaviors = rawBehaviors.map((beh: any) => ({
+      name: beh.name ?? '',
+      fields: Array.isArray(beh.schema)
+        ? beh.schema.map((f: any) => ({ name: f.name ?? '', type: f.type ?? 'string' }))
+        : [],
+    }));
+
+    const detail: ParentSegmentDetail = {
+      id: String(data.id ?? parentId),
+      name: data.name ?? '',
+      population,
+      masterTable,
+      attributeGroups,
+      behaviors,
+    };
+
+    return { success: true, data: detail };
+  } catch {
+    return { success: false, error: 'Failed to fetch parent segment detail from Treasure Data' };
+  }
+}
+
 export async function fetchChildSegments(parentId: string): Promise<{ success: boolean; data?: ChildSegment[]; error?: string }> {
   const apiKey = getTdxApiKey();
   if (!apiKey) {
