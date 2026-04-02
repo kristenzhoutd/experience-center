@@ -118,7 +118,18 @@ export type ExecutionResult = {
 export async function executeScenarioSkill(scenarioConfig: ScenarioConfig): Promise<ExecutionResult> {
   const start = Date.now();
   try {
-    const { config, industry } = resolveScenario(scenarioConfig);
+    const settingsJson = storage.getItem('ai-suites:settings');
+    const settings = settingsJson ? JSON.parse(settingsJson) : {};
+    let parentSegmentId: string | null = settings.selectedParentSegmentId ?? null;
+
+    // Default retail parent segment when using sandbox key and no explicit selection
+    if (!parentSegmentId && scenarioConfig.industry === 'retail' && import.meta.env.VITE_SANDBOX_API_KEY) {
+      parentSegmentId = '1312648'; // Retail Demo on us01:13232
+    }
+
+    console.log(`[EC] resolveScenario: industry=${scenarioConfig.industry}, parentSegmentId=${parentSegmentId}`);
+    const { config, industry } = await resolveScenario(scenarioConfig, parentSegmentId);
+    console.log(`[EC] industryContext resolved: sampleDataContext=${industry.sampleDataContext.substring(0, 80)}...`);
     const { systemPrompt, userPrompt } = buildSkillRequest(config, industry);
     const rawResponse = await callLLM(systemPrompt, userPrompt);
     const outputData = parseOutput(rawResponse);
