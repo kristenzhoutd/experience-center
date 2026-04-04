@@ -45,7 +45,8 @@ import { experienceCenterApi } from '../api/client';
 import { getScenarioConfig } from '../experience-center/registry/scenarioRegistry';
 import { skillFamilies } from '../experience-center/registry/skillFamilies';
 import SkillProgressBlock, { type ProgressStep } from '../experience-center/output-formats/SkillProgressBlock';
-import { ModularOutputRenderer } from '../experience-center/output-formats/modules';
+import { ModularOutputRenderer, moduleRegistry } from '../experience-center/output-formats/modules';
+import { HeroSummaryCard } from '../experience-center/output-formats/primitives';
 import OutputLoader from '../experience-center/output-formats/OutputLoader';
 import SlideModal from '../experience-center/output-formats/slides/SlideModal';
 import SlidePreview from '../experience-center/output-formats/slides/SlidePreview';
@@ -53,6 +54,13 @@ import SlideOutput from '../experience-center/output-formats/slides/SlideOutput'
 import type { DeckConfig, DeckData } from '../experience-center/output-formats/slides/types';
 import ApiKeySetupModal from '../components/ApiKeySetupModal';
 import BookWalkthroughModal from '../components/BookWalkthroughModal';
+import { getWorkflowDef } from '../experience-center/registry/workflows';
+import { useWorkflowSessionStore } from '../stores/workflowSessionStore';
+import { executeWorkflowStep } from '../experience-center/orchestration/workflowEngine';
+import BranchChoiceCards from '../experience-center/output-formats/modules/BranchChoiceCards';
+import WorkflowStepCard from '../experience-center/output-formats/modules/workflow-cards';
+import WorkflowProgressIndicator from '../experience-center/output-formats/modules/WorkflowProgressIndicator';
+import WorkflowArtifactTabs from '../experience-center/output-formats/modules/WorkflowArtifactTabs';
 
 // ============================================================
 // Icon maps
@@ -85,7 +93,7 @@ interface ConversationMessage {
   id: string;
   role: 'ai' | 'user' | 'thinking';
   content: string;
-  type?: 'text' | 'industry-cards' | 'scenario-cards' | 'input-options' | 'generation' | 'output-ready' | 'cta' | 'refinements';
+  type?: 'text' | 'industry-cards' | 'scenario-cards' | 'input-options' | 'generation' | 'output-ready' | 'cta' | 'refinements' | 'branch-choices' | 'workflow-step-result' | 'workflow-complete';
   stepKey?: string;
   multiSelect?: boolean;
   runId?: string;
@@ -152,11 +160,24 @@ export default function ExperienceCenterWorkflowPage() {
   const [mobileView, setMobileView] = useState<'chat' | 'output'>('output');
   const [isMobile, setIsMobile] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const workflowOutputEndRef = useRef<HTMLDivElement>(null);
   const hasOutput = currentStep === 'output' && !!output;
   const [hasEverOutput, setHasEverOutput] = useState(false);
+  const wfActive = useWorkflowSessionStore(s => s.active);
+  const wfStepHistory = useWorkflowSessionStore(s => s.stepHistory);
+  const wfIsExecuting = useWorkflowSessionStore(s => s.isExecutingStep);
+  const wfCurrentStepId = useWorkflowSessionStore(s => s.currentStepId);
+  const wfDef = useWorkflowSessionStore(s => s.workflowDef);
   useEffect(() => {
-    if (output || (isThinkingActive && currentStep === 'generating')) setHasEverOutput(true);
-  }, [output, isThinkingActive, currentStep]);
+    if (output || (isThinkingActive && currentStep === 'generating') || wfActive) setHasEverOutput(true);
+  }, [output, isThinkingActive, currentStep, wfActive]);
+
+  // Auto-scroll workflow output panel when new steps complete
+  useEffect(() => {
+    if (wfActive && wfStepHistory.length > 0) {
+      setTimeout(() => workflowOutputEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 300);
+    }
+  }, [wfStepHistory.length, wfActive]);
 
   // Detect mobile/tablet
   useEffect(() => {
@@ -265,7 +286,16 @@ export default function ExperienceCenterWorkflowPage() {
     setScenario(id);
     addUserMessage(label);
 
-    // Apply default inputs and generate immediately
+    // Check if this scenario has a workflow definition
+    const workflowDef = getWorkflowDef(id);
+    if (workflowDef) {
+      // Enter workflow mode
+      useWorkflowSessionStore.getState().initWorkflow(workflowDef);
+      setTimeout(() => runWorkflowStep(id), 300);
+      return;
+    }
+
+    // Apply default inputs and generate immediately (one-shot mode)
     const defaults = getDefaultInputs(id, industry);
     Object.entries(defaults).forEach(([key, value]) => setInput(key, value));
 
@@ -312,6 +342,92 @@ export default function ExperienceCenterWorkflowPage() {
       runRefinement(currentScenario, updatedInputs);
     }, 300);
   }, []);
+
+  // ============================================================
+  // Workflow step execution
+  // ============================================================
+  const runWorkflowStep = useCallback(async (scenarioIdOverride?: string) => {
+    const wfStore = useWorkflowSessionStore.getState();
+    const { workflowDef, currentStepId, stepHistory, cumulativeContext } = wfStore;
+    if (!workflowDef || !currentStepId) return;
+
+    const stepDef = workflowDef.steps[currentStepId];
+    if (!stepDef) return;
+
+    const effectiveScenarioId = scenarioIdOverride || scenario;
+    const scenarioConfig = getScenarioConfig(effectiveScenarioId);
+    if (!scenarioConfig) return;
+
+    // Show step announcement
+    wfStore.setIsExecutingStep(true);
+    setCurrentStep('generating');
+    addAIMessage(`Working on: ${stepDef.label}...`, 'generation');
+    setIsThinkingActive(true);
+    setHasEverOutput(true);
+
+    try {
+      const result = await executeWorkflowStep(stepDef, scenarioConfig, stepHistory, cumulativeContext);
+
+      // Store the step result
+      const stepResult = {
+        stepId: currentStepId,
+        stepDef,
+        chosenBranchId: null,
+        output: result.output,
+        summary: result.summary,
+        timestamp: Date.now(),
+      };
+      wfStore.addStepResult(stepResult);
+      wfStore.setIsExecutingStep(false);
+      setIsThinkingActive(false);
+      setCurrentStep('output');
+
+      // Replace generation message with step result
+      setMessages(prev => {
+        const filtered = prev.filter(m => m.type !== 'generation');
+        return [
+          ...filtered,
+          { id: `wf-result-${Date.now()}`, role: 'ai' as const, content: result.summary, type: 'workflow-step-result' as const },
+          ...(stepDef.branches.length > 0
+            ? [{ id: `wf-branches-${Date.now()}`, role: 'ai' as const, content: '', type: 'branch-choices' as const, stepKey: currentStepId }]
+            : [{ id: `wf-complete-${Date.now()}`, role: 'ai' as const, content: 'Workflow complete. Here is everything we built together.', type: 'workflow-complete' as const }]),
+        ];
+      });
+    } catch (err) {
+      wfStore.setIsExecutingStep(false);
+      setIsThinkingActive(false);
+      setCurrentStep('output');
+      const message = err instanceof Error ? err.message : String(err);
+      setMessages(prev => [
+        ...prev.filter(m => m.type !== 'generation'),
+        { id: `wf-error-${Date.now()}`, role: 'ai' as const, content: `Step failed: ${message}. Falling back to one-shot generation.`, type: 'text' as const },
+      ]);
+    }
+  }, [scenario]);
+
+  const handleBranchChoice = useCallback((branchId: string) => {
+    const wfStore = useWorkflowSessionStore.getState();
+    const { workflowDef, currentStepId } = wfStore;
+    if (!workflowDef || !currentStepId) return;
+
+    const stepDef = workflowDef.steps[currentStepId];
+    const branch = stepDef?.branches.find(b => b.branchId === branchId);
+    if (!branch) return;
+
+    // Add user's choice as a message
+    addUserMessage(branch.label);
+
+    // Disable branch choices in previous messages
+    setMessages(prev => prev.map(m =>
+      m.type === 'branch-choices' ? { ...m, type: 'text' as const, content: '' } : m
+    ));
+
+    // Choose branch (updates context and moves to next step)
+    wfStore.chooseBranch(branchId);
+
+    // Execute the next step
+    setTimeout(() => runWorkflowStep(), 500);
+  }, [runWorkflowStep]);
 
   // ============================================================
   // Generation (first draft)
@@ -554,6 +670,76 @@ export default function ExperienceCenterWorkflowPage() {
   }, [currentStep, output]);
 
   // ============================================================
+  // Workflow output panel (cumulative, used by both mobile and desktop)
+  // ============================================================
+  const renderWorkflowOutputPanel = () => {
+    return (
+    <>
+      {wfStepHistory.map((step, i) => {
+        if (!step.output) return null;
+        return (
+          <div key={step.stepId} className="mb-4">
+            <WorkflowStepCard
+              stepType={step.stepDef.stepType}
+              output={step.output}
+              stepLabel={step.stepDef.label}
+              stepNumber={i + 1}
+            />
+          </div>
+        );
+      })}
+      {wfIsExecuting && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3 px-1">
+            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 animate-pulse">
+              <span className="text-[10px] font-bold text-blue-600">{wfStepHistory.length + 1}</span>
+            </div>
+            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              {wfDef?.steps[wfCurrentStepId || '']?.label || 'Processing...'}
+            </span>
+          </div>
+          <OutputLoader variant="output" />
+        </div>
+      )}
+      <div ref={workflowOutputEndRef} />
+    </>
+  );
+  };
+
+  const renderStandardOutputPanel = () => (
+    <>
+      {isThinkingActive && !output && (
+        <OutputLoader variant="output" outputFormatKey={getScenarioConfig(scenario)?.outputFormatKey} />
+      )}
+      {generatingSlides && (
+        <OutputLoader variant="slides" />
+      )}
+      {output && !generatingSlides && (
+        <>
+          {activeArtifact?.type === 'slides' ? (
+            <SlideOutput
+              deck={activeArtifact.data as DeckData}
+              onExpand={() => setShowSlidePreview(true)}
+            />
+          ) : (
+            <ModularOutputRenderer
+              output={output}
+              outputFormatKey={getScenarioConfig(scenario)?.outputFormatKey}
+              visibleSections={visibleOutputSections}
+              scenarioContext={{
+                outcome: goals.find(g => g.id === goal)?.label,
+                industry: industries.find(ind => ind.id === industry)?.label,
+                scenario: getScenarioConfig(scenario)?.title,
+                kpi: getScenarioConfig(scenario)?.kpi,
+              }}
+            />
+          )}
+        </>
+      )}
+    </>
+  );
+
+  // ============================================================
   // Stepper
   // ============================================================
   const getCurrentVisualStep = (): number => {
@@ -719,6 +905,7 @@ export default function ExperienceCenterWorkflowPage() {
                   onIndustrySelect={handleIndustrySelect}
                   onScenarioSelect={handleScenarioSelect}
                   onRefinement={handleRefinement}
+                  onBranchChoice={handleBranchChoice}
                   onExploreAnother={handleExploreAnother}
                   messagesEndRef={messagesEndRef}
                   output={output}
@@ -730,8 +917,8 @@ export default function ExperienceCenterWorkflowPage() {
                 />
               ) : (
                 <div className="flex-1 relative overflow-hidden bg-[#F7F8FB] rounded-2xl flex flex-col">
-                  {/* Sticky header */}
-                  {output && visibleOutputSections >= 1 && (
+                  {/* Sticky header (hidden in workflow mode) */}
+                  {!wfActive && output && visibleOutputSections >= 1 && (
                     <div className="flex items-center justify-between px-4 pt-2.5 border-b border-gray-200/60 bg-[#F7F8FB] z-10 flex-shrink-0">
                       {artifacts.length > 1 ? (
                         <div className="flex items-end gap-5 max-w-md -mb-[13px]">
@@ -776,36 +963,9 @@ export default function ExperienceCenterWorkflowPage() {
                   )}
                   {/* Scrollable content */}
                   <div className="flex-1 overflow-y-auto pl-5 pr-5 py-4 pb-20 scrollbar-thin">
-                    {isThinkingActive && !output && (
-                      <OutputLoader variant="output" outputFormatKey={getScenarioConfig(scenario)?.outputFormatKey} />
-                    )}
-                    {generatingSlides && (
-                      <OutputLoader variant="slides" />
-                    )}
-                    {output && !generatingSlides && (
-                      <>
-                        {activeArtifact?.type === 'slides' ? (
-                          <SlideOutput
-                            deck={activeArtifact.data as DeckData}
-                            onExpand={() => setShowSlidePreview(true)}
-                          />
-                        ) : (
-                          <ModularOutputRenderer
-                            output={output}
-                            outputFormatKey={getScenarioConfig(scenario)?.outputFormatKey}
-                            visibleSections={visibleOutputSections}
-                            scenarioContext={{
-                              outcome: goals.find(g => g.id === goal)?.label,
-                              industry: industries.find(ind => ind.id === industry)?.label,
-                              scenario: getScenarioConfig(scenario)?.title,
-                              kpi: getScenarioConfig(scenario)?.kpi,
-                            }}
-                          />
-                        )}
-                      </>
-                    )}
+                    {wfActive ? renderWorkflowOutputPanel() : renderStandardOutputPanel()}
                   </div>
-                  {visibleOutputSections >= 8 && output && (
+                  {!wfActive && visibleOutputSections >= 8 && output && (
                     <div className="absolute bottom-1 right-3 z-10">
                       <FloatingContextCard output={output} onBook={() => setShowBookingModal(true)} />
                     </div>
@@ -831,6 +991,7 @@ export default function ExperienceCenterWorkflowPage() {
                   onIndustrySelect={handleIndustrySelect}
                   onScenarioSelect={handleScenarioSelect}
                   onRefinement={handleRefinement}
+                  onBranchChoice={handleBranchChoice}
                   onExploreAnother={handleExploreAnother}
                   messagesEndRef={messagesEndRef}
                   output={output}
@@ -844,8 +1005,8 @@ export default function ExperienceCenterWorkflowPage() {
                 />
                 {/* Right: Output */}
                 <div className="h-full relative bg-[#F7F8FB] rounded-2xl flex flex-col">
-                  {/* Sticky header */}
-                  {output && visibleOutputSections >= 1 && (
+                  {/* Sticky header (hidden in workflow mode) */}
+                  {!wfActive && output && visibleOutputSections >= 1 && (
                     <div className="flex items-center justify-between px-5 pt-2.5 border-b border-gray-200/60 bg-[#F7F8FB] z-10 flex-shrink-0 rounded-t-2xl">
                       {artifacts.length > 1 ? (
                         <div className="flex items-end gap-5 max-w-md -mb-[13px]">
@@ -890,36 +1051,9 @@ export default function ExperienceCenterWorkflowPage() {
                   )}
                   {/* Scrollable content */}
                   <div className="flex-1 overflow-y-auto pl-5 pr-5 py-4 pb-20 scrollbar-thin">
-                    {isThinkingActive && !output && (
-                      <OutputLoader variant="output" outputFormatKey={getScenarioConfig(scenario)?.outputFormatKey} />
-                    )}
-                    {generatingSlides && (
-                      <OutputLoader variant="slides" />
-                    )}
-                    {output && !generatingSlides && (
-                      <>
-                        {activeArtifact?.type === 'slides' ? (
-                          <SlideOutput
-                            deck={activeArtifact.data as DeckData}
-                            onExpand={() => setShowSlidePreview(true)}
-                          />
-                        ) : (
-                          <ModularOutputRenderer
-                            output={output}
-                            outputFormatKey={getScenarioConfig(scenario)?.outputFormatKey}
-                            visibleSections={visibleOutputSections}
-                            scenarioContext={{
-                              outcome: goals.find(g => g.id === goal)?.label,
-                              industry: industries.find(ind => ind.id === industry)?.label,
-                              scenario: getScenarioConfig(scenario)?.title,
-                              kpi: getScenarioConfig(scenario)?.kpi,
-                            }}
-                          />
-                        )}
-                      </>
-                    )}
+                    {wfActive ? renderWorkflowOutputPanel() : renderStandardOutputPanel()}
                   </div>
-                  {visibleOutputSections >= 8 && output && (
+                  {!wfActive && visibleOutputSections >= 8 && output && (
                     <div className="absolute bottom-1 right-4 z-10">
                       <FloatingContextCard output={output} onBook={() => setShowBookingModal(true)} />
                     </div>
@@ -940,6 +1074,7 @@ export default function ExperienceCenterWorkflowPage() {
               onIndustrySelect={handleIndustrySelect}
               onScenarioSelect={handleScenarioSelect}
               onRefinement={handleRefinement}
+                  onBranchChoice={handleBranchChoice}
               onExploreAnother={handleExploreAnother}
               messagesEndRef={messagesEndRef}
               output={output}
@@ -1016,7 +1151,7 @@ export default function ExperienceCenterWorkflowPage() {
 function ChatPanel({
   messages, currentStep, lastAIMessage, goal, industry, scenario,
   generationPhase,
-  onIndustrySelect, onScenarioSelect, onRefinement,
+  onIndustrySelect, onScenarioSelect, onRefinement, onBranchChoice,
   onExploreAnother, messagesEndRef,
   showCollapse, onCollapse, output, onEditMessage,
   progressSteps = [], progressHistory = {}, isThinkingActive = false,
@@ -1032,6 +1167,7 @@ function ChatPanel({
   onIndustrySelect: (id: string) => void;
   onScenarioSelect: (id: string) => void;
   onRefinement: (chip: RefinementChip) => void;
+  onBranchChoice: (branchId: string) => void;
   onExploreAnother: () => void;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   showCollapse?: boolean;
@@ -1116,7 +1252,7 @@ function ChatPanel({
                     )}
                   </div>
                 )}
-                {msg.role === 'ai' && (msg.id === lastAIMessage?.id || msg.type === 'refinements') && (
+                {msg.role === 'ai' && (msg.id === lastAIMessage?.id || msg.type === 'refinements' || msg.type === 'branch-choices') && (
                   <div className="mt-4 px-1 animate-fade-in-delay-1">
                     {msg.type === 'industry-cards' && currentStep === 'industry' && (
                       <IndustryCards industry={industry} goal={goal} onSelect={onIndustrySelect} />
@@ -1126,6 +1262,22 @@ function ChatPanel({
                     )}
                     {msg.type === 'refinements' && currentStep === 'output' && (
                       <RefinementChips scenario={scenario} industry={industry} onSelect={onRefinement} />
+                    )}
+                    {msg.type === 'branch-choices' && msg.stepKey && (() => {
+                      const wfState = useWorkflowSessionStore.getState();
+                      const stepDef = wfState.workflowDef?.steps[msg.stepKey!];
+                      if (!stepDef || msg.id !== lastAIMessage?.id) return null;
+                      return <BranchChoiceCards branches={stepDef.branches} onChoose={onBranchChoice} disabled={wfState.isExecutingStep} />;
+                    })()}
+                    {msg.type === 'workflow-complete' && (
+                      <div className="mt-2">
+                        <button
+                          onClick={onExploreAnother}
+                          className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-gray-900 rounded-full hover:bg-gray-800 transition-colors cursor-pointer"
+                        >
+                          Start a new exploration
+                        </button>
+                      </div>
                     )}
                   </div>
                 )}

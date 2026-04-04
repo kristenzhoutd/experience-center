@@ -33,6 +33,53 @@ export interface ScenarioConfig {
   promptOverlay?: string;
 }
 
+// ── Workflow Types ──
+
+export type StepType = 'analyze' | 'inspect' | 'create' | 'compare' | 'activate' | 'optimize';
+export type ExecutionMode = 'llm' | 'simulated';
+
+export interface BranchDef {
+  branchId: string;
+  label: string;
+  description: string;
+  icon?: string;
+  nextStepId: string;
+  recommendation?: boolean;
+  contextUpdate?: Record<string, string>;
+}
+
+export interface WorkflowStepDef {
+  stepId: string;
+  label: string;
+  stepType: StepType;
+  executionMode: ExecutionMode;
+  skillFamily?: SkillFamily;
+  outputModules: OutputModule[];
+  simulatedArtifactKey?: string;
+  promptOverlay?: string;
+  branches: BranchDef[];
+  summaryTemplate: string;
+}
+
+export interface WorkflowDef {
+  workflowId: string;
+  scenarioId: string;
+  title: string;
+  entryStepId: string;
+  steps: Record<string, WorkflowStepDef>;
+}
+
+export interface StepResult {
+  stepId: string;
+  stepDef: WorkflowStepDef;
+  chosenBranchId: string | null;
+  output: Record<string, unknown> | null;
+  summary: string;
+  timestamp: number;
+}
+
+// ── Industry Types ──
+
 export interface IndustryContext {
   id: string;
   label: string;
