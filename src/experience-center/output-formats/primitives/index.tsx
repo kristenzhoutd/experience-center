@@ -453,7 +453,7 @@ export function MiniSparkline({ values, color = 'blue', height = 24 }: {
   color?: 'blue' | 'emerald' | 'amber';
   height?: number;
 }) {
-  if (values.length < 2) return null;
+  if (!Array.isArray(values) || values.length < 2) return null;
   const max = Math.max(...values);
   const min = Math.min(...values);
   const range = max - min || 1;
