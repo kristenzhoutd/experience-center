@@ -90,16 +90,17 @@ async function sendMessage(chatId: string, input: string, apiKey: string): Promi
  * Extract JSON from a response that may contain markdown fences and surrounding text.
  */
 function extractJson(text: string): Record<string, unknown> | null {
-  // Try markdown fence first
-  const fenceMatch = text.match(/```json\s*\n([\s\S]*?)\n```/);
+  // Try markdown fence (```json or ``` without language)
+  const fenceMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
   if (fenceMatch) {
-    try { return JSON.parse(fenceMatch[1]); } catch { /* fall through */ }
+    try { return JSON.parse(fenceMatch[1].trim()); } catch { /* fall through */ }
   }
 
-  // Try to find a JSON object in the text
-  const braceMatch = text.match(/\{[\s\S]*\}/);
-  if (braceMatch) {
-    try { return JSON.parse(braceMatch[0]); } catch { /* fall through */ }
+  // Try to find the outermost JSON object in the text
+  const braceStart = text.indexOf('{');
+  const braceEnd = text.lastIndexOf('}');
+  if (braceStart !== -1 && braceEnd > braceStart) {
+    try { return JSON.parse(text.substring(braceStart, braceEnd + 1)); } catch { /* fall through */ }
   }
 
   return null;
@@ -139,11 +140,19 @@ export async function fetchRetailMetrics(): Promise<{ success: boolean; data?: R
 
     console.log('[llm-chat-api] Sending query...');
     const response = await sendMessage(chatId, query, apiKey);
-    console.log('[llm-chat-api] Response received, parsing...');
+    console.log('[llm-chat-api] Response received, parsing...', response.substring(0, 300));
 
-    const parsed = extractJson(response);
+    let parsed = extractJson(response);
     if (!parsed) {
-      return { success: false, error: 'Could not parse JSON from agent response' };
+      // Agent may need a follow-up to return clean JSON
+      console.warn('[llm-chat-api] First response not JSON, sending follow-up...');
+      const retry = await sendMessage(chatId, 'Please return the results as a single JSON object only. No explanation, no markdown, just the raw JSON.', apiKey);
+      console.log('[llm-chat-api] Retry response:', retry.substring(0, 300));
+      parsed = extractJson(retry);
+      if (!parsed) {
+        console.warn('[llm-chat-api] Retry also failed, raw:', retry.substring(0, 500));
+        return { success: false, error: 'Could not parse JSON from agent response' };
+      }
     }
 
     const metrics: RetailMetrics = {

@@ -80,7 +80,7 @@ function KpiFrameworkModule({ output }: ModuleProps) {
               }`}>
                 {kpi.type}
               </div>
-              <MiniSparkline values={(kpi as any).trend || fallbackSparklines[i] || fallbackSparklines[0]} color={sparkColors[i] || 'blue'} height={20} />
+              <MiniSparkline values={Array.isArray((kpi as any).trend) ? (kpi as any).trend : fallbackSparklines[i] || fallbackSparklines[0]} color={sparkColors[i] || 'blue'} height={20} />
             </div>
             <div className="text-sm font-semibold text-gray-900 mb-0.5">{kpi.name}</div>
             <div className="flex items-center gap-2">
