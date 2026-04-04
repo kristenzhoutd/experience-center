@@ -9,34 +9,17 @@ function getTdxApiKey(): string {
   return storage.getItem('ai-suites-tdx-api-key') || import.meta.env.VITE_SANDBOX_API_KEY || '';
 }
 
-function getCdpEndpoint(): string {
-  try {
-    const settingsJson = storage.getItem('ai-suites:settings');
-    const stored = settingsJson ? JSON.parse(settingsJson).tdxEndpoint || '' : '';
-    if (!stored) return 'https://api-cdp.treasuredata.com';
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
-    const url = new URL(stored);
-    if (url.hostname.startsWith('api.')) {
-      url.hostname = url.hostname.replace('api.', 'api-cdp.');
-      return url.toString().replace(/\/$/, '');
-    }
-    if (url.hostname.startsWith('api-cdp.')) {
-      return stored;
-    }
-  } catch { /* fall through */ }
-
-  return 'https://api-cdp.treasuredata.com';
-}
-
-async function tdApiGet(endpoint: string, apiKey: string, baseUrl: string): Promise<{ statusCode: number; body: string }> {
-  const url = new URL(endpoint, baseUrl);
-  const response = await fetch(url.toString(), {
+async function tdApiGet(endpoint: string, apiKey: string, _baseUrl?: string): Promise<{ statusCode: number; body: string }> {
+  // Route through /api/cdp proxy to avoid CORS
+  const path = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
+  const response = await fetch(`${API_BASE}/cdp/${path}`, {
     method: 'GET',
     headers: {
-      Authorization: `TD1 ${apiKey}`,
-      Accept: 'application/json',
+      'x-api-key': apiKey,
+      'Accept': 'application/json',
     },
-    redirect: 'follow',
   });
   const body = await response.text();
   return { statusCode: response.status, body };
@@ -73,9 +56,8 @@ export async function fetchParentSegments(): Promise<{ success: boolean; data?: 
     return { success: false, error: 'TDX API key is not configured. Please set it in Settings.' };
   }
 
-  const baseUrl = getCdpEndpoint();
   try {
-    const response = await tdApiGet('/audiences', apiKey, baseUrl);
+    const response = await tdApiGet('/audiences', apiKey);
 
     if (response.statusCode >= 400) {
       return {
@@ -125,12 +107,10 @@ export async function fetchParentSegmentDetail(parentId: string): Promise<{ succ
     return { success: false, error: 'TDX API key is not configured.' };
   }
 
-  const baseUrl = getCdpEndpoint();
   try {
     const response = await tdApiGet(
       `/audiences/${encodeURIComponent(parentId)}`,
       apiKey,
-      baseUrl
     );
 
     if (response.statusCode >= 400) {
@@ -194,12 +174,10 @@ export async function fetchChildSegments(parentId: string): Promise<{ success: b
     return { success: false, error: 'TDX API key is not configured.' };
   }
 
-  const baseUrl = getCdpEndpoint();
   try {
     const response = await tdApiGet(
       `/audiences/${encodeURIComponent(parentId)}/segments`,
       apiKey,
-      baseUrl
     );
 
     if (response.statusCode >= 400) {

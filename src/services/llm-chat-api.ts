@@ -5,7 +5,7 @@
 
 import { storage } from '../utils/storage';
 
-const LLM_API_BASE = 'https://llm-api.us01.treasuredata.com';
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 const AGENT_ID = '019d4bda-cc70-7487-ad61-2876eed21ed0';
 
 function getApiKey(): string {
@@ -14,13 +14,14 @@ function getApiKey(): string {
 
 /**
  * Create a chat session with the data-fetcher agent.
+ * Routes through /api/chat/create proxy to avoid CORS.
  */
 async function createChat(apiKey: string): Promise<string> {
-  const response = await fetch(`${LLM_API_BASE}/api/chats`, {
+  const response = await fetch(`${API_BASE}/chat/create`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/vnd.api+json',
-      'Authorization': `TD1 ${apiKey}`,
+      'x-api-key': apiKey,
     },
     body: JSON.stringify({
       data: {
@@ -45,11 +46,11 @@ async function createChat(apiKey: string): Promise<string> {
  * Send a message to a chat and collect the full streamed response.
  */
 async function sendMessage(chatId: string, input: string, apiKey: string): Promise<string> {
-  const response = await fetch(`${LLM_API_BASE}/api/chats/${chatId}/continue`, {
+  const response = await fetch(`${API_BASE}/chat/${chatId}/continue`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `TD1 ${apiKey}`,
+      'x-api-key': apiKey,
     },
     body: JSON.stringify({ input }),
     signal: AbortSignal.timeout(60_000),
@@ -222,11 +223,18 @@ export async function fetchTravelMetrics(): Promise<{ success: boolean; data?: T
 
     console.log('[llm-chat-api] Sending travel query...');
     const response = await sendMessage(chatId, query, apiKey);
-    console.log('[llm-chat-api] Travel response received, parsing...');
+    console.log('[llm-chat-api] Travel response received, parsing...', response.substring(0, 300));
 
-    const parsed = extractJson(response);
+    let parsed = extractJson(response);
     if (!parsed) {
-      return { success: false, error: 'Could not parse JSON from agent response' };
+      console.warn('[llm-chat-api] Travel first response not JSON, sending follow-up...');
+      const retry = await sendMessage(chatId, 'Please return the results as a single JSON object only. No explanation, no markdown, just the raw JSON.', apiKey);
+      console.log('[llm-chat-api] Travel retry response:', retry.substring(0, 300));
+      parsed = extractJson(retry);
+      if (!parsed) {
+        console.warn('[llm-chat-api] Travel retry also failed, raw:', retry.substring(0, 500));
+        return { success: false, error: 'Could not parse JSON from agent response' };
+      }
     }
 
     const metrics: TravelMetrics = {
@@ -302,11 +310,18 @@ export async function fetchCpgMetrics(): Promise<{ success: boolean; data?: CpgM
 
     console.log('[llm-chat-api] Sending CPG query...');
     const response = await sendMessage(chatId, query, apiKey);
-    console.log('[llm-chat-api] CPG response received, parsing...');
+    console.log('[llm-chat-api] CPG response received, parsing...', response.substring(0, 300));
 
-    const parsed = extractJson(response);
+    let parsed = extractJson(response);
     if (!parsed) {
-      return { success: false, error: 'Could not parse JSON from agent response' };
+      console.warn('[llm-chat-api] CPG first response not JSON, sending follow-up...');
+      const retry = await sendMessage(chatId, 'Please return the results as a single JSON object only. No explanation, no markdown, just the raw JSON.', apiKey);
+      console.log('[llm-chat-api] CPG retry response:', retry.substring(0, 300));
+      parsed = extractJson(retry);
+      if (!parsed) {
+        console.warn('[llm-chat-api] CPG retry also failed, raw:', retry.substring(0, 500));
+        return { success: false, error: 'Could not parse JSON from agent response' };
+      }
     }
 
     const metrics: CpgMetrics = {
