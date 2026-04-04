@@ -91,7 +91,7 @@ You have access to REAL customer data from the Treasure Data CDP. Your output MU
 - Reference at least 3 specific metrics from the CDP data in your output
 `;
 
-export function buildSkillRequest(scenario: ScenarioConfig, industry: IndustryContext): AssembledRequest {
+export function buildSkillRequest(scenario: ScenarioConfig, industry: IndustryContext, workflowContext?: string): AssembledRequest {
   const skillPrompt = buildSkillPrompt(scenario.skillFamily, scenario, industry);
   const usesLiveData = isLiveCdpData(industry);
 
@@ -99,10 +99,12 @@ export function buildSkillRequest(scenario: ScenarioConfig, industry: IndustryCo
     ? 'Outputs are grounded in real customer data from the Treasure Data CDP. Generate specific, data-driven insights that reference actual metrics, segments, and behavioral patterns from the data provided.'
     : 'All outputs use sample data and should be framed as illustrative recommendations that showcase Treasure AI capabilities.';
 
+  const contextBlock = workflowContext ? `\n${workflowContext}\n` : '';
+
   const systemPrompt = `You are the Treasure AI Experience Center, generating polished, business-ready recommendations for enterprise marketers. ${dataFraming}
 
 ${skillPrompt}
-${usesLiveData ? LIVE_DATA_INSTRUCTIONS : ''}
+${contextBlock}${usesLiveData ? LIVE_DATA_INSTRUCTIONS : ''}
 ${OUTPUT_SCHEMA_INSTRUCTIONS}`;
 
   const userPrompt = `Generate the output for this scenario now. Output ONLY the JSON code fence.`;
