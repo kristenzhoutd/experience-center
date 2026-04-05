@@ -56,7 +56,8 @@ import ApiKeySetupModal from '../components/ApiKeySetupModal';
 import BookWalkthroughModal from '../components/BookWalkthroughModal';
 import { getWorkflowDef } from '../experience-center/registry/workflows';
 import { useWorkflowSessionStore } from '../stores/workflowSessionStore';
-import { executeWorkflowStep } from '../experience-center/orchestration/workflowEngine';
+import { executeWorkflowStep, resolveWorkflowStepContext } from '../experience-center/orchestration/workflowEngine';
+import type { StepType, IndustryContext } from '../experience-center/orchestration/types';
 import BranchChoiceCards from '../experience-center/output-formats/modules/BranchChoiceCards';
 import WorkflowStepCard from '../experience-center/output-formats/modules/workflow-cards';
 import WorkflowProgressIndicator from '../experience-center/output-formats/modules/WorkflowProgressIndicator';
@@ -84,6 +85,80 @@ const stepOrder: (FlowStep | 'goal')[] = ['goal', 'industry', 'scenario', 'gener
 
 function stepIndex(step: FlowStep | 'goal'): number {
   return stepOrder.indexOf(step);
+}
+
+// ============================================================
+// Workflow step progress — dynamic with sandbox data
+// ============================================================
+type ProgressEntry = { message: string; stage: 'intent' | 'route' | 'skill_call' | 'skill_result' | 'ui_update' };
+
+function getWorkflowProgressSteps(
+  stepType: StepType,
+  industry: IndustryContext,
+  stepLabel: string,
+  priorStepCount: number,
+): ProgressEntry[] {
+  const m = industry.sampleMetrics;
+  const label = industry.label;
+  const segCount = industry.sampleSegments.length;
+  const totalCust = m.totalCustomers || 'unknown';
+  const channels = industry.channelPreferences.slice(0, 4).join(', ');
+  const audienceLabel = label === 'Retail' ? 'customers' : label === 'Travel' ? 'guests' : 'households';
+  const sandboxName = `${label} Demo`;
+
+  const priorContext = priorStepCount > 0
+    ? `Building on ${priorStepCount} prior analysis step${priorStepCount > 1 ? 's' : ''}`
+    : `Reviewing scenario: ${stepLabel}`;
+
+  // Build industry-specific metric lines for the sandbox load step
+  const metricLines: string[] = [];
+  if (label === 'Retail') {
+    if (m.customerLifetimeValue) metricLines.push(`Avg CLV: ${m.customerLifetimeValue}`);
+    if (m.repeatPurchaseRate) metricLines.push(`Repeat purchase rate: ${m.repeatPurchaseRate}`);
+    if (m.avgOrderValueOnline || m.avgOrderValueInStore) metricLines.push(`Online AOV: ${m.avgOrderValueOnline || 'N/A'} | In-store AOV: ${m.avgOrderValueInStore || 'N/A'}`);
+    if (m.loyaltyMembers) metricLines.push(`Loyalty members: ${m.loyaltyMembers} across tiers`);
+    if (m.churnRiskHigh) metricLines.push(`Churn risk: ${m.churnRiskHigh} High | ${m.churnRiskMedium} Medium | ${m.churnRiskLow} Low`);
+  } else if (label === 'Travel') {
+    if (m.avgBookingValue || m.avgOrderValueOnline) metricLines.push(`Avg booking value: ${m.avgBookingValue || m.avgOrderValueOnline}`);
+    if (m.rebookingRate || m.repeatPurchaseRate) metricLines.push(`Rebooking rate: ${m.rebookingRate || m.repeatPurchaseRate}`);
+    if (m.emailOpenRate) metricLines.push(`Email open rate: ${m.emailOpenRate} | Click rate: ${m.emailClickRate || 'N/A'}`);
+    if (m.loyaltyMembers) metricLines.push(`Loyalty members: ${m.loyaltyMembers} across tiers`);
+    if (m.churnRiskHigh) metricLines.push(`Churn risk: ${m.churnRiskHigh} High | ${m.churnRiskMedium} Medium | ${m.churnRiskLow} Low`);
+    if (m.ancillaryAttachRate) metricLines.push(`Ancillary attach rate: ${m.ancillaryAttachRate}`);
+  } else {
+    if (m.avgBasketSize) metricLines.push(`Avg basket size: ${m.avgBasketSize}`);
+    if (m.avgPurchaseAmount) metricLines.push(`Avg purchase amount: ${m.avgPurchaseAmount}`);
+    if (m.buyerPenetration) metricLines.push(`Buyer penetration: ${m.buyerPenetration}`);
+    if (m.brandLoyaltyHigh) metricLines.push(`Brand loyalty: ${m.brandLoyaltyHigh} High | ${m.brandLoyaltyMedium} Medium | ${m.brandLoyaltyLow} Low`);
+    if (m.promoRate) metricLines.push(`Promo purchase rate: ${m.promoRate}`);
+    if (m.emailOpenRate) metricLines.push(`Email open rate: ${m.emailOpenRate} | Click rate: ${m.emailClickRate || 'N/A'}`);
+  }
+
+  // Combine sandbox load + metrics into one multi-line step
+  const sandboxLoadMessage = [`Loaded ${sandboxName} sandbox — ${totalCust} ${audienceLabel}`, ...metricLines].join('\n');
+
+  const stepTypeLabels: Record<StepType, { action: string; result: string; final: string }> = {
+    analyze: { action: 'Analyzing behavioral patterns', result: 'Identified top opportunities', final: 'Assembling findings' },
+    inspect: { action: 'Evaluating engagement signals', result: 'Scoring recovery potential', final: 'Preparing recommendations' },
+    create: { action: 'Building campaign structure', result: 'Calculating projected impact', final: 'Finalizing deliverable' },
+    compare: { action: 'Evaluating options side-by-side', result: 'Ranking alternatives', final: 'Assembling recommendation' },
+    activate: { action: 'Configuring activation parameters', result: 'Validating audience readiness', final: 'Preparing activation summary' },
+    optimize: { action: 'Modeling optimization scenarios', result: 'Calculating projected improvements', final: 'Assembling recommendations' },
+  };
+
+  const labels = stepTypeLabels[stepType] || stepTypeLabels.analyze;
+
+  return [
+    { message: priorContext, stage: 'intent' },
+    { message: 'Connecting to Treasure Data CDP', stage: 'route' },
+    { message: sandboxLoadMessage, stage: 'skill_call' },
+    { message: `Scanning ${segCount} segments`, stage: 'skill_call' },
+    { message: `Channels: ${channels}`, stage: 'skill_call' },
+    { message: labels.action, stage: 'skill_call' },
+    { message: labels.result, stage: 'skill_result' },
+    { message: 'Generating strategic output', stage: 'skill_result' },
+    { message: labels.final, stage: 'ui_update' },
+  ];
 }
 
 // ============================================================
@@ -365,8 +440,47 @@ export default function ExperienceCenterWorkflowPage() {
     setIsThinkingActive(true);
     setHasEverOutput(true);
 
+    // Set up progress tracking
+    const runId = `wf-step-${Date.now()}`;
+    setActiveRunId(runId);
+    setProgressHistory(prev => ({ ...prev, [runId]: [] }));
+
+    const addProgressStep = (message: string, stage?: ProgressStep['stage']) => {
+      setProgressHistory(prev => ({ ...prev, [runId]: [...(prev[runId] || []), { message, stage }] }));
+    };
+
+    // Resolve industry context first (to get sandbox data for progress messages)
+    let resolvedIndustry: IndustryContext | undefined;
+    addProgressStep(`Reviewing scenario: ${stepDef.label}`, 'intent');
     try {
-      const result = await executeWorkflowStep(stepDef, scenarioConfig, stepHistory, cumulativeContext);
+      const { industry: ctx } = await resolveWorkflowStepContext(scenarioConfig);
+      resolvedIndustry = ctx;
+    } catch {
+      // If context resolution fails, continue with generic progress
+    }
+
+    // Build dynamic progress steps with real sandbox data
+    const progressQueue = resolvedIndustry
+      ? getWorkflowProgressSteps(stepDef.stepType, resolvedIndustry, stepDef.label, stepHistory.length)
+      : getWorkflowProgressSteps(stepDef.stepType, { id: scenarioConfig.industry, label: scenarioConfig.industry, sampleSegments: [], sampleMetrics: {}, channelPreferences: [], verticalTerminology: {}, sampleDataContext: '' } as IndustryContext, stepDef.label, stepHistory.length);
+
+    // Skip first step (already shown above) and start interval for the rest
+    let phase = 1; // start from 1 since step 0 is already shown
+    const progressInterval = setInterval(() => {
+      if (phase < progressQueue.length) {
+        addProgressStep(progressQueue[phase].message, progressQueue[phase].stage);
+        phase++;
+      }
+    }, 1100);
+
+    try {
+      const result = await executeWorkflowStep(stepDef, scenarioConfig, stepHistory, cumulativeContext, resolvedIndustry);
+
+      // Clear progress interval and add remaining steps
+      clearInterval(progressInterval);
+      for (let i = phase + 1; i < progressQueue.length; i++) {
+        addProgressStep(progressQueue[i].message, progressQueue[i].stage);
+      }
 
       // Store the step result
       const stepResult = {
@@ -382,18 +496,19 @@ export default function ExperienceCenterWorkflowPage() {
       setIsThinkingActive(false);
       setCurrentStep('output');
 
-      // Replace generation message with step result
+      // Replace generation message with step result (tagged with runId for collapsed progress)
       setMessages(prev => {
         const filtered = prev.filter(m => m.type !== 'generation');
         return [
           ...filtered,
-          { id: `wf-result-${Date.now()}`, role: 'ai' as const, content: result.summary, type: 'workflow-step-result' as const },
+          { id: `wf-result-${Date.now()}`, role: 'ai' as const, content: result.summary, type: 'workflow-step-result' as const, runId },
           ...(stepDef.branches.length > 0
             ? [{ id: `wf-branches-${Date.now()}`, role: 'ai' as const, content: '', type: 'branch-choices' as const, stepKey: currentStepId }]
             : [{ id: `wf-complete-${Date.now()}`, role: 'ai' as const, content: 'Workflow complete. Here is everything we built together.', type: 'workflow-complete' as const }]),
         ];
       });
     } catch (err) {
+      clearInterval(progressInterval);
       wfStore.setIsExecutingStep(false);
       setIsThinkingActive(false);
       setCurrentStep('output');
@@ -1201,8 +1316,8 @@ function ChatPanel({
       <div className={`flex-1 overflow-y-auto p-4 md:p-6 flex flex-col max-w-2xl mx-auto w-full ${currentStep === 'generating' ? 'gap-3' : 'gap-5 md:gap-6'}`}>
         {messages.filter(m => !(m.type === 'refinements' && !m.content)).map((msg, msgIdx) => (
           <div key={msg.id}>
-            {/* Show collapsed progress before the output-ready message, using that run's saved steps */}
-            {msg.type === 'output-ready' && msg.runId && progressHistory[msg.runId]?.length > 0 && (
+            {/* Show collapsed progress before output-ready or workflow-step-result messages */}
+            {(msg.type === 'output-ready' || msg.type === 'workflow-step-result') && msg.runId && progressHistory[msg.runId]?.length > 0 && (
               <div className="px-1 animate-fade-in max-w-2xl mx-auto w-full mb-3">
                 <SkillProgressBlock steps={progressHistory[msg.runId]} isActive={false} />
               </div>

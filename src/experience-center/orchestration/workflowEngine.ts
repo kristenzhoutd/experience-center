@@ -67,15 +67,34 @@ function parseStepOutput(raw: string): Record<string, unknown> {
 }
 
 /**
+ * Resolve the industry context for a workflow step (call before executeWorkflowStep).
+ * Returns the enriched IndustryContext with sandbox metrics.
+ */
+export async function resolveWorkflowStepContext(
+  baseScenarioConfig: ScenarioConfig,
+): Promise<{ industry: import('./types').IndustryContext; parentSegmentId: string | null }> {
+  const settingsJson = storage.getItem('ai-suites:settings');
+  const selectedParentSegmentId = settingsJson ? JSON.parse(settingsJson).selectedParentSegmentId : null;
+  const defaultSegments: Record<string, string> = { retail: '1312648', travel: '1313380', cpg: '1313389' };
+  const apiKey = getApiKey();
+  const isSandbox = apiKey.startsWith('13232/');
+  const parentSegmentId = selectedParentSegmentId || (isSandbox ? defaultSegments[baseScenarioConfig.industry] : null);
+  const { industry } = await resolveScenario(baseScenarioConfig, parentSegmentId);
+  return { industry, parentSegmentId };
+}
+
+/**
  * Execute a single workflow step.
  * For LLM steps: builds a modified scenario config, injects cumulative context, calls LLM.
  * For simulated steps: returns mock data (to be implemented in Phase 2).
+ * Accepts optional pre-resolved industry context to avoid double-resolving.
  */
 export async function executeWorkflowStep(
   stepDef: WorkflowStepDef,
   baseScenarioConfig: ScenarioConfig,
   stepHistory: StepResult[],
   cumulativeContext: Record<string, string>,
+  preResolvedIndustry?: import('./types').IndustryContext,
 ): Promise<{ output: Record<string, unknown>; summary: string }> {
   if (stepDef.executionMode === 'simulated') {
     // Phase 2: load from mock artifacts
@@ -102,15 +121,14 @@ export async function executeWorkflowStep(
     strategicIntent: [baseScenarioConfig.strategicIntent || '', stepDef.promptOverlay || ''].filter(Boolean).join('. '),
   };
 
-  // Get parent segment ID for live data
-  const settingsJson = storage.getItem('ai-suites:settings');
-  const selectedParentSegmentId = settingsJson ? JSON.parse(settingsJson).selectedParentSegmentId : null;
-  const defaultSegments: Record<string, string> = { retail: '1312648', travel: '1313380', cpg: '1313389' };
-  const apiKey = getApiKey();
-  const isSandbox = apiKey.startsWith('13232/');
-  const parentSegmentId = selectedParentSegmentId || (isSandbox ? defaultSegments[modifiedConfig.industry] : null);
-
-  const { industry } = await resolveScenario(modifiedConfig, parentSegmentId);
+  // Use pre-resolved industry context if available, otherwise resolve now
+  let industry: import('./types').IndustryContext;
+  if (preResolvedIndustry) {
+    industry = preResolvedIndustry;
+  } else {
+    const resolved = await resolveWorkflowStepContext(modifiedConfig);
+    industry = resolved.industry;
+  }
 
   // Build step-specific prompt (context + schema, no conflicting old output instructions)
   const stepContext = buildStepContextPrompt(modifiedConfig, industry, stepDef);
