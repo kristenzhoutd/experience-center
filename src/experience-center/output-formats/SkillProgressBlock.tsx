@@ -101,7 +101,7 @@ export default function SkillProgressBlock({ steps, isActive }: SkillProgressBlo
               key={idx}
               className="flex items-start gap-3 py-1 transition-all duration-500"
             >
-              <div className="w-5 flex items-center justify-center flex-shrink-0 mt-px">
+              <div className="w-5 flex items-center justify-center flex-shrink-0">
                 {isRunning ? (
                   <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
                 ) : (
@@ -110,12 +110,14 @@ export default function SkillProgressBlock({ steps, isActive }: SkillProgressBlo
                   </svg>
                 )}
               </div>
-              {badge && (
-                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${badge.color} flex-shrink-0 mt-px`}>
-                  {badge.label}
-                </span>
-              )}
-              <div className="mt-0.5 flex-1 min-w-0">
+              <div className="w-14 flex-shrink-0">
+                {badge && (
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${badge.color} inline-block text-center w-full`}>
+                    {badge.label}
+                  </span>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
                 {step.message.includes('\n') ? (
                   <>
                     <span className={`text-xs ${isRunning ? 'text-gray-900 font-medium' : 'text-gray-600'}`}>

@@ -15,10 +15,48 @@ function SplitPaneLayout({ children, initialLeftWidth = 35, collapsed, onToggleC
   onToggleCollapse?: () => void;
 }) {
   const kids = React.Children.toArray(children);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [leftWidth, setLeftWidth] = useState(initialLeftWidth);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const newWidth = ((e.clientX - rect.left) / rect.width) * 100;
+      // Clamp: left min 250px (~20%), right min 300px (~25%)
+      const minLeft = (250 / rect.width) * 100;
+      const maxLeft = ((rect.width - 300) / rect.width) * 100;
+      setLeftWidth(Math.min(maxLeft, Math.max(minLeft, newWidth)));
+    };
+
+    const handleMouseUp = () => setIsDragging(false);
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    // Prevent text selection while dragging
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+  }, [isDragging]);
+
   return (
-    <div className="flex flex-1 overflow-hidden h-full gap-2">
+    <div ref={containerRef} className="flex flex-1 overflow-hidden h-full">
       {!collapsed ? (
-        <div className="overflow-y-auto" style={{ width: `${initialLeftWidth}%`, minWidth: 280 }}>
+        <div className="overflow-y-auto flex-shrink-0" style={{ width: `${leftWidth}%`, minWidth: 250 }}>
           {kids[0]}
         </div>
       ) : (
@@ -31,6 +69,15 @@ function SplitPaneLayout({ children, initialLeftWidth = 35, collapsed, onToggleC
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </button>
+      )}
+      {/* Draggable resize handle */}
+      {!collapsed && (
+        <div
+          onMouseDown={handleMouseDown}
+          className={`w-2 flex-shrink-0 flex items-center justify-center cursor-col-resize group ${isDragging ? 'bg-gray-100' : ''}`}
+        >
+          <div className={`w-0.5 h-12 rounded-full transition-colors ${isDragging ? 'bg-gray-900' : 'bg-gray-200 group-hover:bg-gray-400'}`} />
+        </div>
       )}
       <div className="flex-1 overflow-hidden">
         {kids[1]}
@@ -236,6 +283,9 @@ export default function ExperienceCenterWorkflowPage() {
   const [isMobile, setIsMobile] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const workflowOutputEndRef = useRef<HTMLDivElement>(null);
+  const workflowCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const workflowScrollRef = useRef<HTMLDivElement>(null);
+  const [scrolledAboveSteps, setScrolledAboveSteps] = useState<Set<string>>(new Set());
   const hasOutput = currentStep === 'output' && !!output;
   const [hasEverOutput, setHasEverOutput] = useState(false);
   const wfActive = useWorkflowSessionStore(s => s.active);
@@ -253,6 +303,37 @@ export default function ExperienceCenterWorkflowPage() {
       setTimeout(() => workflowOutputEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 300);
     }
   }, [wfStepHistory.length, wfActive]);
+
+  // Track which step cards have scrolled above the viewport
+  useEffect(() => {
+    if (!wfActive || wfStepHistory.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        setScrolledAboveSteps(prev => {
+          const next = new Set(prev);
+          for (const entry of entries) {
+            const stepId = entry.target.getAttribute('data-step-id');
+            if (!stepId) continue;
+            if (!entry.isIntersecting && entry.boundingClientRect.top < 0) {
+              next.add(stepId);
+            } else {
+              next.delete(stepId);
+            }
+          }
+          return next;
+        });
+      },
+      { root: workflowScrollRef.current, threshold: 0 }
+    );
+
+    // Observe all card refs
+    for (const [, el] of Object.entries(workflowCardRefs.current)) {
+      if (el) observer.observe(el);
+    }
+
+    return () => observer.disconnect();
+  }, [wfActive, wfStepHistory.length]);
 
   // Detect mobile/tablet
   useEffect(() => {
@@ -857,10 +938,37 @@ export default function ExperienceCenterWorkflowPage() {
         </div>
       )}
 
+      {/* Sticky mini-headers for scrolled-out cards */}
+      {scrolledAboveSteps.size > 0 && (
+        <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border border-gray-100 rounded-2xl shadow-[0_1px_4px_rgba(0,0,0,0.03)] py-1 px-2 mb-4">
+          {wfStepHistory.map((step, i) => {
+            if (!scrolledAboveSteps.has(step.stepId)) return null;
+            return (
+              <button
+                key={step.stepId}
+                onClick={() => workflowCardRefs.current[step.stepId]?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                className="flex items-center gap-2 w-full py-1 hover:bg-gray-50 rounded-lg px-1 cursor-pointer transition-colors"
+              >
+                <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                  <Check className="w-2.5 h-2.5 text-emerald-600" />
+                </div>
+                <span className="text-[11px] text-gray-500 truncate flex-1 text-left">{i + 1}. {step.stepDef.label}</span>
+                <span className="text-[9px] text-emerald-500 font-medium flex-shrink-0">Done</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {wfStepHistory.map((step, i) => {
         if (!step.output) return null;
         return (
-          <div key={step.stepId} className="mb-4">
+          <div
+            key={step.stepId}
+            className="mb-4"
+            data-step-id={step.stepId}
+            ref={(el) => { workflowCardRefs.current[step.stepId] = el; }}
+          >
             <WorkflowStepCard
               stepType={step.stepDef.stepType}
               output={step.output}
@@ -1193,7 +1301,7 @@ export default function ExperienceCenterWorkflowPage() {
                     </div>
                   )}
                   {/* Scrollable content */}
-                  <div className="flex-1 overflow-y-auto pl-5 pr-5 py-4 pb-20 scrollbar-thin">
+                  <div className={`flex-1 overflow-y-auto pl-5 pr-5 pb-20 scrollbar-thin relative ${wfActive ? 'pt-2' : 'py-4'}`} ref={wfActive ? workflowScrollRef : undefined}>
                     {wfActive ? renderWorkflowOutputPanel() : renderStandardOutputPanel()}
                   </div>
                   {!wfActive && visibleOutputSections >= 8 && output && (
@@ -1281,7 +1389,7 @@ export default function ExperienceCenterWorkflowPage() {
                     </div>
                   )}
                   {/* Scrollable content */}
-                  <div className="flex-1 overflow-y-auto pl-5 pr-5 py-4 pb-20 scrollbar-thin">
+                  <div className={`flex-1 overflow-y-auto pl-5 pr-5 pb-20 scrollbar-thin relative ${wfActive ? 'pt-2' : 'py-4'}`} ref={wfActive ? workflowScrollRef : undefined}>
                     {wfActive ? renderWorkflowOutputPanel() : renderStandardOutputPanel()}
                   </div>
                   {!wfActive && visibleOutputSections >= 8 && output && (
