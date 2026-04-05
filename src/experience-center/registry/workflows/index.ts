@@ -1,21 +1,18 @@
 /**
- * Workflow Registry — maps scenarioId to WorkflowDef.
- * Scenarios without a workflow definition use the existing one-shot generation.
+ * Workflow Registry — resolves WorkflowDef for any scenario
+ * using outcome-based templates via the factory.
  */
 
 import type { WorkflowDef } from '../../orchestration/types';
-import { retRetail3Workflow } from './ret-retail-3';
-import { perfTravel1Workflow } from './perf-travel-1';
-import { insCpg3Workflow } from './ins-cpg-3';
+import { createWorkflowFromScenario } from './workflow-factory';
+import { getScenarioConfig } from '../scenarioRegistry';
 
-const workflowRegistry: Record<string, WorkflowDef> = {
-  'ret-retail-3': retRetail3Workflow,
-  'perf-travel-1': perfTravel1Workflow,
-  'ins-cpg-3': insCpg3Workflow,
-};
-
+/**
+ * Get the workflow definition for a scenario.
+ * All scenarios use factory-generated templates based on their outcome.
+ */
 export function getWorkflowDef(scenarioId: string): WorkflowDef | undefined {
-  return workflowRegistry[scenarioId];
+  const scenarioConfig = getScenarioConfig(scenarioId);
+  if (!scenarioConfig) return undefined;
+  return createWorkflowFromScenario(scenarioConfig);
 }
-
-export { workflowRegistry };
