@@ -9,13 +9,28 @@ import type { StepType } from '../../orchestration/types';
 interface StepCardProps {
   output: Record<string, any>;
   stepLabel: string;
+  stepNumber?: number;
 }
 
 // ── Shared primitives ──
 
-function CardShell({ icon, typeLabel, children }: { icon: React.ReactNode; typeLabel: string; children: React.ReactNode }) {
+function CardShell({ icon, typeLabel, stepNumber, stepLabel, children }: {
+  icon: React.ReactNode;
+  typeLabel: string;
+  stepNumber?: number;
+  stepLabel?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_4px_rgba(0,0,0,0.03)] p-5">
+      {stepNumber != null && stepLabel && (
+        <div className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-100">
+          <div className="w-5 h-5 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
+            <span className="text-[9px] font-bold text-blue-600">{stepNumber}</span>
+          </div>
+          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{stepLabel}</span>
+        </div>
+      )}
       <div className="flex items-center gap-2 mb-4">
         <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
           {icon}
@@ -61,12 +76,12 @@ function MetricRow({ metrics }: { metrics: Array<{ label: string; value: string 
 
 // ── Analysis Card ── (schema: headline, impactStatement, findings[], metrics[], rationale)
 
-function AnalysisCard({ output }: StepCardProps) {
+function AnalysisCard({ output, stepLabel, stepNumber }: StepCardProps) {
   const findings = Array.isArray(output.findings) ? output.findings : [];
   const metrics = Array.isArray(output.metrics) ? output.metrics : [];
 
   return (
-    <CardShell icon={<Search className="w-4 h-4 text-blue-500" />} typeLabel="Analysis">
+    <CardShell icon={<Search className="w-4 h-4 text-blue-500" />} typeLabel="Analysis" stepNumber={stepNumber} stepLabel={stepLabel}>
       <Headline text={output.headline || 'Analysis complete'} />
 
       {findings.length > 0 && (
@@ -102,12 +117,12 @@ function AnalysisCard({ output }: StepCardProps) {
 
 // ── Profile Inspection Card ── (schema: headline, impactStatement, profiles[], sections[])
 
-function ProfileInspectionCard({ output }: StepCardProps) {
+function ProfileInspectionCard({ output, stepLabel, stepNumber }: StepCardProps) {
   const profiles = Array.isArray(output.profiles) ? output.profiles : [];
   const sections = Array.isArray(output.sections) ? output.sections : [];
 
   return (
-    <CardShell icon={<Users className="w-4 h-4 text-blue-500" />} typeLabel="Profile Inspection">
+    <CardShell icon={<Users className="w-4 h-4 text-blue-500" />} typeLabel="Profile Inspection" stepNumber={stepNumber} stepLabel={stepLabel}>
       <Headline text={output.headline || 'Profile inspection complete'} />
 
       {profiles.length > 0 && (
@@ -145,7 +160,7 @@ function ProfileInspectionCard({ output }: StepCardProps) {
 
 // ── Creation Card ── (schema: headline, impactStatement, sections[], channels[], nextSteps[])
 
-function CreationCard({ output, stepLabel }: StepCardProps) {
+function CreationCard({ output, stepLabel, stepNumber }: StepCardProps) {
   const sections = Array.isArray(output.sections) ? output.sections : [];
   const channels = Array.isArray(output.channels) ? output.channels : [];
   const nextSteps = Array.isArray(output.nextSteps) ? output.nextSteps : [];
@@ -155,6 +170,8 @@ function CreationCard({ output, stepLabel }: StepCardProps) {
     <CardShell
       icon={<FileText className="w-4 h-4 text-blue-500" />}
       typeLabel={isJourney ? 'Journey' : 'Campaign Plan'}
+      stepNumber={stepNumber}
+      stepLabel={stepLabel}
     >
       <Headline text={output.headline || stepLabel} />
 
@@ -207,12 +224,12 @@ function CreationCard({ output, stepLabel }: StepCardProps) {
 
 // ── Comparison Card ── (schema: headline, impactStatement, options[], metrics[])
 
-function ComparisonCard({ output }: StepCardProps) {
+function ComparisonCard({ output, stepLabel, stepNumber }: StepCardProps) {
   const options = Array.isArray(output.options) ? output.options : [];
   const metrics = Array.isArray(output.metrics) ? output.metrics : [];
 
   return (
-    <CardShell icon={<BarChart3 className="w-4 h-4 text-blue-500" />} typeLabel="Comparison">
+    <CardShell icon={<BarChart3 className="w-4 h-4 text-blue-500" />} typeLabel="Comparison" stepNumber={stepNumber} stepLabel={stepLabel}>
       <Headline text={output.headline || 'Comparison complete'} />
 
       {options.length > 0 && (
@@ -240,12 +257,12 @@ function ComparisonCard({ output }: StepCardProps) {
 
 // ── Activation Card ── (schema: headline, impactStatement, summary, destinations[], sections[])
 
-function ActivationCard({ output }: StepCardProps) {
+function ActivationCard({ output, stepLabel, stepNumber }: StepCardProps) {
   const destinations = Array.isArray(output.destinations) ? output.destinations : [];
   const sections = Array.isArray(output.sections) ? output.sections : [];
 
   return (
-    <CardShell icon={<Zap className="w-4 h-4 text-blue-500" />} typeLabel="Activation Preview">
+    <CardShell icon={<Zap className="w-4 h-4 text-blue-500" />} typeLabel="Activation Preview" stepNumber={stepNumber} stepLabel={stepLabel}>
       <Headline text={output.headline || 'Activation ready'} />
 
       {output.summary && <p className="text-sm text-gray-500 leading-relaxed mb-4">{output.summary}</p>}
@@ -280,12 +297,12 @@ function ActivationCard({ output }: StepCardProps) {
 
 // ── Optimization Card ── (schema: headline, impactStatement, rationale, metrics[], changes[])
 
-function OptimizationCard({ output }: StepCardProps) {
+function OptimizationCard({ output, stepLabel, stepNumber }: StepCardProps) {
   const metrics = Array.isArray(output.metrics) ? output.metrics : [];
   const changes = Array.isArray(output.changes) ? output.changes : [];
 
   return (
-    <CardShell icon={<Target className="w-4 h-4 text-blue-500" />} typeLabel="Optimization">
+    <CardShell icon={<Target className="w-4 h-4 text-blue-500" />} typeLabel="Optimization" stepNumber={stepNumber} stepLabel={stepLabel}>
       <Headline text={output.headline || 'Optimization recommendations'} />
 
       {output.rationale && (
@@ -335,15 +352,5 @@ export default function WorkflowStepCard({ stepType, output, stepLabel, stepNumb
   stepNumber: number;
 }) {
   const Card = stepCardRegistry[stepType] || AnalysisCard;
-  return (
-    <div>
-      <div className="flex items-center gap-2 mb-2 px-1">
-        <div className="w-5 h-5 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
-          <span className="text-[9px] font-bold text-blue-600">{stepNumber}</span>
-        </div>
-        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{stepLabel}</span>
-      </div>
-      <Card output={output} stepLabel={stepLabel} />
-    </div>
-  );
+  return <Card output={output} stepLabel={stepLabel} stepNumber={stepNumber} />;
 }

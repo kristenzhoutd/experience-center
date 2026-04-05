@@ -788,8 +788,75 @@ export default function ExperienceCenterWorkflowPage() {
   // Workflow output panel (cumulative, used by both mobile and desktop)
   // ============================================================
   const renderWorkflowOutputPanel = () => {
+    // Build progress tracker: completed steps + current + predicted next
+    const buildProgressItems = () => {
+      const items: Array<{ label: string; status: 'done' | 'current' | 'pending' }> = [];
+      // Completed steps
+      for (const step of wfStepHistory) {
+        items.push({ label: step.stepDef.label, status: 'done' });
+      }
+      // Current step (only if not already completed)
+      const alreadyCompleted = wfStepHistory.some(s => s.stepId === wfCurrentStepId);
+      if (wfCurrentStepId && wfDef?.steps[wfCurrentStepId]) {
+        const currentStep = wfDef.steps[wfCurrentStepId];
+        if (!alreadyCompleted) {
+          items.push({ label: currentStep.label, status: 'current' });
+        }
+        // Predict next steps by following recommended branches (even if current is done, user hasn't picked yet)
+        let nextStepId = currentStep.branches.find(b => b.recommendation)?.nextStepId || currentStep.branches[0]?.nextStepId;
+        let depth = 0;
+        while (nextStepId && wfDef.steps[nextStepId] && depth < 3) {
+          const nextStep = wfDef.steps[nextStepId];
+          items.push({ label: nextStep.label, status: 'pending' });
+          nextStepId = nextStep.branches.find(b => b.recommendation)?.nextStepId || nextStep.branches[0]?.nextStepId;
+          depth++;
+        }
+      }
+      return items;
+    };
+
+    const progressItems = buildProgressItems();
+
     return (
     <>
+      {/* Workflow Progress Tracker */}
+      {progressItems.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_4px_rgba(0,0,0,0.03)] p-4 mb-4">
+          <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-3">Workflow Progress</div>
+          <div className="space-y-1.5">
+            {progressItems.map((item, i) => (
+              <div key={i} className="flex items-center gap-2.5">
+                {item.status === 'done' ? (
+                  <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                    <Check className="w-3 h-3 text-emerald-600" />
+                  </div>
+                ) : item.status === 'current' ? (
+                  <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <div className="w-2.5 h-2.5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : (
+                  <div className="w-5 h-5 rounded-full border border-gray-200 flex items-center justify-center flex-shrink-0">
+                    <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                  </div>
+                )}
+                <span className={`text-xs flex-1 ${
+                  item.status === 'done' ? 'text-gray-500' :
+                  item.status === 'current' ? 'text-gray-900 font-medium' :
+                  'text-gray-400'
+                }`}>{item.label}</span>
+                <span className={`text-[10px] font-medium flex-shrink-0 ${
+                  item.status === 'done' ? 'text-emerald-500' :
+                  item.status === 'current' ? 'text-blue-500' :
+                  'text-gray-300'
+                }`}>
+                  {item.status === 'done' ? 'Done' : item.status === 'current' ? 'Current' : 'Pending'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {wfStepHistory.map((step, i) => {
         if (!step.output) return null;
         return (
@@ -804,16 +871,65 @@ export default function ExperienceCenterWorkflowPage() {
         );
       })}
       {wfIsExecuting && (
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-3 px-1">
-            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 animate-pulse">
-              <span className="text-[10px] font-bold text-blue-600">{wfStepHistory.length + 1}</span>
+        <div className="mb-4">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_4px_rgba(0,0,0,0.03)] p-5">
+            {/* Step header */}
+            <div className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-100">
+              <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 animate-pulse">
+                <span className="text-[9px] font-bold text-blue-600">{wfStepHistory.length + 1}</span>
+              </div>
+              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                {wfDef?.steps[wfCurrentStepId || '']?.label || 'Processing...'}
+              </span>
             </div>
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              {wfDef?.steps[wfCurrentStepId || '']?.label || 'Processing...'}
-            </span>
+            {/* Type label shimmer */}
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-7 h-7 rounded-lg bg-gray-100 animate-pulse" />
+              <div className="w-20 h-2.5 rounded-full bg-gray-200/60 animate-pulse" />
+            </div>
+            {/* Headline shimmer */}
+            <div className="space-y-2 mb-4">
+              <div className="w-full h-4 rounded-full bg-gray-200/60 animate-pulse" />
+              <div className="w-3/4 h-4 rounded-full bg-gray-200/60 animate-pulse" />
+            </div>
+            {/* Findings shimmer */}
+            <div className="w-24 h-2 rounded-full bg-gray-100 animate-pulse mb-3" />
+            <div className="space-y-3 mb-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="flex items-start gap-2.5">
+                  <div className="w-5 h-5 rounded-full bg-gray-100 animate-pulse flex-shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="w-32 h-3 rounded-full bg-gray-200/60 animate-pulse" />
+                    <div className="w-full h-2.5 rounded-full bg-gray-100 animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Metrics shimmer */}
+            <div className="flex gap-3 mb-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="flex-1 bg-gray-50 rounded-xl px-3 py-3 animate-pulse">
+                  <div className="w-12 h-3.5 rounded-full bg-gray-200/60 mx-auto mb-1" />
+                  <div className="w-16 h-2 rounded-full bg-gray-100 mx-auto" />
+                </div>
+              ))}
+            </div>
+            {/* Rationale shimmer */}
+            <div className="space-y-1.5 mb-4">
+              <div className="w-full h-2.5 rounded-full bg-gray-100 animate-pulse" />
+              <div className="w-5/6 h-2.5 rounded-full bg-gray-100 animate-pulse" />
+            </div>
+            {/* Impact callout shimmer */}
+            <div className="bg-blue-50/30 border border-blue-100/40 rounded-xl px-4 py-3 animate-pulse">
+              <div className="flex items-start gap-2">
+                <div className="w-4 h-4 rounded bg-blue-100 flex-shrink-0 mt-0.5" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="w-full h-2.5 rounded-full bg-blue-100/60" />
+                  <div className="w-4/5 h-2.5 rounded-full bg-blue-100/60" />
+                </div>
+              </div>
+            </div>
           </div>
-          <OutputLoader variant="output" />
         </div>
       )}
       <div ref={workflowOutputEndRef} />
