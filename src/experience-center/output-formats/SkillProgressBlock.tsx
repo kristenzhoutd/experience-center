@@ -115,9 +115,24 @@ export default function SkillProgressBlock({ steps, isActive }: SkillProgressBlo
                   {badge.label}
                 </span>
               )}
-              <span className={`text-xs mt-0.5 ${isRunning ? 'text-gray-900 font-medium' : 'text-gray-600'}`}>
-                {step.message}
-              </span>
+              <div className="mt-0.5 flex-1 min-w-0">
+                {step.message.includes('\n') ? (
+                  <>
+                    <span className={`text-xs ${isRunning ? 'text-gray-900 font-medium' : 'text-gray-600'}`}>
+                      {step.message.split('\n')[0]}
+                    </span>
+                    <div className="mt-1 space-y-0.5 pl-1 border-l-2 border-gray-100 ml-0.5">
+                      {step.message.split('\n').slice(1).map((line, i) => (
+                        <div key={i} className="text-[11px] text-gray-400 pl-2">{line}</div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <span className={`text-xs ${isRunning ? 'text-gray-900 font-medium' : 'text-gray-600'}`}>
+                    {step.message}
+                  </span>
+                )}
+              </div>
               {isRunning && <ElapsedTimer />}
             </div>
           );
