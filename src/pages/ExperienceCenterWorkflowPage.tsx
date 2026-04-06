@@ -293,6 +293,7 @@ export default function ExperienceCenterWorkflowPage() {
   const wfIsExecuting = useWorkflowSessionStore(s => s.isExecutingStep);
   const wfCurrentStepId = useWorkflowSessionStore(s => s.currentStepId);
   const wfDef = useWorkflowSessionStore(s => s.workflowDef);
+  const wfComplete = wfActive && wfStepHistory.length > 0 && wfStepHistory[wfStepHistory.length - 1].stepDef.branches.length === 0 && !wfIsExecuting;
   useEffect(() => {
     if (output || (isThinkingActive && currentStep === 'generating') || wfActive) setHasEverOutput(true);
   }, [output, isThinkingActive, currentStep, wfActive]);
@@ -1298,9 +1299,9 @@ export default function ExperienceCenterWorkflowPage() {
                   <div className={`flex-1 overflow-y-auto pl-5 pr-5 pb-20 scrollbar-thin relative ${wfActive ? 'pt-2' : 'py-4'}`} ref={wfActive ? workflowScrollRef : undefined}>
                     {wfActive ? renderWorkflowOutputPanel() : renderStandardOutputPanel()}
                   </div>
-                  {!wfActive && visibleOutputSections >= 8 && output && (
+                  {wfComplete && (
                     <div className="absolute bottom-1 right-3 z-10">
-                      <FloatingContextCard output={output} onBook={() => setShowBookingModal(true)} />
+                      <FloatingContextCard output={wfStepHistory[wfStepHistory.length - 1].output as unknown as OutputData} onBook={() => setShowBookingModal(true)} />
                     </div>
                   )}
                 </div>
@@ -1386,9 +1387,9 @@ export default function ExperienceCenterWorkflowPage() {
                   <div className={`flex-1 overflow-y-auto pl-5 pr-5 pb-20 scrollbar-thin relative ${wfActive ? 'pt-2' : 'py-4'}`} ref={wfActive ? workflowScrollRef : undefined}>
                     {wfActive ? renderWorkflowOutputPanel() : renderStandardOutputPanel()}
                   </div>
-                  {!wfActive && visibleOutputSections >= 8 && output && (
+                  {((!wfActive && visibleOutputSections >= 8 && output) || wfComplete) && (
                     <div className="absolute bottom-1 right-4 z-10">
-                      <FloatingContextCard output={output} onBook={() => setShowBookingModal(true)} />
+                      <FloatingContextCard output={wfComplete ? wfStepHistory[wfStepHistory.length - 1].output as unknown as OutputData : output} onBook={() => setShowBookingModal(true)} />
                     </div>
                   )}
                 </div>
@@ -2204,7 +2205,7 @@ function FloatingContextCard({
         {/* Impact list */}
         <div className="px-5 pt-4 pb-2">
           <div className="space-y-3">
-            {output.insightPanel.businessImpact.slice(0, 3).map((item, i) => (
+            {(output.insightPanel?.businessImpact ?? []).slice(0, 3).map((item, i) => (
               <div key={i} className="flex items-start gap-3">
                 <div className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'rgba(52,211,153,0.1)' }}>
                   <TrendingUp className="w-3 h-3 text-emerald-500" />
