@@ -46,6 +46,7 @@ export default function ExperienceCenterPage() {
 
   // Listen for booking modal event from nav bar
   const [showBookingModal, setShowBookingModal] = useState(false);
+  const [showLegalModal, setShowLegalModal] = useState(false);
   useEffect(() => {
     const handler = () => setShowBookingModal(true);
     window.addEventListener('open-booking-modal', handler);
@@ -126,8 +127,28 @@ export default function ExperienceCenterPage() {
           <span>Powered by sandbox customer signals</span>
           <span className="hidden md:block w-1 h-1 rounded-full bg-gray-500" />
           <span>AI-generated for human review</span>
+          <span className="hidden md:block w-1 h-1 rounded-full bg-gray-500" />
+          <button onClick={() => setShowLegalModal(true)} className="underline hover:text-gray-900 cursor-pointer">Legal Notice</button>
         </div>
       </div>
+
+      {/* Legal Notice Modal */}
+      {showLegalModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+          <div onClick={() => setShowLegalModal(false)} className="fixed inset-0 bg-black/30" />
+          <div className="relative bg-white rounded-2xl shadow-xl max-w-lg w-full mx-4 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Legal Notice</h2>
+              <button onClick={() => setShowLegalModal(false)} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 cursor-pointer">
+                ✕
+              </button>
+            </div>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              This interactive experience is a simulated demonstration of Treasure AI products and services. This demo uses synthetic data and simplified scenarios for illustration only. It does not guarantee or represent actual product performance, configuration, or results, which will vary based on various factors, including but not limited to your data and implementation. The features, workflows, outputs, and user interface in this demo may differ from the commercially available product. Do not rely on this demo for business, financial, legal, or compliance decisions. Use of this demo is subject to our <a href="https://www.treasuredata.com/terms/website-terms-of-use/" target="_blank" rel="noopener noreferrer" className="underline text-blue-600 hover:text-blue-800">Website Terms of Use</a> and <a href="https://www.treasuredata.com/privacy-statement/" target="_blank" rel="noopener noreferrer" className="underline text-blue-600 hover:text-blue-800">Privacy Statement</a>, as updated from time to time.
+            </p>
+          </div>
+        </div>
+      )}
 
       <ApiKeySetupModal
         isOpen={showApiKeyModal}
