@@ -1194,12 +1194,6 @@ export default function ExperienceCenterWorkflowPage() {
             </button>
             <div className="flex-1" />
             <button
-              onClick={() => window.dispatchEvent(new CustomEvent('open-api-key-modal'))}
-              className="hidden md:flex items-center gap-2 text-[11px] mr-5 cursor-pointer hover:opacity-80 transition-opacity"
-            >
-              <span className="text-xs" style={{ background: 'linear-gradient(90deg, #0082DE, #3C00C0)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 500 }}>Powered by Treasure AI</span>
-            </button>
-            <button
               onClick={() => setShowBookingModal(true)}
               className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-white bg-gray-900 rounded-full hover:bg-gray-800 transition-colors shadow-sm cursor-pointer"
             >
