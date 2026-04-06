@@ -15,10 +15,10 @@ const goalIcons: Record<string, React.ElementType> = {
 };
 
 const rotatingWords = [
-  { word: 'amazing', color: '#F7A761', icon: '/icons/rotating-word-1.svg' },
-  { word: 'brilliant', color: '#A9D156', icon: '/icons/rotating-word-2.svg' },
-  { word: 'revolutionary', color: '#6961AE', icon: '/icons/rotating-word-3.svg' },
-  { word: 'exceptional', color: '#F05256', icon: '/icons/rotating-word-4.svg' },
+  { word: 'growth', color: '#F7A761', icon: '/icons/rotating-word-1.svg' },
+  { word: 'performance', color: '#A9D156', icon: '/icons/rotating-word-2.svg' },
+  { word: 'activation', color: '#6961AE', icon: '/icons/rotating-word-3.svg' },
+  { word: 'retention', color: '#F05256', icon: '/icons/rotating-word-4.svg' },
 ];
 
 export default function ExperienceCenterPage() {
@@ -77,12 +77,12 @@ export default function ExperienceCenterPage() {
 
   return (
     <div className="h-full overflow-y-auto flex flex-col items-center px-4 md:px-0">
-      <div className="flex-1" />
+      <div className="flex-1 min-h-8" />
       <div className="w-full max-w-4xl mx-auto px-2 md:px-6">
         {/* Hero */}
         <div className="text-center mb-8 md:mb-12">
           <h1 className="text-2xl md:text-4xl font-light text-gray-900 mb-1" style={{ fontFamily: "'Manrope', sans-serif" }}>
-            Let's launch something
+            Experience AI marketing that drives
           </h1>
           <div className="flex items-center justify-center gap-2 text-2xl md:text-4xl font-bold" style={{ fontFamily: "'Manrope', sans-serif" }}>
             <span
@@ -96,9 +96,8 @@ export default function ExperienceCenterPage() {
               <span style={{ color: currentWord.color }}>{currentWord.word}</span>
             </span>
           </div>
-          <p className="text-xs md:text-sm text-gray-500 mt-3 md:mt-4 max-w-lg mx-auto leading-relaxed px-4">
-            Explore a guided AI experience built for enterprise brands.
-            No setup. No login. Just choose a goal and see the outcome.
+          <p className="text-xs md:text-sm text-gray-500 mt-3 md:mt-4 mb-0 max-w-lg mx-auto leading-relaxed px-4">
+            Explore a curated AI experience designed for enterprise brands - from audience analysis to journeys, campaigns, and next-best actions.
           </p>
         </div>
       </div>
@@ -117,16 +116,16 @@ export default function ExperienceCenterPage() {
       </div>
 
       {/* Spacer to push footer down */}
-      <div className="flex-1" />
+      <div className="flex-1 min-h-8" />
 
       {/* Trust strip — footer */}
-      <div className="text-center py-4 pb-8 px-4 w-full">
+      <div className="text-center py-4 pb-6 px-4 w-full">
         <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-6 text-[11px] text-gray-600">
-          <span>Powered by contextual customer intelligence</span>
+          <span>Guided for exploration</span>
+          <span className="hidden md:block w-1 h-1 rounded-full bg-gray-500" />
+          <span>Powered by sandbox customer signals</span>
           <span className="hidden md:block w-1 h-1 rounded-full bg-gray-500" />
           <span>AI-generated for human review</span>
-          <span className="hidden md:block w-1 h-1 rounded-full bg-gray-500" />
-          <span>Built on trusted, traceable context</span>
         </div>
       </div>
 
@@ -154,46 +153,12 @@ function GoalCarousel({
   onSelect: (id: string) => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [isPaused, setIsPaused] = useState(false);
 
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el || isPaused) return;
-
-    let animationFrame: number;
-    const scrollSpeed = 0.5;
-
-    const step = () => {
-      if (el.scrollLeft >= el.scrollWidth - el.clientWidth) {
-        el.scrollLeft = 0;
-      } else {
-        el.scrollLeft += scrollSpeed;
-      }
-      animationFrame = requestAnimationFrame(step);
-    };
-
-    animationFrame = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(animationFrame);
-  }, [isPaused]);
-
-  // Duplicate for seamless loop
-  const items = [...goals, ...goals];
+  const items = goals;
 
   return (
-    <div
-      className="w-full max-w-5xl mt-2"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-      style={{
-        maskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)',
-        WebkitMaskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)',
-      }}
-    >
-      <div
-        ref={scrollRef}
-        className="flex gap-3 md:gap-4 overflow-x-auto scrollbar-hide pb-2 px-2"
-        style={{ scrollBehavior: 'auto' }}
-      >
+    <div className="w-full max-w-2xl -mt-3 px-4">
+      <div className="grid grid-cols-2 gap-3 md:gap-4">
         {items.map((g, index) => {
           const Icon = goalIcons[g.icon] || TrendingUp;
           const isSelected = selectedGoal === g.id;
@@ -201,7 +166,7 @@ function GoalCarousel({
             <button
               key={`${g.id}-${index}`}
               onClick={() => onSelect(g.id)}
-              className={`flex-shrink-0 w-60 md:w-72 p-4 md:p-5 rounded-2xl text-left transition-all cursor-pointer ${
+              className={`p-4 md:p-5 rounded-2xl text-left transition-all cursor-pointer ${
                 isSelected
                   ? 'border border-transparent backdrop-blur-sm bg-white/70 shadow-md'
                   : 'border border-white/60 backdrop-blur-sm bg-white/10 shadow-[0_2px_4px_rgba(0,0,0,0.02),0_8px_24px_rgba(0,0,0,0.04)] hover:bg-white/40 hover:shadow-[0_4px_8px_rgba(0,0,0,0.03),0_12px_32px_rgba(0,0,0,0.06)]'
