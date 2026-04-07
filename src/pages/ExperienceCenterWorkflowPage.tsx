@@ -285,6 +285,7 @@ export default function ExperienceCenterWorkflowPage() {
   const workflowOutputEndRef = useRef<HTMLDivElement>(null);
   const workflowCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const workflowScrollRef = useRef<HTMLDivElement>(null);
+  const cachedIndustryRef = useRef<IndustryContext | null>(null);
   const [scrolledAboveSteps, setScrolledAboveSteps] = useState<Set<string>>(new Set());
   const hasOutput = currentStep === 'output' && !!output;
   const [hasEverOutput, setHasEverOutput] = useState(false);
@@ -505,8 +506,8 @@ export default function ExperienceCenterWorkflowPage() {
   // ============================================================
   const runWorkflowStep = useCallback(async (scenarioIdOverride?: string) => {
     const wfStore = useWorkflowSessionStore.getState();
-    const { workflowDef, currentStepId, stepHistory, cumulativeContext } = wfStore;
-    if (!workflowDef || !currentStepId) return;
+    const { workflowDef, currentStepId, stepHistory, cumulativeContext, isExecutingStep } = wfStore;
+    if (!workflowDef || !currentStepId || isExecutingStep) return;
 
     const stepDef = workflowDef.steps[currentStepId];
     if (!stepDef) return;
@@ -532,13 +533,19 @@ export default function ExperienceCenterWorkflowPage() {
     };
 
     // Resolve industry context first (to get sandbox data for progress messages)
+    // Cache it so subsequent workflow steps don't re-fetch metrics
     let resolvedIndustry: IndustryContext | undefined;
     addProgressStep(`Reviewing scenario: ${stepDef.label}`, 'intent');
-    try {
-      const { industry: ctx } = await resolveWorkflowStepContext(scenarioConfig);
-      resolvedIndustry = ctx;
-    } catch {
-      // If context resolution fails, continue with generic progress
+    if (cachedIndustryRef.current) {
+      resolvedIndustry = cachedIndustryRef.current;
+    } else {
+      try {
+        const { industry: ctx } = await resolveWorkflowStepContext(scenarioConfig);
+        resolvedIndustry = ctx;
+        cachedIndustryRef.current = ctx;
+      } catch {
+        // If context resolution fails, continue with generic progress
+      }
     }
 
     // Build dynamic progress steps with real sandbox data
@@ -1158,6 +1165,7 @@ export default function ExperienceCenterWorkflowPage() {
     setShowCTA(false);
     setVisibleOutputSections(0);
     setCollapsed(false);
+    cachedIndustryRef.current = null;
     // Remove old output/cta messages and add scenario prompt immediately
     setMessages(prev => [
       ...prev.filter(m => m.type !== 'output-ready' && m.type !== 'cta' && m.type !== 'refinements' && m.role !== 'thinking'),
