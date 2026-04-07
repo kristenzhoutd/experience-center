@@ -5,7 +5,7 @@ import {
   ShoppingBag, Plane, Package, Car, Film, Landmark,
   Clock, Star, Send, RotateCcw,
   Target, Lightbulb, TrendingUp, Shield,
-  Loader2, Pencil, Presentation, ChevronDown, Share2, X,
+  Loader2, Pencil, Presentation, ChevronDown, Share2, X, FileText,
 } from 'lucide-react';
 // Minimal inline SplitPaneLayout replacement (original was deleted with campaign components)
 function SplitPaneLayout({ children, initialLeftWidth = 35, collapsed, onToggleCollapse }: {
@@ -1461,22 +1461,28 @@ export default function ExperienceCenterWorkflowPage() {
       {/* Share Modal */}
       {showShareModal && (
         <>
-          <div onClick={() => setShowShareModal(false)} className="fixed inset-0 bg-black/30 z-[9998]" />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] max-w-[90vw] bg-white rounded-2xl shadow-2xl z-[9999] overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                  <Share2 className="w-4 h-4 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-900">Share output</h3>
-                  <p className="text-[11px] text-gray-400">Send a copy of this output to your inbox</p>
-                </div>
-              </div>
-              <button onClick={() => setShowShareModal(false)} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 cursor-pointer">
+          <div onClick={() => setShowShareModal(false)} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9998]" />
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[440px] max-w-[90vw] bg-white rounded-2xl shadow-2xl z-[9999] overflow-hidden">
+            {/* Hero banner */}
+            <div className="relative px-6 pt-6 pb-5 overflow-hidden" style={{ background: 'linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 50%, #C7D2FE 100%)' }}>
+              <button onClick={() => setShowShareModal(false)} className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/50 text-gray-500 cursor-pointer z-10">
                 <X className="w-4 h-4" />
               </button>
+              {/* Decorative circles */}
+              <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-indigo-200/30" />
+              <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-blue-200/30" />
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-white/80 shadow-sm flex items-center justify-center backdrop-blur-sm">
+                  <Sparkles className="w-5 h-5 text-indigo-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: "'Manrope', sans-serif" }}>Save this exploration</h3>
+                  <p className="text-[12px] text-indigo-600/80 font-medium">Share what's possible with your team</p>
+                </div>
+              </div>
+              <p className="text-[13px] text-gray-600 leading-relaxed">Get a polished recap of this experience — including the scenarios, insights, and recommendations explored — sent straight to your inbox.</p>
             </div>
+            {/* Content */}
             <div className="px-6 py-5">
               <EmailCaptureCard output={output} onDone={() => setShowShareModal(false)} />
             </div>
@@ -2059,6 +2065,7 @@ function OutputSection({ title, icon, children }: { title: string; icon: React.R
 // ============================================================
 function EmailCaptureCard({ output, onDone }: { output?: OutputData | null; onDone?: () => void }) {
   const [email, setEmail] = useState('');
+  const [format, setFormat] = useState<'slides' | 'pdf'>('slides');
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
 
   const generateOutputText = (): string => {
@@ -2110,61 +2117,104 @@ function EmailCaptureCard({ output, onDone }: { output?: OutputData | null; onDo
     if (!email || !email.includes('@')) return;
     setStatus('sending');
 
-    // Generate and download the output as a file
-    const text = generateOutputText();
-    const blob = new Blob([text], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'treasure-ai-output.txt';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
+    // Simulate sending email (no actual backend yet)
     setTimeout(() => {
       setStatus('sent');
-      if (onDone) setTimeout(onDone, 1500);
-    }, 600);
+    }, 1200);
   };
 
   if (status === 'sent') {
     return (
-      <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-            <Check className="w-3 h-3 text-green-600" />
+      <div className="text-center py-2">
+        <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
+          <Check className="w-6 h-6 text-green-600" />
+        </div>
+        <p className="text-sm font-semibold text-gray-900 mb-1">On its way!</p>
+        <p className="text-xs text-gray-500 mb-5">Your recap is being sent to <span className="font-medium text-gray-700">{email}</span></p>
+
+        {/* Book walkthrough CTA */}
+        <div className="rounded-xl p-4 text-left" style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)' }}>
+          <div className="flex items-start gap-3">
+            <img src="/icons/td-avatar.png" alt="" className="w-10 h-10 rounded-full flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-semibold text-white mb-1">Ready to see this with your real data?</p>
+              <p className="text-[11px] text-indigo-200 leading-relaxed mb-3">Book a personalized walkthrough and we'll show you exactly how Treasure AI works with your goals, your audience, and your stack.</p>
+              <button
+                onClick={() => { if (onDone) onDone(); setTimeout(() => window.dispatchEvent(new Event('open-booking-modal')), 200); }}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-white text-indigo-700 rounded-lg text-xs font-semibold hover:bg-indigo-50 transition-colors cursor-pointer shadow-sm"
+              >
+                Book a walkthrough
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              </button>
+            </div>
           </div>
-          <p className="text-xs text-gray-600">Output downloaded and sent to <span className="font-medium">{email}</span></p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-      <p className="text-xs text-gray-600 mb-2.5">Send a copy of this output to your inbox</p>
-      <div className="flex items-center gap-2">
+    <div>
+      {/* Format selector */}
+      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Choose format</p>
+      <div className="flex gap-2.5 mb-4">
+        <button
+          onClick={() => setFormat('slides')}
+          className={`flex-1 flex flex-col items-center gap-1.5 px-3 py-3.5 rounded-xl border-2 transition-all cursor-pointer ${
+            format === 'slides'
+              ? 'border-indigo-400 bg-indigo-50/50 shadow-[0_0_0_1px_rgba(99,102,241,0.1)]'
+              : 'border-gray-200 bg-gray-50/50 hover:border-gray-300 hover:bg-gray-50'
+          }`}
+        >
+          <Presentation className={`w-5 h-5 ${format === 'slides' ? 'text-indigo-600' : 'text-gray-400'}`} />
+          <span className={`text-xs font-semibold ${format === 'slides' ? 'text-indigo-700' : 'text-gray-500'}`}>Slide Deck</span>
+          <span className={`text-[10px] ${format === 'slides' ? 'text-indigo-500' : 'text-gray-400'}`}>Walk your team through it</span>
+        </button>
+        <button
+          onClick={() => setFormat('pdf')}
+          className={`flex-1 flex flex-col items-center gap-1.5 px-3 py-3.5 rounded-xl border-2 transition-all cursor-pointer ${
+            format === 'pdf'
+              ? 'border-indigo-400 bg-indigo-50/50 shadow-[0_0_0_1px_rgba(99,102,241,0.1)]'
+              : 'border-gray-200 bg-gray-50/50 hover:border-gray-300 hover:bg-gray-50'
+          }`}
+        >
+          <FileText className={`w-5 h-5 ${format === 'pdf' ? 'text-indigo-600' : 'text-gray-400'}`} />
+          <span className={`text-xs font-semibold ${format === 'pdf' ? 'text-indigo-700' : 'text-gray-500'}`}>PDF Report</span>
+          <span className={`text-[10px] ${format === 'pdf' ? 'text-indigo-500' : 'text-gray-400'}`}>Save for reference</span>
+        </button>
+      </div>
+
+      {/* Email input */}
+      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Your email</p>
+      <div className="flex items-center gap-2 mb-3">
         <input
           type="email"
           value={email}
           onChange={e => setEmail(e.target.value)}
-          placeholder="Work email"
-          className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+          placeholder="name@company.com"
+          className="flex-1 px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white placeholder:text-gray-300"
           onKeyDown={e => { if (e.key === 'Enter') handleSend(); }}
         />
-        <button
-          onClick={handleSend}
-          disabled={!email || !email.includes('@') || status === 'sending'}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0 ${
-            email && email.includes('@') && status !== 'sending'
-              ? 'bg-gray-900 text-white hover:bg-gray-800 cursor-pointer'
-              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-          }`}
-        >
-          {status === 'sending' ? 'Sending...' : 'Send'}
-        </button>
       </div>
+      <button
+        onClick={handleSend}
+        disabled={!email || !email.includes('@') || status === 'sending'}
+        className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all ${
+          email && email.includes('@') && status !== 'sending'
+            ? 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer shadow-sm'
+            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+        }`}
+      >
+        {status === 'sending' ? (
+          <span className="flex items-center justify-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Preparing your recap...
+          </span>
+        ) : (
+          `Send me the ${format === 'slides' ? 'slides' : 'PDF'}`
+        )}
+      </button>
+      <p className="text-[10px] text-gray-400 text-center mt-2.5">We'll only use your email to deliver this recap.</p>
     </div>
   );
 }
