@@ -1,9 +1,11 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { storage } from '../utils/storage'
+import { usePageTracking } from '@/hooks/usePageTracking'
 
 export default function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
+  usePageTracking()
 
   const isSettings = location.pathname === '/settings'
   const isWorkflow = location.pathname === '/experience-center/workflow'
