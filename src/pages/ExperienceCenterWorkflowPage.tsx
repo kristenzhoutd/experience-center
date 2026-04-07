@@ -1260,7 +1260,7 @@ export default function ExperienceCenterWorkflowPage() {
                 />
               ) : (
                 <div className="flex-1 relative overflow-hidden bg-[#F7F8FB] rounded-2xl flex flex-col">
-                  {/* Sticky header (hidden in workflow mode) */}
+                  {/* Sticky header — non-workflow */}
                   {!wfActive && output && visibleOutputSections >= 1 && (
                     <div className="flex items-center justify-between px-4 pt-2.5 border-b border-gray-200/60 bg-[#F7F8FB] z-10 flex-shrink-0">
                       {artifacts.length > 1 ? (
@@ -1300,6 +1300,20 @@ export default function ExperienceCenterWorkflowPage() {
                         >
                           <Presentation className="w-3.5 h-3.5" />
                           Create slides
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {/* Sticky header — workflow mode */}
+                  {wfActive && wfStepHistory.length > 0 && (
+                    <div className="flex items-center justify-end px-4 pt-2.5 pb-1 bg-[#F7F8FB] z-10 flex-shrink-0">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setShowShareModal(true)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50/50 transition-all cursor-pointer shadow-sm"
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
+                          Share
                         </button>
                       </div>
                     </div>
@@ -1348,7 +1362,7 @@ export default function ExperienceCenterWorkflowPage() {
                 />
                 {/* Right: Output */}
                 <div className="h-full relative bg-[#F7F8FB] rounded-2xl flex flex-col">
-                  {/* Sticky header (hidden in workflow mode) */}
+                  {/* Sticky header — non-workflow */}
                   {!wfActive && output && visibleOutputSections >= 1 && (
                     <div className="flex items-center justify-between px-5 pt-2.5 border-b border-gray-200/60 bg-[#F7F8FB] z-10 flex-shrink-0 rounded-t-2xl">
                       {artifacts.length > 1 ? (
@@ -1388,6 +1402,20 @@ export default function ExperienceCenterWorkflowPage() {
                         >
                           <Presentation className="w-3.5 h-3.5" />
                           Create slides
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {/* Sticky header — workflow mode */}
+                  {wfActive && wfStepHistory.length > 0 && (
+                    <div className="flex items-center justify-end px-5 pt-2.5 pb-1 bg-[#F7F8FB] z-10 flex-shrink-0 rounded-t-2xl">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setShowShareModal(true)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50/50 transition-all cursor-pointer shadow-sm"
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
+                          Share
                         </button>
                       </div>
                     </div>
