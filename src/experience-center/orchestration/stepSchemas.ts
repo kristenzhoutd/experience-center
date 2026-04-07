@@ -138,6 +138,46 @@ Rules:
 - All fields required
 `;
 
+const JOURNEY_CREATE_SCHEMA = `
+{
+  "headline": "string — 1-2 sentence summary of the journey created",
+  "impactStatement": "string — projected impact with specific metrics and timeframe",
+  "journeyName": "string — descriptive name for the journey (e.g., Loyalty Re-engagement Journey)",
+  "goal": "string — the journey's primary objective",
+  "stages": [
+    {
+      "name": "string — stage name (e.g., Awareness, Re-engagement, Conversion)",
+      "milestone": "string — what defines this stage milestone",
+      "entryCriteria": "string — condition for entering this stage",
+      "steps": [
+        {
+          "type": "activation | wait | decision | end",
+          "label": "string — step label (e.g., Re-engagement Email, Wait 3 days, Decision point)",
+          "channel": "string (optional) — channel name for activation steps (Email, SMS, Display, Web, Push)",
+          "branches": [
+            {
+              "condition": "string — branch condition label (e.g., Opened Email, Did Not Open)",
+              "steps": [
+                { "type": "activation | wait | end", "label": "string", "channel": "string (optional)" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+
+Rules:
+- stages: exactly 3 stages representing the journey lifecycle
+- Each stage must have 2-4 steps
+- Include at least one decision step with 2 branches across the journey
+- Include at least one wait step across the journey
+- Use realistic channel names: Email, SMS, Push, Display, Web, Facebook
+- branches field is only required when type is "decision"
+- All other fields required, no null or empty values
+`;
+
 const schemas: Record<StepType, string> = {
   analyze: ANALYZE_SCHEMA,
   inspect: INSPECT_SCHEMA,
@@ -150,8 +190,8 @@ const schemas: Record<StepType, string> = {
 /**
  * Build step-specific schema instructions for the LLM prompt.
  */
-export function getStepSchemaInstructions(stepType: StepType): string {
-  const schema = schemas[stepType];
+export function getStepSchemaInstructions(stepType: StepType, skillFamily?: string): string {
+  const schema = (stepType === 'create' && skillFamily === 'journey') ? JOURNEY_CREATE_SCHEMA : schemas[stepType];
   return `
 ## Output Schema
 

@@ -3,7 +3,7 @@
  * Each card maps directly to its step-specific LLM output schema.
  */
 
-import { Search, BarChart3, FileText, Zap, Target, TrendingUp, Users } from 'lucide-react';
+import { Search, BarChart3, FileText, Zap, Target, TrendingUp, Users, Clock, GitBranch, Circle, Send, Mail, Smartphone, Monitor, Globe } from 'lucide-react';
 import type { StepType } from '../../orchestration/types';
 
 interface StepCardProps {
@@ -334,6 +334,202 @@ function OptimizationCard({ output, stepLabel, stepNumber }: StepCardProps) {
   );
 }
 
+// ── Journey Card ── (TD Journey Editor style)
+// Horizontal flow matching Treasure Data Audience Studio Journey Editor:
+// - Stages stacked vertically, large light heading + milestone pill
+// - Nodes: circular (48px) for most types, rotated diamond for decision
+// - Horizontal dashed connectors between nodes
+// - Decision branches fan out vertically with condition badges
+
+const NODE_SIZE = 48;
+const NODE_WIDTH = 90;
+const DASH_W = 40;
+
+// TD SVG icons (from Audience Studio)
+const JI = {
+  activation: <svg height="22" viewBox="4 4 16 16" width="22" fill="currentColor"><path d="M20.72 3.302a1.1 1.1 0 0 1-.001 1.555L18.902 6.67a5 5 0 0 1-.47 6.54l-1.62 1.614a.5.5 0 0 1-.706-.001L9.189 7.887a.5.5 0 0 1 0-.707l1.62-1.614a5 5 0 0 1 6.54-.454L19.164 3.3a1.1 1.1 0 0 1 1.556.002M3.252 20.726a1.1 1.1 0 0 0 1.555.002L6.56 18.98a5 5 0 0 0 6.54-.454l1.422-1.418a.5.5 0 0 0 .001-.708L7.606 9.466a.5.5 0 0 0-.707-.001l-1.422 1.418a5 5 0 0 0-.47 6.539L3.254 19.17a1.1 1.1 0 0 0-.002 1.556" /></svg>,
+  wait: <svg height="22" viewBox="4 4 16 16" width="22" fill="currentColor"><path d="M12 5.99a6 6 0 1 0 5.752 7.714 1 1 0 1 1 1.917.57 8 8 0 1 1-2.38-8.287l.851-.851a.46.46 0 0 1 .786.326V8.54a.46.46 0 0 1-.46.46h-3.079a.46.46 0 0 1-.325-.786l.81-.809A5.97 5.97 0 0 0 12 5.989" /><path d="M12.687 8.99a1 1 0 1 0-2 0v4a1 1 0 0 0 1 1h4a1 1 0 1 0 0-2h-3z" /></svg>,
+  decision: <svg height="18" viewBox="0 0 24 24" width="18" fill="currentColor"><path fillRule="evenodd" clipRule="evenodd" d="M16.4565 1.36574C17.0277 0.84463 17.9132 0.885249 18.4343 1.45646L21.1269 4.40794C21.7886 5.13337 21.7886 6.24357 21.1269 6.969L18.4343 9.92048C17.9132 10.4917 17.0277 10.5323 16.4565 10.0112C15.8852 9.4901 15.8446 8.6046 16.3657 8.03339L17.2278 7.08847H1.4C0.626801 7.08847 0 6.46167 0 5.68847C0 4.91527 0.626801 4.28847 1.4 4.28847H17.2278L16.3657 3.34356C15.8446 2.77234 15.8852 1.88684 16.4565 1.36574ZM9.8 10.0731V8.67309H7V10.0731V14.8423C7 17.8247 9.41766 20.2423 12.4 20.2423H17.2278L16.3657 21.1872C15.8446 21.7584 15.8852 22.6439 16.4565 23.1651C17.0277 23.6862 17.9132 23.6455 18.4343 23.0743L21.1269 20.1228C21.7886 19.3974 21.7886 18.2872 21.1269 17.5618L18.4343 14.6103C17.9132 14.0391 17.0277 13.9985 16.4565 14.5196C15.8852 15.0407 15.8446 15.9262 16.3657 16.4974L17.2278 17.4423H12.4C10.9641 17.4423 9.8 16.2783 9.8 14.8423V10.0731Z" /></svg>,
+  entry: <svg height="22" viewBox="4 4 16 16" width="22" fill="currentColor"><path d="M8.378 12.434a1 1 0 1 0 0-2 1 1 0 0 0 0 2M11.47 10.434a1 1 0 1 0 0 2h4.152a1 1 0 1 0 0-2zM8.378 15.934a1 1 0 1 0 0-2 1 1 0 0 0 0 2M11.47 13.934a1 1 0 1 0 0 2h4.152a1 1 0 1 0 0-2z" /><path d="M6 4.5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-11a2 2 0 0 0-2-2zm-.3 4.122a.5.5 0 0 1 .5-.5h11.6a.5.5 0 0 1 .5.5V17.5a.3.3 0 0 1-.3.3H6a.3.3 0 0 1-.3-.3z" fillRule="evenodd" /></svg>,
+  end: <svg height="22" viewBox="4 4 16 16" width="22" fill="currentColor"><path d="M20 12a8 8 0 1 1-16 0 8 8 0 0 1 16 0m-2.5 0a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" fillRule="evenodd" /></svg>,
+  milestone: <svg height="14" viewBox="4 4 16 16" width="14" fill="currentColor"><path d="M7.327 19a1 1 0 1 0 2 0v-6.151l7.063-3.398a.5.5 0 0 0 0-.902L9.327 5.151V5a1 1 0 1 0-2 0z" /></svg>,
+};
+
+// Circular node (entry, activation, wait, end)
+function JNode({ icon, label, bg, fg }: { icon: React.ReactNode; label: string; bg: string; fg: string }) {
+  return (
+    <div className="flex flex-col items-center flex-shrink-0" style={{ width: NODE_WIDTH }}>
+      <div className={`rounded-full ${bg} flex items-center justify-center`} style={{ width: NODE_SIZE, height: NODE_SIZE }}>
+        <div className={fg}>{icon}</div>
+      </div>
+      <span className="text-[11px] text-gray-600 text-center mt-1.5 leading-tight" style={{ maxWidth: NODE_WIDTH, wordBreak: 'break-word' }}>{label}</span>
+    </div>
+  );
+}
+
+// Diamond node (decision point) — rotated 45deg square
+function JDiamond({ label }: { label: string }) {
+  const diamondSize = 36;
+  return (
+    <div className="flex flex-col items-center flex-shrink-0" style={{ width: NODE_WIDTH }}>
+      <div className="flex items-center justify-center" style={{ width: NODE_SIZE, height: NODE_SIZE }}>
+        <div
+          className="bg-amber-50 border-2 border-amber-300 flex items-center justify-center"
+          style={{ width: diamondSize, height: diamondSize, transform: 'rotate(45deg)', borderRadius: 6 }}
+        >
+          <div className="text-amber-600" style={{ transform: 'rotate(-45deg)' }}>{JI.decision}</div>
+        </div>
+      </div>
+      <span className="text-[11px] text-gray-600 text-center mt-1.5 leading-tight" style={{ maxWidth: NODE_WIDTH }}>{label}</span>
+    </div>
+  );
+}
+
+// Horizontal dashed line connector
+function JDash() {
+  return (
+    <div className="flex items-center flex-shrink-0" style={{ width: DASH_W, height: NODE_SIZE }}>
+      <div className="w-full border-t-[1.5px] border-dashed border-gray-300" />
+    </div>
+  );
+}
+
+// A single branch row: vertical dashed → condition badge → horizontal dashed → step nodes
+function JBranchRow({ branch }: { branch: any }) {
+  const steps = Array.isArray(branch.steps) ? branch.steps : [];
+  return (
+    <div className="flex items-start">
+      {/* Condition badge — vertically centered with the node circles, gaps on both sides */}
+      <div className="flex items-center flex-shrink-0" style={{ height: NODE_SIZE, gap: 10 }}>
+        <div className="border-t-[1.5px] border-dashed border-gray-300 flex-shrink-0" style={{ width: DASH_W }} />
+        <div className="px-3.5 py-1.5 rounded-lg border border-gray-200 bg-white flex-shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <span className="text-[11px] font-medium text-blue-600 whitespace-nowrap">{branch.condition}</span>
+        </div>
+        <div className="border-t-[1.5px] border-dashed border-gray-300 flex-shrink-0" style={{ width: DASH_W }} />
+      </div>
+      {/* Steps in this branch — top-aligned so circles match main flow */}
+      {steps.map((bs: any, si: number) => (
+        <div key={si} className="flex items-start">
+          {si > 0 && <div className="flex items-center flex-shrink-0" style={{ width: DASH_W, height: NODE_SIZE }}>
+            <div className="w-full border-t-[1.5px] border-dashed border-gray-300" />
+          </div>}
+          {bs.type === 'end'
+            ? <JNode icon={JI.end} label={bs.label || 'End'} bg="bg-gray-50" fg="text-indigo-300" />
+            : <JNode icon={JI.activation} label={bs.label} bg="bg-emerald-50" fg="text-emerald-600" />
+          }
+        </div>
+      ))}
+      {steps.length === 0 && (
+        <JNode icon={JI.end} label="End" bg="bg-gray-50" fg="text-indigo-300" />
+      )}
+    </div>
+  );
+}
+
+// Horizontal step flow with inline decision branching
+function JStepFlow({ steps }: { steps: any[] }) {
+  const items: React.ReactNode[] = [];
+  for (let i = 0; i < steps.length; i++) {
+    const s = steps[i];
+    const t = s.type || 'activation';
+    if (i > 0) items.push(<JDash key={`d${i}`} />);
+
+    if (t === 'decision') {
+      const branches = Array.isArray(s.branches) ? s.branches : [];
+      items.push(
+        <div key={`s${i}`} className="flex-shrink-0">
+          {/* First branch inline with diamond, aligned to main flow center */}
+          <div className="flex items-start">
+            <JDiamond label={s.label || 'Decision point'} />
+            {branches.length > 0 && (
+              <div className="flex flex-col">
+                {/* First branch: top-aligned so its nodes match the main icon row */}
+                <div style={{ marginTop: 0 }}>
+                  <JBranchRow branch={branches[0]} />
+                </div>
+                {/* Additional branches below */}
+                {branches.slice(1).map((b: any, bi: number) => (
+                  <div key={bi} style={{ marginTop: 16 }}>
+                    <JBranchRow branch={b} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    } else if (t === 'wait') {
+      items.push(<JNode key={`s${i}`} icon={JI.wait} label={s.label} bg="bg-gray-100" fg="text-gray-500" />);
+    } else if (t === 'end') {
+      items.push(<JNode key={`s${i}`} icon={JI.end} label={s.label || 'End'} bg="bg-gray-50" fg="text-indigo-300" />);
+    } else {
+      items.push(<JNode key={`s${i}`} icon={JI.activation} label={s.label} bg="bg-emerald-50" fg="text-emerald-600" />);
+    }
+  }
+  return <div className="flex items-start">{items}</div>;
+}
+
+function JourneyCard({ output, stepLabel, stepNumber }: StepCardProps) {
+  const stages = Array.isArray(output.stages) ? output.stages : [];
+
+  return (
+    <CardShell
+      icon={<GitBranch className="w-4 h-4 text-blue-500" />}
+      typeLabel="Journey"
+      stepNumber={stepNumber}
+      stepLabel={stepLabel}
+    >
+      <Headline text={output.headline || stepLabel} />
+
+      {/* Dotted background container */}
+      <div className="relative rounded-xl overflow-hidden bg-white">
+        {/* Dotted pattern */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
+          <defs>
+            <pattern id="jdots" x="8" y="8" width="18" height="18" patternUnits="userSpaceOnUse">
+              <circle cx="2" cy="2" r="0.8" fill="#d1d5db" opacity="0.35" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#jdots)" />
+        </svg>
+
+        <div className="relative" style={{ zIndex: 1 }}>
+          {stages.map((stage: any, si: number) => {
+            const steps = Array.isArray(stage.steps) ? stage.steps : [];
+            return (
+              <div key={si} className="px-6 pt-6 pb-8">
+                {/* Stage header */}
+                <div className="flex items-center gap-3 mb-5">
+                  <h4 className="text-2xl font-extralight tracking-tight" style={{ fontFamily: "'Manrope', sans-serif", color: '#c5c9d4' }}>{stage.name}</h4>
+                  {stage.milestone && (
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-blue-200 bg-blue-50/70">
+                      <span className="text-blue-500">{JI.milestone}</span>
+                      <span className="text-[11px] font-medium text-blue-600">Milestone: {stage.milestone}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Horizontal flow */}
+                <div className="flex items-start overflow-x-auto pb-2">
+                  {stage.entryCriteria && (
+                    <>
+                      <JNode icon={JI.entry} label={stage.entryCriteria} bg="bg-gray-100" fg="text-gray-500" />
+                      {steps.length > 0 && <JDash />}
+                    </>
+                  )}
+                  <JStepFlow steps={steps} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <ImpactCallout text={output.impactStatement || ''} />
+    </CardShell>
+  );
+}
+
 // ── Step Card Registry & Dispatcher ──
 
 const stepCardRegistry: Record<StepType, React.FC<StepCardProps>> = {
@@ -345,12 +541,17 @@ const stepCardRegistry: Record<StepType, React.FC<StepCardProps>> = {
   optimize: OptimizationCard,
 };
 
-export default function WorkflowStepCard({ stepType, output, stepLabel, stepNumber }: {
+export default function WorkflowStepCard({ stepType, output, stepLabel, stepNumber, skillFamily }: {
   stepType: StepType;
   output: Record<string, any>;
   stepLabel: string;
   stepNumber: number;
+  skillFamily?: string;
 }) {
+  // Route to JourneyCard for create steps with journey skill family
+  if (stepType === 'create' && skillFamily === 'journey') {
+    return <JourneyCard output={output} stepLabel={stepLabel} stepNumber={stepNumber} />;
+  }
   const Card = stepCardRegistry[stepType] || AnalysisCard;
   return <Card output={output} stepLabel={stepLabel} stepNumber={stepNumber} />;
 }

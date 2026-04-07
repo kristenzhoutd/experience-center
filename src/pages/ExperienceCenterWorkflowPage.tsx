@@ -982,6 +982,7 @@ export default function ExperienceCenterWorkflowPage() {
               output={step.output}
               stepLabel={step.stepDef.label}
               stepNumber={i + 1}
+              skillFamily={step.stepDef.skillFamily}
             />
           </div>
         );

@@ -101,25 +101,28 @@ function buildRetailEnrichedContext(
   const populationStr = detail?.population != null ? String(detail.population) : 'unknown';
   const audienceName = detail?.name || 'Retail Demo';
 
-  const loyaltyStr = liveMetrics
-    ? Object.entries(liveMetrics.loyaltyTierCounts).map(([tier, count]) => `${tier} (${count})`).join(', ')
-    : 'Bronze (310), Silver (246), Gold (166), Platinum (82)';
-  const totalLoyalty = liveMetrics
-    ? Object.values(liveMetrics.loyaltyTierCounts).reduce((a, b) => a + b, 0)
-    : 804;
-  const churnStr = liveMetrics
-    ? Object.entries(liveMetrics.churnRiskDistribution).map(([level, count]) => {
-        const pct = ((count / liveMetrics.totalCustomers) * 100).toFixed(1);
-        return `${pct}% ${level}`;
-      }).join(', ')
-    : '36.2% Low, 32.4% Medium, 31.4% High';
+  const fallbackMetrics: RetailMetrics = {
+    totalCustomers: 1000,
+    avgClv: 7589.33,
+    loyaltyTierCounts: { Bronze: 310, Silver: 246, Gold: 166, Platinum: 82 },
+    avgOrderValue: { online: 396.46, instore: 253.44, combined: 341.07 },
+    churnRiskDistribution: { High: 314, Low: 362, Medium: 324 },
+    repeatPurchaseRate: 0.9564,
+  };
+  const m = liveMetrics || fallbackMetrics;
 
-  const m = liveMetrics;
-  const avgOnline = m ? `$${m.avgOrderValue.online.toFixed(0)}` : '$396';
-  const avgInstore = m ? `$${m.avgOrderValue.instore.toFixed(0)}` : '$253';
-  const repeatRate = m ? `${(m.repeatPurchaseRate * 100).toFixed(1)}%` : '86.6%';
-  const avgClv = m ? `$${m.avgClv.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}` : '$7,589';
-  const totalCust = m ? m.totalCustomers.toLocaleString() : '1,000';
+  const loyaltyStr = Object.entries(m.loyaltyTierCounts).map(([tier, count]) => `${tier} (${count})`).join(', ');
+  const totalLoyalty = Object.values(m.loyaltyTierCounts).reduce((a, b) => a + b, 0);
+  const churnStr = Object.entries(m.churnRiskDistribution).map(([level, count]) => {
+    const pct = ((count / m.totalCustomers) * 100).toFixed(1);
+    return `${pct}% ${level}`;
+  }).join(', ');
+
+  const avgOnline = `$${m.avgOrderValue.online.toFixed(0)}`;
+  const avgInstore = `$${m.avgOrderValue.instore.toFixed(0)}`;
+  const repeatRate = `${(m.repeatPurchaseRate * 100).toFixed(1)}%`;
+  const avgClv = `$${m.avgClv.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+  const totalCust = m.totalCustomers.toLocaleString();
 
   const dataSource = liveMetrics ? 'live data' : 'sample data';
   const cdpInfo = detail
@@ -135,7 +138,7 @@ function buildRetailEnrichedContext(
     `Churn risk: ${churnStr}. ` +
     `Top product categories: Electronics, Beauty, Clothing, Books, Automotive.`;
 
-  const sampleMetrics: Record<string, string> = m ? {
+  const sampleMetrics: Record<string, string> = {
     avgOrderValueOnline: avgOnline,
     avgOrderValueInStore: avgInstore,
     repeatPurchaseRate: repeatRate,
@@ -145,24 +148,6 @@ function buildRetailEnrichedContext(
     churnRiskHigh: `${((m.churnRiskDistribution['High'] || 0) / m.totalCustomers * 100).toFixed(1)}%`,
     churnRiskMedium: `${((m.churnRiskDistribution['Medium'] || 0) / m.totalCustomers * 100).toFixed(1)}%`,
     churnRiskLow: `${((m.churnRiskDistribution['Low'] || 0) / m.totalCustomers * 100).toFixed(1)}%`,
-  } : {
-    avgOrderValueOnline: '$396',
-    avgOrderValueInStore: '$253',
-    repeatPurchaseRate: '86.6%',
-    customerLifetimeValue: '$7,589',
-    cartAbandonmentRate: '38%',
-    avgAbandonedCartValue: '$319',
-    emailOpenRate: '68%',
-    emailClickThroughRate: '29.2%',
-    conversionRate: '3.2%',
-    totalCustomers: '1,000',
-    onlineBuyers: '886',
-    inStoreBuyers: '846',
-    loyaltyMembers: '804',
-    loyaltyOptInRate: '80.4%',
-    churnRiskHigh: '31.4%',
-    churnRiskMedium: '32.4%',
-    churnRiskLow: '36.2%',
   };
 
   return {

@@ -133,7 +133,7 @@ export async function executeWorkflowStep(
   // Build step-specific prompt (context + schema, no conflicting old output instructions)
   const stepContext = buildStepContextPrompt(modifiedConfig, industry, stepDef);
   const contextStr = buildCumulativeContext(stepHistory, cumulativeContext, stepDef.label);
-  const schemaInstructions = getStepSchemaInstructions(stepDef.stepType);
+  const schemaInstructions = getStepSchemaInstructions(stepDef.stepType, stepDef.skillFamily);
 
   const systemPrompt = `You are the Treasure AI Experience Center, generating focused, step-specific output for a guided workflow.
 
