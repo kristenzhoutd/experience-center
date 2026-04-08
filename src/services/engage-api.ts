@@ -44,11 +44,9 @@ function priorityColor(p: string): string {
 }
 
 function metricsHtml(metrics: Array<{ label: string; value: string }>): string {
-  return `<table style="width:100%;border-collapse:collapse;margin:10px 0"><tr>${
-    metrics.slice(0, 4).map(m =>
-      `<td style="text-align:center;padding:12px 8px;background:${NEAR_WHITE};border-radius:6px"><div style="font-size:18px;font-weight:700;color:${DEEP_BLUE}">${h(m.value || '')}</div><div style="font-size:13px;color:${GRAY600};margin-top:3px">${h(m.label || '')}</div></td>`
-    ).join('<td style="width:6px"></td>')
-  }</tr></table>`;
+  return metrics.slice(0, 4).map(m =>
+    `<div style="display:inline-block;width:48%;text-align:center;padding:10px 6px;background:${NEAR_WHITE};border-radius:6px;margin:3px 0;vertical-align:top"><div style="font-size:16px;font-weight:700;color:${DEEP_BLUE}">${h(m.value || '')}</div><div style="font-size:12px;color:${GRAY600};margin-top:2px">${h(m.label || '')}</div></div>`
+  ).join(' ');
 }
 
 // ── Per-step-type renderers (correct field names) ──

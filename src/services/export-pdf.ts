@@ -145,23 +145,25 @@ function renderStepAnalyze(doc: jsPDF, out: Out, y: number): number {
   }
   // Metrics
   if (Array.isArray(out.metrics)) {
-    y = checkPage(doc, y, 10);
+    y = checkPage(doc, y, 16);
     const metrics = out.metrics as Array<{ label: string; value: string }>;
-    const mW = CW / Math.min(metrics.length, 4);
-    for (const [i, m] of metrics.slice(0, 4).entries()) {
-      const mx = M + i * mW;
+    const count = Math.min(metrics.length, 4);
+    // Render as stacked rows instead of side-by-side to avoid overlap
+    for (const m of metrics.slice(0, 4)) {
+      y = checkPage(doc, y, 8);
       doc.setFillColor(...C.nearWhite);
-      doc.roundedRect(mx + 0.5, y, mW - 1, 10, 1, 1, 'F');
-      doc.setFontSize(12);
+      doc.roundedRect(M, y - 1, CW, 7, 1, 1, 'F');
+      doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...C.deepBlue);
-      doc.text(m.value || '', mx + mW / 2, y + 5, { align: 'center' });
-      doc.setFontSize(6.5);
+      doc.text(m.value || '', M + 3, y + 2.5);
+      doc.setFontSize(7);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...C.gray600);
-      doc.text(m.label || '', mx + mW / 2, y + 8.5, { align: 'center' });
+      doc.text(m.label || '', M + 50, y + 2.5);
+      y += 8;
     }
-    y += 14;
+    y += 2;
   }
   // Rationale
   if (typeof out.rationale === 'string') {
@@ -181,10 +183,16 @@ function renderStepInspect(doc: jsPDF, out: Out, y: number): number {
   if (Array.isArray(out.profiles)) {
     const levelColors: Record<string, [number, number, number]> = { High: C.purple, Medium: C.skyBlue, Low: C.gray400 };
     for (const p of out.profiles as Array<{ name: string; level: string; behavior: string; action: string }>) {
-      y = checkPage(doc, y, 16);
+      // Calculate dynamic height
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      const behaviorLines = doc.splitTextToSize(p.behavior || '', CW - 8);
+      const actionLines = doc.splitTextToSize(`Action: ${p.action || ''}`, CW - 8);
+      const boxH = 6 + behaviorLines.length * 3.5 + actionLines.length * 3.5 + 2;
+      y = checkPage(doc, y, boxH + 4);
       const lc = levelColors[p.level] || C.gray400;
       doc.setFillColor(...C.nearWhite);
-      doc.roundedRect(M, y - 2, CW, 13, 1.5, 1.5, 'F');
+      doc.roundedRect(M, y - 2, CW, boxH, 1.5, 1.5, 'F');
       // Name + level
       doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
@@ -193,16 +201,15 @@ function renderStepInspect(doc: jsPDF, out: Out, y: number): number {
       doc.setFontSize(7);
       doc.setTextColor(...lc);
       doc.text(`[${p.level}]`, M + 3 + doc.getTextWidth(p.name || '') + 2, y + 1);
-      // Behavior
+      // Behavior (wrapped)
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...C.gray600);
-      doc.text(p.behavior || '', M + 3, y + 5.5);
-      // Action
-      doc.setFont('helvetica', 'normal');
+      doc.text(behaviorLines, M + 3, y + 5);
+      // Action (wrapped)
       doc.setTextColor(...C.purple);
-      doc.text(`Action: ${p.action || ''}`, M + 3, y + 9.5);
-      y += 16;
+      doc.text(actionLines, M + 3, y + 5 + behaviorLines.length * 3.5 + 1);
+      y += boxH + 3;
     }
   }
   // Sections
@@ -245,12 +252,17 @@ function renderStepCreate(doc: jsPDF, out: Out, y: number): number {
 function renderStepCompare(doc: jsPDF, out: Out, y: number): number {
   if (Array.isArray(out.options)) {
     for (const opt of out.options as Array<{ name: string; description: string; score: string; recommended: boolean }>) {
-      y = checkPage(doc, y, 14);
+      // Calculate dynamic height
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      const descLines = doc.splitTextToSize(opt.description || '', CW - 10);
+      const boxH = 8 + descLines.length * 3.5 + 4;
+      y = checkPage(doc, y, boxH + 3);
       const borderColor = opt.recommended ? C.purple : C.gray200;
       doc.setDrawColor(...borderColor);
       doc.setLineWidth(opt.recommended ? 0.6 : 0.3);
-      doc.roundedRect(M, y - 2, CW, 12, 1.5, 1.5, 'S');
-      // Name
+      doc.roundedRect(M, y - 2, CW, boxH, 1.5, 1.5, 'S');
+      // Name + recommended badge
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...C.black);
@@ -260,17 +272,17 @@ function renderStepCompare(doc: jsPDF, out: Out, y: number): number {
         doc.setTextColor(...C.purple);
         doc.text('RECOMMENDED', M + CW - 20, y + 1);
       }
-      // Description
+      // Score on same line as name
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...C.purple);
+      doc.text(opt.score || '', M + CW - 5, y + 1, { align: 'right' });
+      // Description (wrapped)
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...C.gray600);
-      doc.text(doc.splitTextToSize(opt.description || '', CW - 20), M + 3, y + 5);
-      // Score
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(...C.purple);
-      doc.text(opt.score || '', M + CW - 8, y + 6, { align: 'right' });
-      y += 15;
+      doc.text(descLines, M + 3, y + 6);
+      y += boxH + 3;
     }
   }
   // Metrics
@@ -287,9 +299,13 @@ function renderStepActivate(doc: jsPDF, out: Out, y: number): number {
   // Destinations: channel, role, detail
   if (Array.isArray(out.destinations)) {
     for (const d of out.destinations as Array<{ channel: string; role: string; detail: string }>) {
-      y = checkPage(doc, y, 12);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      const detailLines = doc.splitTextToSize(d.detail || '', CW - 8);
+      const boxH = 6 + detailLines.length * 3.5 + 1;
+      y = checkPage(doc, y, boxH + 3);
       doc.setFillColor(...C.nearWhite);
-      doc.roundedRect(M, y - 2, CW, 10, 1.5, 1.5, 'F');
+      doc.roundedRect(M, y - 2, CW, boxH, 1.5, 1.5, 'F');
       doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...C.black);
@@ -300,8 +316,8 @@ function renderStepActivate(doc: jsPDF, out: Out, y: number): number {
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...C.gray600);
-      doc.text(d.detail || '', M + 3, y + 5.5);
-      y += 13;
+      doc.text(detailLines, M + 3, y + 5);
+      y += boxH + 3;
     }
   }
   y = renderSections(doc, out, y);

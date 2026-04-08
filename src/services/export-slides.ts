@@ -57,10 +57,13 @@ function addMetricsRow(s: PptxGenJS.Slide, metrics: Array<{ label: string; value
   const accents = [C.deepBlue, C.purple, C.orchid, C.skyBlue];
   for (const [i, m] of metrics.slice(0, 4).entries()) {
     const mx = MX + i * mW;
-    s.addShape('roundRect', { x: mx + 0.05, y, w: mW - 0.1, h: 0.75, fill: { color: C.nearWhite }, rectRadius: 0.08 });
-    s.addShape('rect', { x: mx + 0.05, y, w: 0.04, h: 0.75, fill: { color: accents[i] } });
-    s.addText(m.value || '', { x: mx + 0.2, y: y + 0.05, w: mW - 0.4, h: 0.4, fontSize: 16, fontFace: FONT, bold: true, color: C.deepBlue, align: 'center' });
-    s.addText(m.label || '', { x: mx + 0.2, y: y + 0.45, w: mW - 0.4, h: 0.22, fontSize: 7, fontFace: FONT, color: C.gray600, align: 'center' });
+    s.addShape('roundRect', { x: mx + 0.05, y, w: mW - 0.1, h: 0.85, fill: { color: C.nearWhite }, rectRadius: 0.08 });
+    s.addShape('rect', { x: mx + 0.05, y, w: 0.04, h: 0.85, fill: { color: accents[i] } });
+    // Use smaller font for long values, wrap text
+    const valLen = (m.value || '').length;
+    const valFont = valLen > 12 ? 10 : valLen > 8 ? 12 : 16;
+    s.addText(m.value || '', { x: mx + 0.15, y: y + 0.03, w: mW - 0.3, h: 0.45, fontSize: valFont, fontFace: FONT, bold: true, color: C.deepBlue, align: 'center', valign: 'middle', shrinkText: true });
+    s.addText(m.label || '', { x: mx + 0.15, y: y + 0.5, w: mW - 0.3, h: 0.3, fontSize: 6, fontFace: FONT, color: C.gray600, align: 'center', valign: 'top', shrinkText: true });
   }
 }
 
@@ -188,9 +191,9 @@ function renderCompare(s: PptxGenJS.Slide, out: Out) {
         s.addShape('roundRect', { x: ox + optW - 1.3, y: y + 0.1, w: 1.1, h: 0.2, fill: { color: C.purple }, rectRadius: 0.05 });
         s.addText('RECOMMENDED', { x: ox + optW - 1.3, y: y + 0.1, w: 1.1, h: 0.2, fontSize: 6, fontFace: FONT, bold: true, color: C.white, align: 'center', valign: 'middle' });
       }
-      s.addText(opt.name || '', { x: ox + 0.2, y: y + 0.15, w: optW - 0.4, h: 0.3, fontSize: 12, fontFace: FONT, bold: true, color: C.gray800 });
-      s.addText(opt.description || '', { x: ox + 0.2, y: y + 0.5, w: optW - 0.4, h: 1.0, fontSize: 8, fontFace: FONT, color: C.gray600, valign: 'top' });
-      s.addText(opt.score || '', { x: ox + 0.2, y: y + 1.8, w: optW - 0.4, h: 0.5, fontSize: 20, fontFace: FONT, bold: true, color: C.deepBlue, align: 'center' });
+      s.addText(opt.name || '', { x: ox + 0.2, y: y + 0.15, w: optW - 0.4, h: 0.3, fontSize: 11, fontFace: FONT, bold: true, color: C.gray800, shrinkText: true });
+      s.addText(opt.description || '', { x: ox + 0.2, y: y + 0.5, w: optW - 0.4, h: 1.3, fontSize: 7, fontFace: FONT, color: C.gray600, valign: 'top', shrinkText: true });
+      s.addText(opt.score || '', { x: ox + 0.2, y: y + 1.9, w: optW - 0.4, h: 0.4, fontSize: 16, fontFace: FONT, bold: true, color: C.deepBlue, align: 'center', shrinkText: true });
     }
   }
   if (Array.isArray(out.metrics)) addMetricsRow(s, out.metrics as Array<{ label: string; value: string }>, 5.8);
