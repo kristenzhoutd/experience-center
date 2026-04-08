@@ -7,6 +7,7 @@
 
 // Initialize backend BEFORE any React code runs
 import { initBackend } from './services/backend';
+import { initializeGA } from './utils/analytics';
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
@@ -23,6 +24,7 @@ console.log('AI Suites Web - Starting...');
 
 async function bootstrap() {
   await initBackend();
+  initializeGA();
 
   const rootElement = document.getElementById('root');
   if (!rootElement) {

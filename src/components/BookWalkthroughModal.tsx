@@ -5,13 +5,18 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Calendar, CheckCircle, Loader2, Sparkles, Target, ArrowRight } from 'lucide-react';
+import { trackEvent, AnalyticsEvents, getClientId } from '../utils/analytics';
 
 interface BookWalkthroughModalProps {
   isOpen: boolean;
   onClose: () => void;
+  ctaSource?: string;
+  goalId?: string;
+  industryId?: string;
+  scenarioId?: string;
 }
 
-export default function BookWalkthroughModal({ isOpen, onClose }: BookWalkthroughModalProps) {
+export default function BookWalkthroughModal({ isOpen, onClose, ctaSource, goalId, industryId, scenarioId }: BookWalkthroughModalProps) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -27,6 +32,36 @@ export default function BookWalkthroughModal({ isOpen, onClose }: BookWalkthroug
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setStatus('submitting');
+
+    // Fire GA4 conversion event (no PII)
+    trackEvent(AnalyticsEvents.WALKTHROUGH_FORM_SUBMIT, {
+      cta_source: ctaSource,
+      has_role: !!role.trim(),
+      has_message: !!message.trim(),
+      goal_id: goalId,
+      industry_id: industryId,
+      scenario_id: scenarioId,
+    });
+
+    // Extract GA4 client_id for identity stitching
+    let gaClientId: string | undefined;
+    try {
+      gaClientId = await getClientId();
+    } catch {
+      // GA not initialized — continue without client_id
+    }
+
+    // TODO: Replace with actual backend/TD API submission
+    // The payload below is ready to send to backend for CDP identity stitching:
+    // {
+    //   ga_client_id: gaClientId,
+    //   email, first_name: firstName, last_name: lastName,
+    //   company, role, message,
+    //   cta_source: ctaSource, goal_id: goalId,
+    //   industry_id: industryId, scenario_id: scenarioId,
+    // }
+    void gaClientId; // suppress unused warning until backend is wired
+
     // Simulate submission delay (no backend yet)
     await new Promise(resolve => setTimeout(resolve, 800));
     setStatus('success');
