@@ -6,6 +6,7 @@ import ApiKeySetupModal, { isApiKeyConfigured } from '../components/ApiKeySetupM
 import BookWalkthroughModal from '../components/BookWalkthroughModal';
 import { useExperienceLabStore } from '../stores/experienceLabStore';
 import { goals } from '../data/experienceLabConfig';
+import { trackEvent, AnalyticsEvents } from '../utils/analytics';
 
 const goalIcons: Record<string, React.ElementType> = {
   'trending-up': TrendingUp,
@@ -68,10 +69,14 @@ export default function ExperienceCenterPage() {
 
   const handleGoalSelect = (goalId: string) => {
     setSelectedGoal(goalId);
+    const goalLabel = goals.find(g => g.id === goalId)?.label || goalId;
+    trackEvent(AnalyticsEvents.GOAL_SELECT, { goal_id: goalId, goal_label: goalLabel });
   };
 
   const handleStart = () => {
     if (!selectedGoal) return;
+    const goalLabel = goals.find(g => g.id === selectedGoal)?.label || selectedGoal;
+    trackEvent(AnalyticsEvents.EXPERIENCE_START, { goal_id: selectedGoal, goal_label: goalLabel });
     setGoal(selectedGoal);
     navigate('/experience-center/workflow');
   };

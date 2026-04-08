@@ -101,6 +101,7 @@ import SlideOutput from '../experience-center/output-formats/slides/SlideOutput'
 import type { DeckConfig, DeckData } from '../experience-center/output-formats/slides/types';
 import ApiKeySetupModal from '../components/ApiKeySetupModal';
 import BookWalkthroughModal from '../components/BookWalkthroughModal';
+import { trackEvent, AnalyticsEvents } from '../utils/analytics';
 import { getWorkflowDef } from '../experience-center/registry/workflows';
 import { useWorkflowSessionStore } from '../stores/workflowSessionStore';
 import { executeWorkflowStep, resolveWorkflowStepContext } from '../experience-center/orchestration/workflowEngine';
@@ -426,6 +427,7 @@ export default function ExperienceCenterWorkflowPage() {
   // ============================================================
   const handleIndustrySelect = (id: string) => {
     const label = industries.find(i => i.id === id)?.label || id;
+    trackEvent(AnalyticsEvents.INDUSTRY_SELECT, { goal_id: goal, industry_id: id, industry_label: label });
     setIndustry(id);
     addUserMessage(label);
     setCurrentStep('scenario');
@@ -441,6 +443,7 @@ export default function ExperienceCenterWorkflowPage() {
     // Look up label from matrix first, then legacy flat list
     const matrixScenarios = getScenariosForOutcome(goal, industry);
     const label = matrixScenarios.find(s => s.id === id)?.label || scenarios.find(s => s.id === id)?.label || id;
+    trackEvent(AnalyticsEvents.SCENARIO_SELECT, { goal_id: goal, industry_id: industry, scenario_id: id, scenario_label: label });
     setScenario(id);
     addUserMessage(label);
 
@@ -464,6 +467,7 @@ export default function ExperienceCenterWorkflowPage() {
   // Refinement handler
   // ============================================================
   const handleRefinement = useCallback((chip: RefinementChip) => {
+    trackEvent(AnalyticsEvents.REFINEMENT_CLICK, { chip_label: chip.label, scenario_id: scenario });
     // Generate a natural acknowledgment based on the refinement type
     const ack = getRefinementAck(chip);
 
@@ -618,6 +622,8 @@ export default function ExperienceCenterWorkflowPage() {
     const branch = stepDef?.branches.find(b => b.branchId === branchId);
     if (!branch) return;
 
+    trackEvent(AnalyticsEvents.BRANCH_CHOICE, { branch_id: branchId, step_id: currentStepId, scenario_id: scenario });
+
     // Add user's choice as a message
     addUserMessage(branch.label);
 
@@ -639,6 +645,7 @@ export default function ExperienceCenterWorkflowPage() {
   const runGeneration = useCallback((scenarioId?: string, defaultInputs?: Record<string, string | string[]>) => {
     const s = scenarioId || scenario;
     const i = defaultInputs || inputs;
+    trackEvent(AnalyticsEvents.GENERATION_START, { goal_id: goal, industry_id: industry, scenario_id: s });
     startGeneration();
     addAIMessage('Generating your personalized outcome...', 'generation');
 
@@ -679,6 +686,7 @@ export default function ExperienceCenterWorkflowPage() {
 
     const completeGeneration = (result: import('../stores/experienceLabStore').OutputData) => {
       clearInterval(interval);
+      trackEvent(AnalyticsEvents.GENERATION_COMPLETE, { goal_id: goal, industry_id: industry, scenario_id: s });
       addStep('Strategy complete — review results in the panel', 'ui_update');
       setIsThinkingActive(false);
       finishGeneration(result);
@@ -779,6 +787,7 @@ export default function ExperienceCenterWorkflowPage() {
   // Slide generation
   const handleGenerateSlides = useCallback(async (config: DeckConfig) => {
     if (!output) return;
+    trackEvent(AnalyticsEvents.SLIDE_DECK_REQUEST, { deck_length: config.length, deck_style: config.style, scenario_id: scenario });
     setShowSlideModal(false);
 
     // Add progress to chat
@@ -1204,7 +1213,10 @@ export default function ExperienceCenterWorkflowPage() {
             </button>
             <div className="flex-1" />
             <button
-              onClick={() => setShowBookingModal(true)}
+              onClick={() => {
+                trackEvent(AnalyticsEvents.WALKTHROUGH_CTA_CLICK, { cta_source: 'workflow_nav', page: 'workflow', goal_id: goal, industry_id: industry, scenario_id: scenario });
+                setShowBookingModal(true);
+              }}
               className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-white bg-gray-900 rounded-full hover:bg-gray-800 transition-colors shadow-sm cursor-pointer"
             >
               Book a walkthrough
@@ -1273,7 +1285,7 @@ export default function ExperienceCenterWorkflowPage() {
                             return (
                               <button
                                 key={a.id}
-                                onClick={() => setActiveArtifactId(a.id)}
+                                onClick={() => { trackEvent(AnalyticsEvents.OUTPUT_TAB_VIEW, { tab_id: a.id, scenario_id: scenario }); setActiveArtifactId(a.id); }}
                                 className={`relative inline-flex items-center gap-1.5 pb-2.5 text-xs cursor-pointer transition-all min-w-0 ${
                                   isActive ? 'text-gray-900 font-semibold' : 'text-gray-400 hover:text-gray-600'
                                 }`}
@@ -1324,7 +1336,7 @@ export default function ExperienceCenterWorkflowPage() {
                   </div>
                   {wfComplete && (
                     <div className="absolute bottom-1 right-3 z-10">
-                      <FloatingContextCard output={wfStepHistory[wfStepHistory.length - 1].output as unknown as OutputData} onBook={() => setShowBookingModal(true)} />
+                      <FloatingContextCard output={wfStepHistory[wfStepHistory.length - 1].output as unknown as OutputData} onBook={() => setShowBookingModal(true)} goalId={goal} industryId={industry} scenarioId={scenario} />
                     </div>
                   )}
                 </div>
@@ -1375,7 +1387,7 @@ export default function ExperienceCenterWorkflowPage() {
                             return (
                               <button
                                 key={a.id}
-                                onClick={() => setActiveArtifactId(a.id)}
+                                onClick={() => { trackEvent(AnalyticsEvents.OUTPUT_TAB_VIEW, { tab_id: a.id, scenario_id: scenario }); setActiveArtifactId(a.id); }}
                                 className={`relative inline-flex items-center gap-1.5 pb-2.5 text-xs cursor-pointer transition-all min-w-0 ${
                                   isActive ? 'text-gray-900 font-semibold' : 'text-gray-400 hover:text-gray-600'
                                 }`}
@@ -1426,7 +1438,7 @@ export default function ExperienceCenterWorkflowPage() {
                   </div>
                   {((!wfActive && visibleOutputSections >= 8 && output) || wfComplete) && (
                     <div className="absolute bottom-1 right-4 z-10">
-                      <FloatingContextCard output={wfComplete ? wfStepHistory[wfStepHistory.length - 1].output as unknown as OutputData : output} onBook={() => setShowBookingModal(true)} />
+                      <FloatingContextCard output={wfComplete ? wfStepHistory[wfStepHistory.length - 1].output as unknown as OutputData : output} onBook={() => setShowBookingModal(true)} goalId={goal} industryId={industry} scenarioId={scenario} />
                     </div>
                   )}
                 </div>
@@ -1517,6 +1529,9 @@ export default function ExperienceCenterWorkflowPage() {
       <BookWalkthroughModal
         isOpen={showBookingModal}
         onClose={() => setShowBookingModal(false)}
+        goalId={goal}
+        industryId={industry}
+        scenarioId={scenario}
       />
     </div>
   );
@@ -2274,11 +2289,22 @@ function EmailCaptureCard({ output, deckData, wfStepHistory, onDone }: { output?
 function FloatingContextCard({
   output,
   onBook,
+  goalId,
+  industryId,
+  scenarioId,
 }: {
   output: OutputData;
   onBook: () => void;
+  goalId?: string;
+  industryId?: string;
+  scenarioId?: string;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
+
+  const handleBook = (ctaSource: string) => {
+    trackEvent(AnalyticsEvents.WALKTHROUGH_CTA_CLICK, { cta_source: ctaSource, page: 'workflow', goal_id: goalId, industry_id: industryId, scenario_id: scenarioId });
+    onBook();
+  };
 
   return (
     <div className="border border-gray-200 rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.1)] overflow-hidden bg-white w-full max-w-sm">
@@ -2291,7 +2317,7 @@ function FloatingContextCard({
         <div className="flex-1" />
         {!isExpanded && (
           <button
-            onClick={onBook}
+            onClick={() => handleBook('impact_card_collapsed')}
             className="inline-flex items-center px-3.5 py-1.5 bg-gray-900 text-white rounded-full text-[11px] font-semibold hover:bg-gray-800 transition-colors shadow-sm mr-2 flex-shrink-0 cursor-pointer"
           >
             Book a walkthrough
@@ -2328,7 +2354,7 @@ function FloatingContextCard({
               </h3>
               <p className="text-xs text-gray-500 mb-3">with your real data and goals</p>
               <button
-                onClick={onBook}
+                onClick={() => handleBook('impact_card_expanded')}
                 className="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-lg text-xs font-semibold hover:bg-gray-800 transition-colors cursor-pointer"
               >
                 Book a walkthrough
