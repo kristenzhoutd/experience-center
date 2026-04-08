@@ -127,15 +127,15 @@
     subgraph TDApis["TREASURE DATA  Cloud"]
         direction TB
         LLMP["LLM Proxy\\nllm-proxy.us01.treasuredata.com\\n/v1/messages\\n\\nClaude Sonnet"]
-        CHATP["Chat API\\nllm-api.us01.treasuredata.com\\n/api/chats  (SSE)\\n\\nAgent: data-fetcher"]
+        CHATP["Chat API\\nllm-api.us01.treasuredata.com\\n/api/chats  (SSE)\\n\\nAgent: data-fetcher\\n9 tools (3 per industry)"]
         CDPA["CDP API\\napi-cdp.treasuredata.com\\n/audiences\\n/audiences/:id\\n/audiences/:id/segments"]
-        ENGA["Engage Delivery API\\ndelivery-api.us01.treasuredata.com\\nemail_campaign_test\\n\\nnoreply@mail.treasuredata.services"]
+        ENGA["Engage Delivery API\\ndelivery-api.us01.treasuredata.com\\nemail_campaign_test\\n\\nnoreply@plg.treasure-engage-testing.link"]
     end
 
     R1 -- "TD1 auth" --> LLMP
     R3 -- "TD1 auth" --> CHATP
     R2 -- "TD1 auth" --> CDPA
-    R4 -- "TD1 ENGAGE_API_KEY\\n(account 10602)" --> ENGA
+    R4 -- "TD1 auth\\n(same 13232 key)" --> ENGA
 
     subgraph Uses["FEATURE → API MAPPING"]
         direction LR
@@ -200,15 +200,15 @@
     subgraph TDApis["TREASURE DATA  Cloud"]
         direction TB
         LLMP["LLM Proxy\\nllm-proxy.us01.treasuredata.com\\n/v1/messages\\n\\nClaude Sonnet"]
-        CHATP["Chat API\\nllm-api.us01.treasuredata.com\\n/api/chats  (SSE)\\n\\nAgent: data-fetcher"]
+        CHATP["Chat API\\nllm-api.us01.treasuredata.com\\n/api/chats  (SSE)\\n\\nAgent: data-fetcher\\n9 tools (3 per industry)"]
         CDPA["CDP API\\napi-cdp.treasuredata.com\\n/audiences\\n/audiences/:id\\n/audiences/:id/segments"]
-        ENGA["Engage Delivery API\\ndelivery-api.us01.treasuredata.com\\nemail_campaign_test\\n\\nnoreply@mail.treasuredata.services"]
+        ENGA["Engage Delivery API\\ndelivery-api.us01.treasuredata.com\\nemail_campaign_test\\n\\nnoreply@plg.treasure-engage-testing.link"]
     end
 
     R1 -- "TD1 auth" --> LLMP
     R3 -- "TD1 auth" --> CHATP
     R2 -- "TD1 auth" --> CDPA
-    R4 -- "TD1 ENGAGE_API_KEY\\n(account 10602)" --> ENGA
+    R4 -- "TD1 auth\\n(same 13232 key)" --> ENGA
 
     subgraph Uses["FEATURE → API MAPPING"]
         direction LR

@@ -9,9 +9,9 @@ import type { OutputData } from '../stores/experienceLabStore';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
-// Account 10602: noreply@mail.treasuredata.services
-const SENDER_ID = '0197122d-53e5-780d-86b6-83791769f83e';
-const WORKSPACE_ID = '01997f0c-44e7-798f-b4a9-68c8e8810d24';
+// Account 13232 sender: noreply@plg.treasure-engage-testing.link
+const SENDER_ID = '019d6e37-5083-7c4e-af1b-9697114b4e16';
+const WORKSPACE_ID = '019d69ca-5d11-78f9-a0ee-23ee343827a0';
 
 type WfStep = { stepDef: { label: string; stepType: string }; output: Record<string, unknown> | null; summary: string };
 

@@ -152,8 +152,8 @@ app.get('/api/cdp/*', async (req, res) => {
 
 // ── Engage Delivery API proxy (sends email via TD Engage on account 10602) ──
 app.post('/api/engage/send', async (req, res) => {
-  // Prefer ENGAGE_API_KEY env var (account 10602 with active sender) over browser key
-  const apiKey = process.env.ENGAGE_API_KEY || req.headers['x-api-key'] as string || '';
+  // Use browser key (same 13232 account as rest of app), fall back to ENGAGE_API_KEY env var
+  const apiKey = req.headers['x-api-key'] as string || process.env.ENGAGE_API_KEY || '';
   if (!apiKey) { res.status(401).json({ error: 'No API key' }); return; }
   console.log('[Engage] payload keys:', Object.keys(req.body || {}), 'values keys:', req.body?.values ? Object.keys(req.body.values) : 'none', 'values.values:', req.body?.values?.values ? Object.keys(req.body.values.values).slice(0, 3) : 'none');
   try {

@@ -1,6 +1,6 @@
 # Treasure AI Experience Center — Architecture Document
 
-> Updated: 2026-04-08. Reflects PRs #1–#44 (all merged) + PR #45 (open — Share email/PPTX/PDF).
+> Updated: 2026-04-08. Reflects PRs #1–#45 (all merged).
 
 ---
 
@@ -39,11 +39,11 @@ The **Treasure AI Experience Center** is a public-facing, zero-login web applica
 
 ```mermaid
 graph TD
-    Browser["Browser — React SPA\n(HashRouter, Zustand, sessionStorage)"]
+    Browser["Browser - React SPA\n(HashRouter, Zustand, sessionStorage)"]
     PG["PasswordGate\n(VITE_APP_PASSWORD check)"]
     EC["Experience Center Orchestration\n(browser-side skill execution)"]
     WFEngine["Workflow Engine\n(workflowEngine.ts)\n6-step branching execution"]
-    WFStore["workflowSessionStore\n(Zustand — step history,\ncumulative context, active step)"]
+    WFStore["workflowSessionStore\n(Zustand: step history,\ncumulative context, active step)"]
     CDP["cdp-api.ts\n(via /api/cdp/* proxy)"]
 
     Proxy["Express Proxy Server\nserver/index.ts\nPOST /api/llm\nPOST /api/chat/create\nPOST /api/chat/:chatId/continue\nGET /api/cdp/*\nPOST /api/engage/send\nPOST /api/test-connection\nGET /api/config"]
@@ -53,7 +53,7 @@ graph TD
     Anthropic["Anthropic Claude API\nclaude-sonnet-4-20250514"]
     TDCDP["TD CDP API\napi-cdp.treasuredata.com\n/audiences, /segments"]
     TDEngage["TD Engage Delivery API\ndelivery-api.us01.treasuredata.com\n/api/email_transactions/email_campaign_test"]
-    Agent["AI Foundry Agent\nexperience-center-data-fetcher\n3 tools: LIST_COLUMNS,\nQUERY_DATA_DIRECT, SEARCH_SCHEMA"]
+    Agent["AI Foundry Agent\nexperience-center-data-fetcher\n9 tools (3 per industry)\nLIST_COLUMNS, QUERY_DATA_DIRECT,\nSEARCH_SCHEMA"]
 
     SessionStorage["sessionStorage\n(tab-scoped, auto-cleared)\nAPI keys, settings, chat history"]
 
@@ -95,7 +95,7 @@ graph TD
 
 > **Note:** The `VITE_LLM_DIRECT=true` path (direct browser-to-LLM-proxy calls) is prepared in the code but not yet active in production. CDP API calls now route through the Express proxy (`/api/cdp/*`) instead of direct browser calls, avoiding CORS issues.
 
-> **Note:** The Engage Delivery API (`/api/engage/send`) uses the `email_campaign_test` endpoint with **inline HTML** (no template merge variables). The proxy uses `ENGAGE_API_KEY` (account 10602) because the primary sandbox account (13232) does not yet have an active email domain. The browser builds the full HTML email body with per-step-type rendering from workflow data, including findings, metrics, profiles, actions, and impact statements. The email also triggers a parallel file download — PPTX (via `pptxgenjs`) or PDF (via `jsPDF`) — generated on-the-fly from the same workflow step history.
+> **Note:** The Engage Delivery API (`/api/engage/send`) uses the `email_campaign_test` endpoint with **inline HTML** (no template merge variables). The proxy uses the same browser `x-api-key` header (account 13232) as all other API calls. `ENGAGE_API_KEY` env var is an optional fallback. The browser builds the full HTML email body with per-step-type rendering from workflow data, including findings, metrics, profiles, actions, and impact statements. The email also triggers a parallel file download — PPTX (via `pptxgenjs`) or PDF (via `jsPDF`) — generated on-the-fly from the same workflow step history.
 
 ---
 
@@ -103,12 +103,12 @@ graph TD
 
 ```mermaid
 graph TD
-    main["src/main.tsx\ninitBackend() → ReactDOM.createRoot()"]
+    main["src/main.tsx\ninitBackend then ReactDOM.createRoot()"]
     ErrBound["ErrorBoundary"]
     PassGate["PasswordGate\n(VITE_APP_PASSWORD)"]
     App["App.tsx\nHashRouter"]
 
-    Layout["Layout.tsx\n(top nav + gradient-bg.png overlay\nnav hidden on workflow page)"]
+    Layout["Layout.tsx\n(top nav + gradient-bg overlay\nnav hidden on workflow page)"]
 
     ECPage["ExperienceCenterPage.tsx\n/experience-center\n(goal carousel, start)"]
     WFPage["ExperienceCenterWorkflowPage.tsx\n/experience-center/workflow\n(split-pane: chat + artifacts)"]
@@ -116,12 +116,12 @@ graph TD
 
     SplitPane["SplitPaneLayout (inline)\n(resizable, collapsible left/right panels)"]
 
-    subgraph ChatPanel["Left Panel — Chat"]
+    subgraph ChatPanel["Left Panel - Chat"]
         SkillProgress["SkillProgressBlock\n(inline generation progress)"]
-        BranchCards["BranchChoiceCards\n(2–4 clickable branch options)"]
+        BranchCards["BranchChoiceCards\n(2-4 clickable branch options)"]
     end
 
-    subgraph ArtifactPanel["Right Panel — Artifacts"]
+    subgraph ArtifactPanel["Right Panel - Artifacts"]
         WFProgress["WorkflowProgressIndicator\n(step dots + connectors)"]
         WFTabs["WorkflowArtifactTabs\n(tab bar for completed steps)"]
         WFCards["WorkflowStepCard\n(6 card types: analyze, inspect,\ncreate, compare, activate, optimize)"]
@@ -138,11 +138,11 @@ graph TD
     Primitives["Primitives (output-formats/primitives)\nOutputSection, HeroSummaryCard\nKpiStatTile, SegmentCard\nJourneyStageNode, ChannelRoleCard\nDiagnosticFindingCard, PriorityActionRow\nMiniSparkline, ScoreBar, etc."]
     DesignSystem["Design System\nsrc/design-system/\nButton, TextField, Tabs, Tag\nToast, Tooltip, Combobox, etc."]
 
-    ExLabStore["useExperienceLabStore\n(Zustand — goal, industry, scenario\ncurrentStep, output, isGenerating)"]
-    WFSessionStore["useWorkflowSessionStore\n(Zustand — workflowDef, currentStepId\nstepHistory, cumulativeContext\nisExecutingStep, activeStepIndex)"]
-    SettingsStore["useSettingsStore\n(Zustand — theme, parentSegments\nselectedParentSegmentId)"]
-    AppStore["useAppStore\n(Zustand — campaignDraft, campaigns)"]
-    TraceStore["useTraceStore\n(Zustand — orchestration trace runs)"]
+    ExLabStore["useExperienceLabStore\n(Zustand: goal, industry, scenario\ncurrentStep, output, isGenerating)"]
+    WFSessionStore["useWorkflowSessionStore\n(Zustand: workflowDef, currentStepId\nstepHistory, cumulativeContext\nisExecutingStep, activeStepIndex)"]
+    SettingsStore["useSettingsStore\n(Zustand: theme, parentSegments\nselectedParentSegmentId)"]
+    AppStore["useAppStore\n(Zustand: campaignDraft, campaigns)"]
+    TraceStore["useTraceStore\n(Zustand: orchestration trace runs)"]
 
     main --> ErrBound --> PassGate --> App
     App --> Layout
@@ -172,11 +172,11 @@ graph TD
     Modules --> Primitives
     Primitives --> DesignSystem
 
-    WFPage -.->|reads/writes| ExLabStore
-    WFPage -.->|reads/writes| WFSessionStore
-    ECPage -.->|reads/writes| ExLabStore
-    SettingsPage -.->|reads/writes| SettingsStore
-    Layout -.->|reads| SettingsStore
+    WFPage -.-> ExLabStore
+    WFPage -.-> WFSessionStore
+    ECPage -.-> ExLabStore
+    SettingsPage -.-> SettingsStore
+    Layout -.-> SettingsStore
     BranchCards -.->|chooseBranch()| WFSessionStore
     WFTabs -.->|reads stepHistory| WFSessionStore
     WFProgress -.->|reads stepHistory,\nisExecutingStep| WFSessionStore
@@ -227,7 +227,7 @@ sequenceDiagram
     User->>ECPage: Select goal (e.g. "revenue")
     ECPage->>ExLabStore: setGoal("revenue")
     User->>ECPage: Click "Start guided experience"
-    ECPage->>ExLabStore: navigate → /experience-center/workflow
+    ECPage->>ExLabStore: navigate -> /experience-center/workflow
 
     User->>WFPage: Select industry (e.g. "retail")
     WFPage->>ExLabStore: setIndustry("retail")
@@ -241,11 +241,11 @@ sequenceDiagram
     User->>WFPage: Click "Generate"
     WFPage->>ExLabStore: startGeneration()
     WFPage->>Config: getScenariosForOutcome(goal, industry)
-    WFPage->>Registry: getScenarioConfig("rev-retail-1") → ScenarioConfig
+    WFPage->>Registry: getScenarioConfig("rev-retail-1") -> ScenarioConfig
     WFPage->>Execute: executeScenarioSkill(scenarioConfig)
 
     Execute->>Resolve: resolveScenario(scenarioConfig)
-    Resolve->>Industry: getIndustryContext("retail") → IndustryContext
+    Resolve->>Industry: getIndustryContext("retail") -> IndustryContext
     Resolve-->>Execute: { config, industry }
 
     Execute->>Build: buildSkillRequest(config, industry)
@@ -345,7 +345,7 @@ sequenceDiagram
         WFPage->>WFStore: addStepResult(result)
 
         alt Step has branches
-            WFPage->>User: Show BranchChoiceCards (2–4 options)
+            WFPage->>User: Show BranchChoiceCards (2-4 options)
             User->>WFPage: Click branch (e.g. "Deep inspect")
             WFPage->>WFStore: chooseBranch(branchId)
             Note over WFStore: Merges branch.contextUpdate<br/>into cumulativeContext<br/>Sets currentStepId = branch.nextStepId
@@ -426,15 +426,15 @@ sequenceDiagram
 - Agent ID: `019d4bda-cc70-7487-ad61-2876eed21ed0`
 - Agent name: `experience-center-data-fetcher`
 - Model: `claude-4.5-sonnet`
-- 3 tools (all targeting `retail-demo-kb`):
-  - `list_retail_columns` (`LIST_COLUMNS`) — lists available columns in retail_demo tables
-  - `query_retail_data` (`QUERY_DATA_DIRECT`) — executes Trino SQL queries against retail_demo
-  - `search_retail_schema` (`SEARCH_SCHEMA`) — searches retail_demo schema
+- 9 tools (3 per industry — LIST_COLUMNS, QUERY_DATA_DIRECT, SEARCH_SCHEMA):
+  - Retail: `list_retail_columns`, `query_retail_data`, `search_retail_schema` → `retail-demo-kb`
+  - Travel: `list_travel_columns`, `query_travel_data`, `search_travel_schema` → `travel-demo-kb`
+  - CPG: `list_cpg_columns`, `query_cpg_data`, `search_cpg_schema` → `cpg-demo-kb`
 - 3 knowledge bases: `retail-demo-kb`, `travel-demo-kb`, `cpg-demo-kb`
 
-**Current status:** The agent can execute real Trino queries against the retail_demo database via `QUERY_DATA_DIRECT`. Strict data constraints in the LLM prompt prevent hallucinated metrics — the system uses exact numbers from the CDP data (e.g., 1,000 customers, $396 AOV, 86.6% repeat purchase rate).
+**Current status:** The agent executes real Trino SQL queries against all three demo databases. The system prompt includes database schemas, expected JSON response formats, example query strategies, and strict rules (never guess, always use real SQL). Verified: all 3 industries return real queried data (retail: 0.866 repeat rate, travel + CPG: real metrics from DB).
 
-**Open item:** Travel and CPG knowledge bases exist but are not yet wired as tools on this agent — only retail-demo-kb has tools configured. Travel and CPG metrics currently fall back to hardcoded values.
+**Known issue:** Travel and CPG `email_open_rate` can exceed 1.0 because the agent computes total opens / total sent (multiple opens per email), not unique openers / unique recipients.
 
 **Engage Delivery API & Share/Export file map:**
 
@@ -443,19 +443,19 @@ sequenceDiagram
 | `src/services/engage-api.ts` | Browser client — `sendEmail(toAddress, output, wfStepHistory)` builds full inline HTML email with per-step-type renderers (analyze, inspect, create, compare, activate, optimize) and sends via `/api/engage/send`. Uses `email_campaign_test` endpoint (no template needed). |
 | `src/services/export-slides.ts` | PPTX generator — `generatePptxFromWorkflow(steps)` creates branded PowerPoint from workflow step history using `pptxgenjs`. Typed renderers for all 6 step types. `generatePptxFromOutput(output)` for one-shot mode. `generatePptx(deck)` for pre-generated DeckData. |
 | `src/services/export-pdf.ts` | PDF generator — `generatePdf(output, wfStepHistory)` creates branded A4 PDF using `jsPDF`. Per-step-type renderers with metrics boxes, finding cards, profile cards, action lists. |
-| `server/index.ts` (`/api/engage/send`) | Proxy route — forwards to `delivery-api.us01.treasuredata.com/api/email_transactions/email_campaign_test` with `ENGAGE_API_KEY` auth (account 10602) |
+| `server/index.ts` (`/api/engage/send`) | Proxy route — forwards to `delivery-api.us01.treasuredata.com/api/email_transactions/email_campaign_test` with browser `x-api-key` auth (account 13232) |
 
 **Engage configuration:**
-- Sender: `noreply@mail.treasuredata.services` (ID: `0197122d-53e5-780d-86b6-83791769f83e`, account 10602)
-- Auth: `ENGAGE_API_KEY` env var (account 10602 key), falls back to browser `x-api-key` header
-- Workspace: `01997f0c-44e7-798f-b4a9-68c8e8810d24`
+- Sender: `noreply@plg.treasure-engage-testing.link` (ID: `019d6e37-5083-7c4e-af1b-9697114b4e16`, account 13232)
+- Auth: browser `x-api-key` header (same 13232 key as all other APIs), `ENGAGE_API_KEY` env var as fallback
+- Workspace: `019d69ca-5d11-78f9-a0ee-23ee343827a0`
 - No template needed — inline HTML sent via `email_campaign_test` endpoint
 
 **Share/Export flow:**
 1. User clicks Share → chooses Slide Deck or PDF Report → enters email
 2. File generates in browser from workflow step history (PPTX or PDF) → auto-downloads
 3. Email sends in parallel with full analysis as inline HTML
-4. All outputs use official Treasure AI 2026 palette: `#2D40AA`, `#847BF2`, `#C466D4`, `#80B3FA`, `#F3CCF2`, `#FFE2BD`, `#F9FEFF`
+4. All outputs use official Treasure AI 2026 palette: `#2D40AA`, `#847BF2`, `#C466D4`, `#80B3FA`, `#F3CCF2`, `#FFE2BD`, `#FDB893`, `#F9FEFF`
 
 ---
 
@@ -483,7 +483,7 @@ sequenceDiagram
 
     API->>Execute: executeSlideSkill(input)
     Execute->>SlideProm: buildSlidePrompt(input)
-    Note over SlideProm: Resolves storyboard from STORYBOARDS[outputFormatKey][deckLength]\ne.g. "cover → recommendation → audience → strategy → channels → kpi → actions"\nApplies style rules (STYLE_RULES[deckStyle])\nInlines compressed outputData as JSON
+    Note over SlideProm: Resolves storyboard from STORYBOARDS[outputFormatKey][deckLength]\ne.g. "cover -> recommendation -> audience -> strategy -> channels -> kpi -> actions"\nApplies style rules (STYLE_RULES[deckStyle])\nInlines compressed outputData as JSON
 
     SlideProm-->>Execute: userPrompt string
 
@@ -493,7 +493,7 @@ sequenceDiagram
     Claude-->>Proxy: { content: [{ type:"text", text:"```slide-deck-json\n{title, slides:[...]}\n```" }] }
     Proxy-->>Execute: JSON response
 
-    Execute->>Execute: Extract ```slide-deck-json fence\nJSON.parse → { title, slides }
+    Execute->>Execute: Extract ```slide-deck-json fence\nJSON.parse -> { title, slides }
     Execute-->>API: { success: true, data: DeckData }
     API-->>WFPage: DeckData
 
@@ -668,7 +668,7 @@ Render environment variables (set in the Render dashboard, not committed to git)
 ```mermaid
 graph TD
     subgraph LocalDev["Local Development"]
-        ViteServer["Vite Dev Server\nport 5175\nvite.web.config.ts\n(proxies /api → :3001)"]
+        ViteServer["Vite Dev Server\nport 5175\nvite.web.config.ts\n(proxies /api -> :3001)"]
         TSXWatch["tsx watch server/index.ts\nport 3001\nRoutes: /api/llm, /api/chat/*,\n/api/cdp/*, /api/engage/send,\n/api/config, /api/test-connection"]
         Concurrently["npm run dev\n(concurrently)"]
         Concurrently --> ViteServer
@@ -685,16 +685,16 @@ graph TD
     end
 
     subgraph VercelDeploy["Vercel Deployment (Alternative)"]
-        VercelBuild["npm run build:vercel\nVite build → dist/client"]
+        VercelBuild["npm run build:vercel\nVite build -> dist/client"]
         VercelFunc["api/[...path].ts\nServerless function\nimports Express app\nmaxDuration: 60s"]
-        VercelRoutes["vercel.json routes\n/api/* → serverless fn\n/* → index.html"]
+        VercelRoutes["vercel.json routes\n/api/* -> serverless fn\n/* -> index.html"]
         VercelBuild --> VercelFunc
         VercelFunc --> VercelRoutes
     end
 
     subgraph StaticFuture["Future: Static CDN (post-CORS)"]
         StaticFiles["dist/client static files\n(no server needed)"]
-        LLMDirect["VITE_LLM_DIRECT=true\nBrowser → TD LLM Proxy directly"]
+        LLMDirect["VITE_LLM_DIRECT=true\nBrowser -> TD LLM Proxy directly"]
         StaticFiles --> LLMDirect
     end
 ```
@@ -739,7 +739,7 @@ graph TD
 | `VITE_API_BASE` | Override the API base path for server calls | Client (`executeSkill.ts`, `web-backend.ts`, `api/client.ts`, `chat-client.ts`) | Build-time | No (default: `/api`) |
 | `NODE_ENV` | Standard Node environment flag | Server | Runtime | No (set to `production` in Render) |
 | `VERCEL` | Auto-set by Vercel; suppresses `app.listen()` in server | Server (`server/index.ts`) | Runtime | No (auto-injected by Vercel) |
-| `ENGAGE_API_KEY` | API key for TD Engage Delivery API (account 10602 — has active email sender on `mail.treasuredata.services`) | Server (`server/index.ts`, `/api/engage/send`) | Runtime | No (falls back to browser `x-api-key` header; email send fails gracefully with .txt download fallback) |
+| `ENGAGE_API_KEY` | Optional fallback API key for Engage Delivery API (only needed if browser key doesn't have Engage access) | Server (`server/index.ts`, `/api/engage/send`) | Runtime | No (browser `x-api-key` is used by default; same 13232 account as rest of app) |
 
 > **Note:** `VITE_` prefixed variables are baked into the client JavaScript bundle by Vite at build time. They are visible to anyone who inspects the bundle source. Do not use them for secrets that must remain confidential. For the sandbox deployment model this is an accepted trade-off documented in `docs/legal-security-privacy-review.md`.
 
@@ -747,7 +747,7 @@ graph TD
 
 ## 10. Evolution & Key Design Decisions
 
-Based on PR history (PRs #1–#44 merged, PR #45 open):
+Based on PR history (PRs #1–#45, all merged):
 
 ### Why sessionStorage over localStorage (PR #2)
 
@@ -832,7 +832,7 @@ The Share modal (PR #44) was UI-only — clicking "Send" did nothing. PR #45 wir
 2. **PPTX**: browser-side slide deck generation via `pptxgenjs` with typed renderers for all 6 step types, using the official Treasure AI 2026 color palette
 3. **PDF**: browser-side A4 report generation via `jsPDF` with per-step-type cards, metric boxes, and action lists
 
-All three outputs use the official Treasure AI 2026 palette (`#2D40AA`, `#847BF2`, `#C466D4`, `#80B3FA`, `#F3CCF2`, `#FFE2BD`, `#F9FEFF`) extracted from the brand template. The email uses account 10602's sender (`noreply@mail.treasuredata.services`) because account 13232's domain deployment is still in progress.
+All three outputs use the official Treasure AI 2026 palette (`#2D40AA`, `#847BF2`, `#C466D4`, `#80B3FA`, `#F3CCF2`, `#FFE2BD`, `#FDB893`, `#F9FEFF`) extracted from the brand template. The email is sent from account 13232's sender (`noreply@plg.treasure-engage-testing.link`) using the same API key as all other TD API calls.
 
 ### Why strict data constraints were added to LLM prompts (post-PR #45)
 
