@@ -107,7 +107,7 @@ function buildRetailEnrichedContext(
     loyaltyTierCounts: { Bronze: 310, Silver: 246, Gold: 166, Platinum: 82 },
     avgOrderValue: { online: 396.46, instore: 253.44, combined: 341.07 },
     churnRiskDistribution: { High: 314, Low: 362, Medium: 324 },
-    repeatPurchaseRate: 0.9564,
+    repeatPurchaseRate: 0.866,
   };
   const m = liveMetrics || fallbackMetrics;
 

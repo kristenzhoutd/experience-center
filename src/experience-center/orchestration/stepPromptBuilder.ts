@@ -45,9 +45,12 @@ ${Object.entries(industry.sampleMetrics).map(([k, v]) => `- ${k}: ${v}`).join('\
 ### Preferred Channels
 ${industry.channelPreferences.join(', ')}
 ${isLive ? `
-### Data-Driven Requirements
-- Reference specific metrics from the industry data above by their actual values
-- Ground findings, recommendations, and impact projections in the real baseline metrics
-- Do not use generic placeholder numbers when real data is available
+### STRICT Data Requirements
+**CRITICAL: Use ONLY the exact numbers listed above. Do NOT extrapolate, estimate, or invent ANY figures.**
+- When customer count is given (e.g., "1,000"), use that exact number — never round up, double, or change it
+- When a rate is given (e.g., "86.6% repeat purchase rate"), quote it exactly — do not substitute a different number
+- Express impact projections as percentage ranges (e.g., "15-25% improvement") rather than fabricating specific dollar amounts
+- Every metric you cite in your output MUST appear in the Industry Metrics or Data Context above
+- If a number is not provided above, do not invent one — say "based on available data" instead
 ` : ''}`;
 }

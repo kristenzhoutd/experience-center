@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Experience Center — API Architecture</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg: #F9FEFF;
+      --text: #000000;
+      --subtitle: #4B5563;
+      --toggle-bg: #E5E7EB;
+      --toggle-dot: #2D40AA;
+      --toggle-label: #4B5563;
+    }
+    [data-theme="dark"] {
+      --bg: #0d1117;
+      --text: #F9FEFF;
+      --subtitle: #9CA3AF;
+      --toggle-bg: #374151;
+      --toggle-dot: #847BF2;
+      --toggle-label: #9CA3AF;
+    }
+    body {
+      margin: 0;
+      padding: 40px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      transition: background 0.3s, color 0.3s;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.6rem;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+    h1 span { color: #847BF2; }
+    p.subtitle {
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--subtitle);
+      margin-bottom: 32px;
+    }
+    .mermaid {
+      display: flex;
+      justify-content: center;
+    }
+    .mermaid svg { max-width: 100%; }
+    .toggle-wrap {
+      position: fixed;
+      top: 16px;
+      right: 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 10;
+    }
+    .toggle-label {
+      font-size: 12px;
+      color: var(--toggle-label);
+      user-select: none;
+    }
+    .toggle {
+      width: 44px;
+      height: 24px;
+      background: var(--toggle-bg);
+      border-radius: 12px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--toggle-dot);
+      transition: transform 0.3s;
+    }
+    [data-theme="dark"] .toggle::after {
+      transform: translateX(20px);
+    }
+  </style>
+</head>
+<body>
+  <div class="toggle-wrap">
+    <span class="toggle-label">Light</span>
+    <div class="toggle" onclick="toggleTheme()"></div>
+    <span class="toggle-label">Dark</span>
+  </div>
+
+  <h1>Experience Center — <span>Browser-Side API Architecture</span></h1>
+  <p class="subtitle">All TD APIs proxied through Express to avoid CORS. Keys live in browser sessionStorage.</p>
+
+  <div id="diagram"></div>
+
+  <script>
+    const LIGHT_CHART = `flowchart TB
+    subgraph Browser["BROWSER  Port 5175"]
+        direction TB
+        CS["chat-client.ts\\nexecuteSkill.ts\\nworkflowEngine.ts"]
+        CDP["cdp-api.ts"]
+        LLMCHAT["llm-chat-api.ts"]
+        ENGAGE["engage-api.ts\\n(inline HTML email)"]
+        EXPORT["export-slides.ts | export-pdf.ts"]
+    end
+
+    subgraph Proxy["EXPRESS PROXY  Port 3001  server/index.ts"]
+        direction TB
+        AUTH["x-api-key  ➜  Authorization: TD1 apiKey"]
+        R1["/api/llm"]
+        R2["/api/cdp/*"]
+        R3["/api/chat/create\\n/api/chat/:id/continue"]
+        R4["/api/engage/send"]
+    end
+
+    CS -- "POST /api/llm\\nx-api-key header" --> R1
+    CDP -- "GET /api/cdp/*\\nx-api-key header" --> R2
+    LLMCHAT -- "POST /api/chat/*\\nx-api-key header" --> R3
+    ENGAGE -- "POST /api/engage/send\\ninline HTML body" --> R4
+
+    subgraph TDApis["TREASURE DATA  Cloud"]
+        direction TB
+        LLMP["LLM Proxy\\nllm-proxy.us01.treasuredata.com\\n/v1/messages\\n\\nClaude Sonnet"]
+        CHATP["Chat API\\nllm-api.us01.treasuredata.com\\n/api/chats  (SSE)\\n\\nAgent: data-fetcher"]
+        CDPA["CDP API\\napi-cdp.treasuredata.com\\n/audiences\\n/audiences/:id\\n/audiences/:id/segments"]
+        ENGA["Engage Delivery API\\ndelivery-api.us01.treasuredata.com\\nemail_campaign_test\\n\\nnoreply@mail.treasuredata.services"]
+    end
+
+    R1 -- "TD1 auth" --> LLMP
+    R3 -- "TD1 auth" --> CHATP
+    R2 -- "TD1 auth" --> CDPA
+    R4 -- "TD1 ENGAGE_API_KEY\\n(account 10602)" --> ENGA
+
+    subgraph Uses["FEATURE → API MAPPING"]
+        direction LR
+        F1["Scenario generation\\nWorkflow steps\\nChat assistant"]
+        F2["Live metrics\\nretail / travel / cpg"]
+        F3["Segment enrichment\\nattrs / behaviors"]
+        F4["Share: email recap\\n+ PPTX/PDF download"]
+    end
+
+    F1 -. "LLM Proxy" .-> LLMP
+    F2 -. "Chat API" .-> CHATP
+    F3 -. "CDP API" .-> CDPA
+    F4 -. "Engage API" .-> ENGA
+
+    style Browser fill:#F9FEFF,stroke:#2D40AA,color:#000,stroke-width:2px
+    style Proxy fill:#F3CCF2,stroke:#C466D4,color:#000,stroke-width:2px
+    style TDApis fill:#FFE2BD,stroke:#FDB893,color:#000,stroke-width:2px
+    style Uses fill:#F9FEFF,stroke:#847BF2,color:#000,stroke-width:1px
+    style CS fill:#2D40AA,stroke:#2D40AA,color:#fff
+    style LLMCHAT fill:#C466D4,stroke:#C466D4,color:#fff
+    style CDP fill:#80B3FA,stroke:#80B3FA,color:#000
+    style ENGAGE fill:#847BF2,stroke:#847BF2,color:#fff
+    style EXPORT fill:#FDB893,stroke:#FDB893,color:#000
+    style LLMP fill:#2D40AA,stroke:#2D40AA,color:#fff
+    style CHATP fill:#C466D4,stroke:#C466D4,color:#fff
+    style CDPA fill:#80B3FA,stroke:#80B3FA,color:#000
+    style ENGA fill:#847BF2,stroke:#847BF2,color:#fff
+    style R1 fill:#2D40AA,stroke:#2D40AA,color:#fff
+    style R3 fill:#C466D4,stroke:#C466D4,color:#fff
+    style R2 fill:#80B3FA,stroke:#80B3FA,color:#000
+    style R4 fill:#847BF2,stroke:#847BF2,color:#fff
+    style AUTH fill:#F3CCF2,stroke:#C466D4,color:#4B5563
+    style F1 fill:#2D40AA,stroke:#2D40AA,color:#fff
+    style F2 fill:#C466D4,stroke:#C466D4,color:#fff
+    style F3 fill:#80B3FA,stroke:#80B3FA,color:#000
+    style F4 fill:#847BF2,stroke:#847BF2,color:#fff`;
+
+    const DARK_CHART = `flowchart TB
+    subgraph Browser["BROWSER  Port 5175"]
+        direction TB
+        CS["chat-client.ts\\nexecuteSkill.ts\\nworkflowEngine.ts"]
+        CDP["cdp-api.ts"]
+        LLMCHAT["llm-chat-api.ts"]
+        ENGAGE["engage-api.ts\\n(inline HTML email)"]
+        EXPORT["export-slides.ts | export-pdf.ts"]
+    end
+
+    subgraph Proxy["EXPRESS PROXY  Port 3001  server/index.ts"]
+        direction TB
+        AUTH["x-api-key  ➜  Authorization: TD1 apiKey"]
+        R1["/api/llm"]
+        R2["/api/cdp/*"]
+        R3["/api/chat/create\\n/api/chat/:id/continue"]
+        R4["/api/engage/send"]
+    end
+
+    CS -- "POST /api/llm\\nx-api-key header" --> R1
+    CDP -- "GET /api/cdp/*\\nx-api-key header" --> R2
+    LLMCHAT -- "POST /api/chat/*\\nx-api-key header" --> R3
+    ENGAGE -- "POST /api/engage/send\\ninline HTML body" --> R4
+
+    subgraph TDApis["TREASURE DATA  Cloud"]
+        direction TB
+        LLMP["LLM Proxy\\nllm-proxy.us01.treasuredata.com\\n/v1/messages\\n\\nClaude Sonnet"]
+        CHATP["Chat API\\nllm-api.us01.treasuredata.com\\n/api/chats  (SSE)\\n\\nAgent: data-fetcher"]
+        CDPA["CDP API\\napi-cdp.treasuredata.com\\n/audiences\\n/audiences/:id\\n/audiences/:id/segments"]
+        ENGA["Engage Delivery API\\ndelivery-api.us01.treasuredata.com\\nemail_campaign_test\\n\\nnoreply@mail.treasuredata.services"]
+    end
+
+    R1 -- "TD1 auth" --> LLMP
+    R3 -- "TD1 auth" --> CHATP
+    R2 -- "TD1 auth" --> CDPA
+    R4 -- "TD1 ENGAGE_API_KEY\\n(account 10602)" --> ENGA
+
+    subgraph Uses["FEATURE → API MAPPING"]
+        direction LR
+        F1["Scenario generation\\nWorkflow steps\\nChat assistant"]
+        F2["Live metrics\\nretail / travel / cpg"]
+        F3["Segment enrichment\\nattrs / behaviors"]
+        F4["Share: email recap\\n+ PPTX/PDF download"]
+    end
+
+    F1 -. "LLM Proxy" .-> LLMP
+    F2 -. "Chat API" .-> CHATP
+    F3 -. "CDP API" .-> CDPA
+    F4 -. "Engage API" .-> ENGA
+
+    style Browser fill:#161b22,stroke:#847BF2,color:#F9FEFF,stroke-width:2px
+    style Proxy fill:#1c1429,stroke:#C466D4,color:#F9FEFF,stroke-width:2px
+    style TDApis fill:#1a1510,stroke:#FDB893,color:#F9FEFF,stroke-width:2px
+    style Uses fill:#161b22,stroke:#847BF2,color:#9CA3AF,stroke-width:1px
+    style CS fill:#2D40AA,stroke:#4B5FCC,color:#fff
+    style LLMCHAT fill:#C466D4,stroke:#D88CE2,color:#fff
+    style CDP fill:#80B3FA,stroke:#A0CBFF,color:#000
+    style ENGAGE fill:#847BF2,stroke:#A99FF5,color:#fff
+    style EXPORT fill:#FDB893,stroke:#FECBA8,color:#000
+    style LLMP fill:#2D40AA,stroke:#4B5FCC,color:#fff
+    style CHATP fill:#C466D4,stroke:#D88CE2,color:#fff
+    style CDPA fill:#80B3FA,stroke:#A0CBFF,color:#000
+    style ENGA fill:#847BF2,stroke:#A99FF5,color:#fff
+    style R1 fill:#2D40AA,stroke:#4B5FCC,color:#fff
+    style R3 fill:#C466D4,stroke:#D88CE2,color:#fff
+    style R2 fill:#80B3FA,stroke:#A0CBFF,color:#000
+    style R4 fill:#847BF2,stroke:#A99FF5,color:#fff
+    style AUTH fill:#1c1429,stroke:#C466D4,color:#9CA3AF
+    style F1 fill:#2D40AA,stroke:#4B5FCC,color:#fff
+    style F2 fill:#C466D4,stroke:#D88CE2,color:#fff
+    style F3 fill:#80B3FA,stroke:#A0CBFF,color:#000
+    style F4 fill:#847BF2,stroke:#A99FF5,color:#fff`;
+
+    const LIGHT_THEME = {
+      primaryColor: '#F9FEFF',
+      primaryBorderColor: '#847BF2',
+      primaryTextColor: '#000000',
+      lineColor: '#847BF2',
+      textColor: '#000000',
+      secondaryColor: '#F3CCF2',
+      tertiaryColor: '#FFE2BD',
+      edgeLabelBackground: '#F9FEFF',
+    };
+
+    const DARK_THEME = {
+      primaryColor: '#161b22',
+      primaryBorderColor: '#847BF2',
+      primaryTextColor: '#F9FEFF',
+      lineColor: '#847BF2',
+      textColor: '#F9FEFF',
+      secondaryColor: '#1c1429',
+      tertiaryColor: '#1a1510',
+      edgeLabelBackground: '#161b22',
+    };
+
+    let currentTheme = 'light';
+
+    function renderDiagram() {
+      const isDark = currentTheme === 'dark';
+      const container = document.getElementById('diagram');
+      container.innerHTML = `<div class="mermaid">${isDark ? DARK_CHART : LIGHT_CHART}</div>`;
+
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: 'base',
+        flowchart: { curve: 'basis', padding: 20 },
+        themeVariables: isDark ? DARK_THEME : LIGHT_THEME,
+      });
+
+      mermaid.run({ nodes: container.querySelectorAll('.mermaid') });
+    }
+
+    function toggleTheme() {
+      currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', currentTheme);
+      renderDiagram();
+    }
+
+    // Initial render
+    renderDiagram();
+  </script>
+</body>
+</html>

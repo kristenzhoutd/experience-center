@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Treasure AI Experience Center — Architecture</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <style>
+    /* ── Treasure AI 2026 Palette ── */
+    :root {
+      --deep-blue: #2D40AA;
+      --purple: #847BF2;
+      --orchid: #C466D4;
+      --sky-blue: #80B3FA;
+      --pink-light: #F3CCF2;
+      --peach-light: #FFE2BD;
+      --peach: #FDB893;
+      --near-white: #F9FEFF;
+
+      --bg: var(--near-white);
+      --bg-card: #FFFFFF;
+      --text: #111827;
+      --text-secondary: #4B5563;
+      --text-muted: #9CA3AF;
+      --border: #E5E7EB;
+      --code-bg: #F3F4F6;
+      --table-stripe: #FAFBFC;
+      --blockquote-bg: var(--peach-light);
+      --blockquote-border: var(--peach);
+    }
+    [data-theme="dark"] {
+      --bg: #0d1117;
+      --bg-card: #161b22;
+      --text: #E6EDF3;
+      --text-secondary: #9CA3AF;
+      --text-muted: #6B7280;
+      --border: #30363d;
+      --code-bg: #1c2128;
+      --table-stripe: #161b22;
+      --blockquote-bg: #1c1429;
+      --blockquote-border: var(--purple);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, var(--peach-light), var(--pink-light), #D4E4FF);
+      padding: 40px 24px 32px;
+      text-align: center;
+      border-bottom: 3px solid;
+      border-image: linear-gradient(90deg, var(--purple), var(--orchid), var(--sky-blue)) 1;
+    }
+    [data-theme="dark"] .header {
+      background: linear-gradient(135deg, #1a1510, #1c1429, #111827);
+    }
+    .header h1 {
+      margin: 0 0 4px;
+      font-size: 1.8rem;
+      color: var(--deep-blue);
+    }
+    [data-theme="dark"] .header h1 { color: var(--purple); }
+    .header p {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    /* ── Toggle ── */
+    .toggle-wrap {
+      position: fixed;
+      top: 14px;
+      right: 20px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 100;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .toggle-label { font-size: 11px; color: var(--text-muted); user-select: none; }
+    .toggle {
+      width: 36px; height: 20px;
+      background: var(--border);
+      border-radius: 10px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px; left: 2px;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: var(--purple);
+      transition: transform 0.3s;
+    }
+    [data-theme="dark"] .toggle::after { transform: translateX(16px); }
+
+    /* ── Content ── */
+    .content {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 32px 24px 80px;
+    }
+
+    /* ── Markdown styles ── */
+    .content h1 { font-size: 1.6rem; color: var(--deep-blue); border-bottom: 2px solid var(--purple); padding-bottom: 8px; margin: 40px 0 16px; }
+    [data-theme="dark"] .content h1 { color: var(--purple); }
+    .content h2 { font-size: 1.35rem; color: var(--deep-blue); border-bottom: 1px solid var(--border); padding-bottom: 6px; margin: 36px 0 14px; }
+    [data-theme="dark"] .content h2 { color: var(--purple); }
+    .content h3 { font-size: 1.1rem; color: var(--orchid); margin: 28px 0 10px; }
+    .content h4 { font-size: 1rem; color: var(--purple); margin: 20px 0 8px; }
+
+    .content p { margin: 8px 0 12px; }
+    .content strong { color: var(--text); }
+
+    .content a { color: var(--purple); text-decoration: none; }
+    .content a:hover { text-decoration: underline; }
+
+    .content code {
+      background: var(--code-bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.88em;
+      font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+      color: var(--orchid);
+    }
+    .content pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      overflow-x: auto;
+      font-size: 0.85em;
+      line-height: 1.5;
+    }
+    .content pre code {
+      background: none;
+      padding: 0;
+      color: var(--text);
+    }
+
+    .content blockquote {
+      background: var(--blockquote-bg);
+      border-left: 4px solid var(--blockquote-border);
+      margin: 12px 0;
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      color: var(--text-secondary);
+      font-size: 0.92em;
+    }
+
+    .content table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 0.9em;
+    }
+    .content th {
+      background: var(--purple);
+      color: #fff;
+      padding: 8px 12px;
+      text-align: left;
+      font-size: 0.85em;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .content td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .content tr:nth-child(even) td { background: var(--table-stripe); }
+
+    .content ul, .content ol { padding-left: 24px; margin: 8px 0; }
+    .content li { margin: 4px 0; }
+    .content li::marker { color: var(--purple); }
+
+    .content hr {
+      border: none;
+      height: 1px;
+      background: linear-gradient(90deg, var(--purple), var(--orchid), var(--sky-blue));
+      margin: 32px 0;
+      opacity: 0.4;
+    }
+
+    /* ── Mermaid ── */
+    .mermaid {
+      display: block;
+      margin: 16px 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      min-height: 200px;
+      padding: 16px 0;
+      cursor: zoom-in;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-card);
+    }
+    .mermaid svg {
+      transform: scale(1.4);
+      transform-origin: top left;
+      margin-bottom: 100px;
+    }
+    .mermaid:hover { border-color: var(--purple); }
+
+    /* Full-screen diagram modal */
+    .diagram-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: var(--bg);
+      overflow: auto;
+      padding: 20px;
+      cursor: zoom-out;
+    }
+    .diagram-modal.active { display: block; }
+    .diagram-modal svg {
+      transform-origin: top left;
+      min-width: 100%;
+    }
+    .diagram-modal-close {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 1001;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text);
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .diagram-modal-hint {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1001;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    /* ── TOC sidebar (desktop) ── */
+    @media (min-width: 1200px) {
+      .content { margin-left: 280px; }
+      .toc {
+        position: fixed;
+        top: 100px;
+        left: 0;
+        width: 260px;
+        max-height: calc(100vh - 120px);
+        overflow-y: auto;
+        padding: 16px;
+        font-size: 0.82em;
+      }
+      .toc a {
+        display: block;
+        padding: 3px 0;
+        color: var(--text-muted);
+        text-decoration: none;
+        border-left: 2px solid transparent;
+        padding-left: 8px;
+      }
+      .toc a:hover { color: var(--purple); border-left-color: var(--purple); }
+    }
+    @media (max-width: 1199px) { .toc { display: none; } }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center;
+      padding: 24px;
+      color: var(--text-muted);
+      font-size: 0.8em;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <div class="toggle-wrap">
+    <span class="toggle-label">Light</span>
+    <div class="toggle" onclick="toggleTheme()"></div>
+    <span class="toggle-label">Dark</span>
+    <span style="margin-left:12px;border-left:1px solid var(--border);padding-left:12px" class="toggle-label">Diagrams:</span>
+    <button onclick="zoomDiagrams(-0.2)" style="width:24px;height:24px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);cursor:pointer;font-size:14px;line-height:1">−</button>
+    <span class="toggle-label" id="zoom-label">140%</span>
+    <button onclick="zoomDiagrams(0.2)" style="width:24px;height:24px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);cursor:pointer;font-size:14px;line-height:1">+</button>
+  </div>
+
+  <div class="header">
+    <h1>Treasure AI Experience Center</h1>
+    <p>Architecture Document</p>
+  </div>
+
+  <div class="diagram-modal" id="diagram-modal" onclick="closeDiagramModal()">
+    <button class="diagram-modal-close" onclick="closeDiagramModal()">✕</button>
+    <div id="diagram-modal-content"></div>
+    <div class="diagram-modal-hint">Click anywhere or press Esc to close &middot; Scroll to pan</div>
+  </div>
+
+  <nav class="toc" id="toc"></nav>
+  <div class="content" id="content">Loading...</div>
+  <div class="footer">Treasure AI Experience Center &middot; Architecture Document &middot; 2026</div>
+
+  <script>
+    let currentTheme = 'light';
+    let diagramZoom = 1.4;
+
+    function toggleTheme() {
+      currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', currentTheme);
+    }
+
+    function zoomDiagrams(delta) {
+      diagramZoom = Math.max(0.6, Math.min(3.0, diagramZoom + delta));
+      document.querySelectorAll('.content .mermaid svg').forEach(svg => {
+        svg.style.transform = `scale(${diagramZoom})`;
+      });
+      document.getElementById('zoom-label').textContent = Math.round(diagramZoom * 100) + '%';
+    }
+
+    function openDiagramModal(el) {
+      const modal = document.getElementById('diagram-modal');
+      const content = document.getElementById('diagram-modal-content');
+      const svg = el.querySelector('svg');
+      if (!svg) return;
+      const clone = svg.cloneNode(true);
+      clone.style.transform = 'none';
+      clone.style.width = Math.max(clone.viewBox?.baseVal?.width || 1400, 1400) + 'px';
+      clone.style.height = 'auto';
+      clone.style.maxWidth = 'none';
+      content.innerHTML = '';
+      content.appendChild(clone);
+      modal.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeDiagramModal() {
+      document.getElementById('diagram-modal').classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeDiagramModal();
+    });
+
+    // Custom renderer: convert ```mermaid blocks to <div class="mermaid">
+    const renderer = new marked.Renderer();
+    const origCode = renderer.code;
+    renderer.code = function({ text, lang }) {
+      if (lang === 'mermaid') {
+        return `<div class="mermaid">${text}</div>`;
+      }
+      return `<pre><code class="language-${lang || ''}">${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
+    };
+
+    marked.setOptions({ renderer, gfm: true, breaks: false });
+
+    async function loadArchitecture() {
+      try {
+        const resp = await fetch('architecture.md');
+        if (!resp.ok) throw new Error('Failed to load architecture.md');
+        const md = await resp.text();
+        const html = marked.parse(md);
+        document.getElementById('content').innerHTML = html;
+
+        // Build TOC from h2s
+        const toc = document.getElementById('toc');
+        const headings = document.querySelectorAll('.content h2');
+        let tocHtml = '';
+        headings.forEach(h => {
+          const id = h.textContent.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+          h.id = id;
+          tocHtml += `<a href="#${id}">${h.textContent}</a>`;
+        });
+        toc.innerHTML = tocHtml;
+
+        // Render mermaid diagrams one-by-one with error handling
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: 'base',
+          flowchart: { curve: 'basis', padding: 24, nodeSpacing: 40, rankSpacing: 50 },
+          sequence: { actorMargin: 80, messageFontSize: 14, actorFontSize: 14, noteFontSize: 13, width: 220, height: 55, boxMargin: 12, mirrorActors: false, messageAlign: 'center' },
+          fontSize: 14,
+          suppressErrors: true,
+          themeVariables: {
+            fontSize: '14px',
+            primaryColor: '#F3CCF2',
+            primaryBorderColor: '#847BF2',
+            primaryTextColor: '#111827',
+            lineColor: '#847BF2',
+            textColor: '#111827',
+            secondaryColor: '#FFE2BD',
+            tertiaryColor: '#F9FEFF',
+            edgeLabelBackground: '#F9FEFF',
+            actorBkg: '#2D40AA',
+            actorTextColor: '#FFFFFF',
+            actorBorder: '#847BF2',
+            signalColor: '#847BF2',
+            signalTextColor: '#111827',
+            noteBkgColor: '#FFE2BD',
+            noteTextColor: '#111827',
+            noteBorderColor: '#FDB893',
+            activationBkgColor: '#F3CCF2',
+            activationBorderColor: '#847BF2',
+          }
+        });
+
+        const diagrams = document.querySelectorAll('.mermaid');
+        for (let i = 0; i < diagrams.length; i++) {
+          const el = diagrams[i];
+          try {
+            const id = `mermaid-${i}`;
+            const { svg } = await mermaid.render(id, el.textContent.trim());
+            el.innerHTML = svg;
+          } catch (err) {
+            console.warn(`Mermaid diagram ${i} failed:`, err.message || err);
+            const code = el.textContent.trim();
+            el.innerHTML = `<details style="margin:8px 0"><summary style="color:var(--orchid);cursor:pointer;font-size:0.85em">Diagram source (click to expand)</summary><pre style="font-size:0.8em;white-space:pre-wrap;margin-top:8px">${code.replace(/</g,'&lt;')}</pre></details>`;
+          }
+        }
+
+        // Attach click-to-fullscreen on rendered diagrams
+        document.querySelectorAll('.content .mermaid').forEach(el => {
+          if (el.querySelector('svg')) {
+            el.addEventListener('click', () => openDiagramModal(el));
+          }
+        });
+      } catch (err) {
+        document.getElementById('content').innerHTML = `<p style="color:red">Error: ${err.message}. Make sure architecture.md is in the same directory.</p>`;
+      }
+    }
+
+    loadArchitecture();
+  </script>
+</body>
+</html>

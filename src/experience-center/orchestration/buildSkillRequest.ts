@@ -80,15 +80,27 @@ function isLiveCdpData(industry: IndustryContext): boolean {
 }
 
 const LIVE_DATA_INSTRUCTIONS = `
-## Data-Driven Analysis Requirements
-You have access to REAL customer data from the Treasure Data CDP. Your output MUST be grounded in this data:
-- Reference specific metrics by their actual values (e.g., "$396 avg online order value", "86.6% repeat purchase rate")
-- Name specific RFM segments (Champions, Loyal Customers, At Risk, etc.) and their sizes when relevant
-- Use actual loyalty tier distributions (Bronze 310, Silver 246, Gold 166, Platinum 82) in recommendations
-- Ground KPI targets and impact projections in the real baseline metrics — don't invent numbers when real ones are provided
-- Reference actual churn risk distribution (36.2% Low, 32.4% Medium, 31.4% High) when discussing retention
-- In insightPanel.whatChanged, cite specific data points that shaped the recommendation
+## STRICT Data-Driven Analysis Requirements
+You have access to REAL customer data from the Treasure Data CDP. You MUST follow these rules:
+
+**CRITICAL: Use ONLY the exact numbers provided in the data context. Do NOT extrapolate, estimate, project, or invent ANY numbers.**
+- When the data says "1,000 customers", say "1,000 customers" — never round up to 2,000 or any other number
+- When the data says "86.6% repeat purchase rate", use exactly "86.6%" — do not change it to 95% or any other value
+- When projecting impact, express it as a percentage range (e.g., "15-25% improvement") rather than fabricating dollar amounts
+- If a specific number is not provided in the data context, say "based on available data" rather than inventing a figure
+
+**Required data references:**
+- Reference specific metrics by their EXACT values from the data (e.g., "$396 avg online order value", "86.6% repeat purchase rate")
+- Name specific segments and their actual sizes from the CDP data
+- Use actual loyalty tier distributions when discussing loyalty (e.g., Bronze 310, Silver 246, Gold 166, Platinum 82)
+- Use actual churn risk distribution when discussing retention (e.g., 36.2% Low, 32.4% Medium, 31.4% High)
 - Reference at least 3 specific metrics from the CDP data in your output
+- In insightPanel.whatChanged, cite specific data points that shaped the recommendation
+
+**Never do this:**
+- Do NOT double or multiply customer counts (total is provided in data context)
+- Do NOT fabricate revenue projections with specific dollar amounts unless the math is shown from provided metrics
+- Do NOT invent percentages or rates not present in the data context
 `;
 
 export function buildSkillRequest(scenario: ScenarioConfig, industry: IndustryContext, workflowContext?: string): AssembledRequest {
@@ -96,7 +108,7 @@ export function buildSkillRequest(scenario: ScenarioConfig, industry: IndustryCo
   const usesLiveData = isLiveCdpData(industry);
 
   const dataFraming = usesLiveData
-    ? 'Outputs are grounded in real customer data from the Treasure Data CDP. Generate specific, data-driven insights that reference actual metrics, segments, and behavioral patterns from the data provided.'
+    ? 'Outputs are grounded in real customer data from the Treasure Data CDP. Use ONLY the exact numbers provided in the data context — do not extrapolate, estimate, or invent any figures. When you cite a metric, it must match the data exactly.'
     : 'All outputs use sample data and should be framed as illustrative recommendations that showcase Treasure AI capabilities.';
 
   const contextBlock = workflowContext ? `\n${workflowContext}\n` : '';

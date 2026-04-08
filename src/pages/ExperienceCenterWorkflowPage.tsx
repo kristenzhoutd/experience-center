@@ -1484,7 +1484,7 @@ export default function ExperienceCenterWorkflowPage() {
             </div>
             {/* Content */}
             <div className="px-6 py-5">
-              <EmailCaptureCard output={output} onDone={() => setShowShareModal(false)} />
+              <EmailCaptureCard output={output} deckData={artifacts.find(a => a.type === 'slides')?.data as DeckData | undefined} wfStepHistory={wfStepHistory} onDone={() => setShowShareModal(false)} />
             </div>
           </div>
         </>
@@ -2063,7 +2063,8 @@ function OutputSection({ title, icon, children }: { title: string; icon: React.R
 // ============================================================
 // Email Capture Card (left chat, after output)
 // ============================================================
-function EmailCaptureCard({ output, onDone }: { output?: OutputData | null; onDone?: () => void }) {
+function EmailCaptureCard({ output, deckData, wfStepHistory, onDone }: { output?: OutputData | null; deckData?: DeckData | null; wfStepHistory?: Array<{ stepDef: { label: string; stepType: string }; output: Record<string, unknown> | null; summary: string }>; onDone?: () => void }) {
+  const hasContent = !!output || (wfStepHistory && wfStepHistory.length > 0);
   const [email, setEmail] = useState('');
   const [format, setFormat] = useState<'slides' | 'pdf'>('slides');
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
@@ -2113,14 +2114,62 @@ function EmailCaptureCard({ output, onDone }: { output?: OutputData | null; onDo
     return lines.join('\n');
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!email || !email.includes('@')) return;
     setStatus('sending');
 
-    // Simulate sending email (no actual backend yet)
-    setTimeout(() => {
+    try {
+      // Pre-import all modules
+      const [{ sendEmail }, slidesMod, pdfMod] = await Promise.all([
+        import('../services/engage-api'),
+        format === 'slides' && hasContent ? import('../services/export-slides') : Promise.resolve(null),
+        format === 'pdf' && hasContent ? import('../services/export-pdf') : Promise.resolve(null),
+      ]);
+
+      console.log('[Share] format:', format, 'hasOutput:', !!output, 'hasDeck:', !!deckData, 'wfSteps:', wfStepHistory?.length || 0, 'firstStepSummary:', wfStepHistory?.[0]?.summary?.substring(0, 50));
+
+      // Generate file
+      let blob: Blob | null = null;
+      let filename = '';
+
+      if (format === 'slides' && slidesMod) {
+        if (deckData) {
+          blob = await slidesMod.generatePptx(deckData);
+        } else if (wfStepHistory && wfStepHistory.length > 0) {
+          blob = await slidesMod.generatePptxFromWorkflow(wfStepHistory);
+        } else if (output) {
+          blob = await slidesMod.generatePptxFromOutput(output);
+        }
+        filename = 'treasure-ai-slides.pptx';
+      } else if (format === 'pdf' && pdfMod) {
+        blob = await pdfMod.generatePdf(output || null, wfStepHistory);
+        filename = 'treasure-ai-report.pdf';
+      }
+
+      console.log('[Share] blob:', blob ? `${blob.size} bytes` : 'null');
+
+      // Trigger download
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 3000);
+      }
+
+      // Send confirmation email with full output
+      sendEmail(email, output || null, wfStepHistory).catch(err => console.error('Email send failed:', err));
+
       setStatus('sent');
-    }, 1200);
+    } catch (err) {
+      console.error('Export/email error:', err);
+      setStatus('idle');
+    }
   };
 
   if (status === 'sent') {

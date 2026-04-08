@@ -135,8 +135,13 @@ export async function executeWorkflowStep(
   const contextStr = buildCumulativeContext(stepHistory, cumulativeContext, stepDef.label);
   const schemaInstructions = getStepSchemaInstructions(stepDef.stepType, stepDef.skillFamily);
 
-  const systemPrompt = `You are the Treasure AI Experience Center, generating focused, step-specific output for a guided workflow.
+  const isLiveData = industry.sampleDataContext.includes('live data from');
+  const dataConstraint = isLiveData
+    ? '\nIMPORTANT: Use ONLY the exact numbers from the data context. Do not extrapolate, estimate, or invent figures. Every metric you cite must match the provided data exactly.\n'
+    : '';
 
+  const systemPrompt = `You are the Treasure AI Experience Center, generating focused, step-specific output for a guided workflow.
+${dataConstraint}
 ${stepContext}
 ${contextStr ? `\n${contextStr}\n` : ''}
 ${schemaInstructions}`;
