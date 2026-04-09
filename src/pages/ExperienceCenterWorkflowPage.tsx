@@ -101,7 +101,8 @@ import SlideOutput from '../experience-center/output-formats/slides/SlideOutput'
 import type { DeckConfig, DeckData } from '../experience-center/output-formats/slides/types';
 import ApiKeySetupModal from '../components/ApiKeySetupModal';
 import BookWalkthroughModal from '../components/BookWalkthroughModal';
-import { trackEvent, AnalyticsEvents } from '../utils/analytics';
+import { AnalyticsEvents } from '../utils/analytics';
+import { trackAll } from '../utils/tracking';
 import { getWorkflowDef } from '../experience-center/registry/workflows';
 import { useWorkflowSessionStore } from '../stores/workflowSessionStore';
 import { executeWorkflowStep, resolveWorkflowStepContext } from '../experience-center/orchestration/workflowEngine';
@@ -427,7 +428,7 @@ export default function ExperienceCenterWorkflowPage() {
   // ============================================================
   const handleIndustrySelect = (id: string) => {
     const label = industries.find(i => i.id === id)?.label || id;
-    trackEvent(AnalyticsEvents.INDUSTRY_SELECT, { goal_id: goal, industry_id: id, industry_label: label });
+    trackAll(AnalyticsEvents.INDUSTRY_SELECT, { goal_id: goal, industry_id: id, industry_label: label });
     setIndustry(id);
     addUserMessage(label);
     setCurrentStep('scenario');
@@ -443,7 +444,7 @@ export default function ExperienceCenterWorkflowPage() {
     // Look up label from matrix first, then legacy flat list
     const matrixScenarios = getScenariosForOutcome(goal, industry);
     const label = matrixScenarios.find(s => s.id === id)?.label || scenarios.find(s => s.id === id)?.label || id;
-    trackEvent(AnalyticsEvents.SCENARIO_SELECT, { goal_id: goal, industry_id: industry, scenario_id: id, scenario_label: label });
+    trackAll(AnalyticsEvents.SCENARIO_SELECT, { goal_id: goal, industry_id: industry, scenario_id: id, scenario_label: label });
     setScenario(id);
     addUserMessage(label);
 
@@ -467,7 +468,7 @@ export default function ExperienceCenterWorkflowPage() {
   // Refinement handler
   // ============================================================
   const handleRefinement = useCallback((chip: RefinementChip) => {
-    trackEvent(AnalyticsEvents.REFINEMENT_CLICK, { chip_label: chip.label, scenario_id: scenario });
+    trackAll(AnalyticsEvents.REFINEMENT_CLICK, { chip_label: chip.label, scenario_id: scenario });
     // Generate a natural acknowledgment based on the refinement type
     const ack = getRefinementAck(chip);
 
@@ -622,7 +623,7 @@ export default function ExperienceCenterWorkflowPage() {
     const branch = stepDef?.branches.find(b => b.branchId === branchId);
     if (!branch) return;
 
-    trackEvent(AnalyticsEvents.BRANCH_CHOICE, { branch_id: branchId, step_id: currentStepId, scenario_id: scenario });
+    trackAll(AnalyticsEvents.BRANCH_CHOICE, { branch_id: branchId, step_id: currentStepId, scenario_id: scenario });
 
     // Add user's choice as a message
     addUserMessage(branch.label);
@@ -645,7 +646,7 @@ export default function ExperienceCenterWorkflowPage() {
   const runGeneration = useCallback((scenarioId?: string, defaultInputs?: Record<string, string | string[]>) => {
     const s = scenarioId || scenario;
     const i = defaultInputs || inputs;
-    trackEvent(AnalyticsEvents.GENERATION_START, { goal_id: goal, industry_id: industry, scenario_id: s });
+    trackAll(AnalyticsEvents.GENERATION_START, { goal_id: goal, industry_id: industry, scenario_id: s });
     startGeneration();
     addAIMessage('Generating your personalized outcome...', 'generation');
 
@@ -686,7 +687,7 @@ export default function ExperienceCenterWorkflowPage() {
 
     const completeGeneration = (result: import('../stores/experienceLabStore').OutputData) => {
       clearInterval(interval);
-      trackEvent(AnalyticsEvents.GENERATION_COMPLETE, { goal_id: goal, industry_id: industry, scenario_id: s });
+      trackAll(AnalyticsEvents.GENERATION_COMPLETE, { goal_id: goal, industry_id: industry, scenario_id: s });
       addStep('Strategy complete — review results in the panel', 'ui_update');
       setIsThinkingActive(false);
       finishGeneration(result);
@@ -787,7 +788,7 @@ export default function ExperienceCenterWorkflowPage() {
   // Slide generation
   const handleGenerateSlides = useCallback(async (config: DeckConfig) => {
     if (!output) return;
-    trackEvent(AnalyticsEvents.SLIDE_DECK_REQUEST, { deck_length: config.length, deck_style: config.style, scenario_id: scenario });
+    trackAll(AnalyticsEvents.SLIDE_DECK_REQUEST, { deck_length: config.length, deck_style: config.style, scenario_id: scenario });
     setShowSlideModal(false);
 
     // Add progress to chat
@@ -1214,7 +1215,7 @@ export default function ExperienceCenterWorkflowPage() {
             <div className="flex-1" />
             <button
               onClick={() => {
-                trackEvent(AnalyticsEvents.WALKTHROUGH_CTA_CLICK, { cta_source: 'workflow_nav', page: 'workflow', goal_id: goal, industry_id: industry, scenario_id: scenario });
+                trackAll(AnalyticsEvents.WALKTHROUGH_CTA_CLICK, { cta_source: 'workflow_nav', page: 'workflow', goal_id: goal, industry_id: industry, scenario_id: scenario });
                 setShowBookingModal(true);
               }}
               className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-white bg-gray-900 rounded-full hover:bg-gray-800 transition-colors shadow-sm cursor-pointer"
@@ -1285,7 +1286,7 @@ export default function ExperienceCenterWorkflowPage() {
                             return (
                               <button
                                 key={a.id}
-                                onClick={() => { trackEvent(AnalyticsEvents.OUTPUT_TAB_VIEW, { tab_id: a.id, scenario_id: scenario }); setActiveArtifactId(a.id); }}
+                                onClick={() => { trackAll(AnalyticsEvents.OUTPUT_TAB_VIEW, { tab_id: a.id, scenario_id: scenario }); setActiveArtifactId(a.id); }}
                                 className={`relative inline-flex items-center gap-1.5 pb-2.5 text-xs cursor-pointer transition-all min-w-0 ${
                                   isActive ? 'text-gray-900 font-semibold' : 'text-gray-400 hover:text-gray-600'
                                 }`}
@@ -1387,7 +1388,7 @@ export default function ExperienceCenterWorkflowPage() {
                             return (
                               <button
                                 key={a.id}
-                                onClick={() => { trackEvent(AnalyticsEvents.OUTPUT_TAB_VIEW, { tab_id: a.id, scenario_id: scenario }); setActiveArtifactId(a.id); }}
+                                onClick={() => { trackAll(AnalyticsEvents.OUTPUT_TAB_VIEW, { tab_id: a.id, scenario_id: scenario }); setActiveArtifactId(a.id); }}
                                 className={`relative inline-flex items-center gap-1.5 pb-2.5 text-xs cursor-pointer transition-all min-w-0 ${
                                   isActive ? 'text-gray-900 font-semibold' : 'text-gray-400 hover:text-gray-600'
                                 }`}
@@ -2302,7 +2303,7 @@ function FloatingContextCard({
   const [isExpanded, setIsExpanded] = useState(true);
 
   const handleBook = (ctaSource: string) => {
-    trackEvent(AnalyticsEvents.WALKTHROUGH_CTA_CLICK, { cta_source: ctaSource, page: 'workflow', goal_id: goalId, industry_id: industryId, scenario_id: scenarioId });
+    trackAll(AnalyticsEvents.WALKTHROUGH_CTA_CLICK, { cta_source: ctaSource, page: 'workflow', goal_id: goalId, industry_id: industryId, scenario_id: scenarioId });
     onBook();
   };
 

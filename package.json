@@ -37,6 +37,7 @@
     "react-syntax-highlighter": "^16.1.0",
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.1",
+    "td-js-sdk": "^4.4.3",
     "zod": "^4.3.6",
     "zustand": "^5.0.2"
   },

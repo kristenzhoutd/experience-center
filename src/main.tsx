@@ -8,6 +8,7 @@
 // Initialize backend BEFORE any React code runs
 import { initBackend } from './services/backend';
 import { initializeGA } from './utils/analytics';
+import { initializeTD } from './utils/td-analytics';
 import { loadMarketoScript } from './utils/marketo';
 
 import React from 'react';
@@ -26,6 +27,7 @@ console.log('AI Suites Web - Starting...');
 async function bootstrap() {
   await initBackend();
   initializeGA();
+  initializeTD();
   loadMarketoScript();
 
   const rootElement = document.getElementById('root');

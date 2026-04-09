@@ -5,7 +5,9 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Calendar, CheckCircle, Loader2, Sparkles, Target, ArrowRight } from 'lucide-react';
-import { trackEvent, AnalyticsEvents, getClientId } from '../utils/analytics';
+import { AnalyticsEvents, getClientId } from '../utils/analytics';
+import { trackAll } from '../utils/tracking';
+import { tdSubmitLead } from '../utils/td-analytics';
 import { useMarketoForm } from '../hooks/useMarketoForm';
 import { isValidWorkEmail, submitMarketoForm, FIELD_MAP } from '../utils/marketo';
 
@@ -44,8 +46,8 @@ export default function BookWalkthroughModal({ isOpen, onClose, ctaSource, goalI
 
     setStatus('submitting');
 
-    // Fire GA4 conversion event (no PII)
-    trackEvent(AnalyticsEvents.WALKTHROUGH_FORM_SUBMIT, {
+    // Fire GA4 + TD conversion event (no PII)
+    trackAll(AnalyticsEvents.WALKTHROUGH_FORM_SUBMIT, {
       cta_source: ctaSource,
       has_role: !!role.trim(),
       has_message: !!message.trim(),
@@ -91,6 +93,21 @@ export default function BookWalkthroughModal({ isOpen, onClose, ctaSource, goalI
     } else {
       console.warn('[BookWalkthrough] Marketo form not loaded — submission logged only');
     }
+
+    // Send lead + funnel context to TD CDP for identity stitching and HubSpot activation
+    tdSubmitLead({
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      company,
+      role,
+      message,
+      ga_client_id: gaClientId,
+      cta_source: ctaSource,
+      goal_id: goalId,
+      industry_id: industryId,
+      scenario_id: scenarioId,
+    });
 
     setStatus('success');
   };

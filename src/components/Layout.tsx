@@ -1,7 +1,8 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { storage } from '../utils/storage'
 import { usePageTracking } from '@/hooks/usePageTracking'
-import { trackEvent, AnalyticsEvents } from '../utils/analytics'
+import { AnalyticsEvents } from '../utils/analytics'
+import { trackAll } from '../utils/tracking'
 
 export default function Layout() {
   const location = useLocation()
@@ -65,7 +66,7 @@ export default function Layout() {
           <div className="flex-1" />
           <button
             onClick={() => {
-              trackEvent(AnalyticsEvents.WALKTHROUGH_CTA_CLICK, {
+              trackAll(AnalyticsEvents.WALKTHROUGH_CTA_CLICK, {
                 cta_source: 'top_nav',
                 page: isHomepage ? 'landing' : 'other',
               });
