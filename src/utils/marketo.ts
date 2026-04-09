@@ -92,6 +92,11 @@ export function loadHiddenForm(): Promise<MktoForm> {
           return;
         }
 
+        // Required for cross-domain form submission
+        window.MktoForms2.setOptions({
+          formXDPath: '/rs/714-XIJ-402/images/marketo-xdframe-relative.html',
+        });
+
         // Hidden container so Marketo has a DOM target but nothing is visible
         const container = document.createElement('div');
         container.style.display = 'none';
@@ -125,7 +130,10 @@ export function submitMarketoForm(form: MktoForm, data: Record<string, string>):
       return false; // prevent Marketo redirect
     });
 
+    // Set field values on the form (not just hidden fields)
+    form.vals(data);
     form.addHiddenFields(data);
+    form.submittable(true);
     form.submit();
   });
 }

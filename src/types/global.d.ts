@@ -10,6 +10,7 @@ declare global {
   interface MktoForms2Static {
     loadForm(baseUrl: string, munchkinId: string, formId: number, callback?: (form: MktoForm) => void): void;
     setOptions(options: Record<string, string>): void;
+    whenReady(callback: (form: MktoForm) => void): void;
   }
 
   interface Window {
