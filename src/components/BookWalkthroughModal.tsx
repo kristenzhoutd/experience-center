@@ -6,6 +6,8 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Calendar, CheckCircle, Loader2, Sparkles, Target, ArrowRight } from 'lucide-react';
 import { trackEvent, AnalyticsEvents, getClientId } from '../utils/analytics';
+import { useMarketoForm } from '../hooks/useMarketoForm';
+import { isValidWorkEmail, submitMarketoForm, FIELD_MAP } from '../utils/marketo';
 
 interface BookWalkthroughModalProps {
   isOpen: boolean;
@@ -23,7 +25,9 @@ export default function BookWalkthroughModal({ isOpen, onClose, ctaSource, goalI
   const [company, setCompany] = useState('');
   const [role, setRole] = useState('');
   const [message, setMessage] = useState('');
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success'>('idle');
+  const { marketoForm } = useMarketoForm();
 
   if (!isOpen) return null;
 
@@ -31,6 +35,13 @@ export default function BookWalkthroughModal({ isOpen, onClose, ctaSource, goalI
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
+
+    // Validate work email domain
+    if (!isValidWorkEmail(email)) {
+      setEmailError('Must be a valid work email');
+      return;
+    }
+
     setStatus('submitting');
 
     // Fire GA4 conversion event (no PII)
@@ -51,19 +62,36 @@ export default function BookWalkthroughModal({ isOpen, onClose, ctaSource, goalI
       // GA not initialized — continue without client_id
     }
 
-    // TODO: Replace with actual backend/TD API submission
-    // The payload below is ready to send to backend for CDP identity stitching:
-    // {
-    //   ga_client_id: gaClientId,
-    //   email, first_name: firstName, last_name: lastName,
-    //   company, role, message,
-    //   cta_source: ctaSource, goal_id: goalId,
-    //   industry_id: industryId, scenario_id: scenarioId,
-    // }
-    void gaClientId; // suppress unused warning until backend is wired
+    const formData = {
+      [FIELD_MAP.firstName]: firstName,
+      [FIELD_MAP.lastName]: lastName,
+      [FIELD_MAP.email]: email,
+      [FIELD_MAP.company]: company,
+      [FIELD_MAP.role]: role,
+      [FIELD_MAP.message]: message,
+      ...(gaClientId ? { [FIELD_MAP.gaClientId]: gaClientId } : {}),
+    };
 
-    // Simulate submission delay (no backend yet)
-    await new Promise(resolve => setTimeout(resolve, 800));
+    console.log('[BookWalkthrough] Submitting form:', {
+      ...formData,
+      ga_client_id: gaClientId,
+      cta_source: ctaSource,
+      goal_id: goalId,
+      industry_id: industryId,
+      scenario_id: scenarioId,
+    });
+
+    // Submit via hidden Marketo form
+    if (marketoForm) {
+      try {
+        await submitMarketoForm(marketoForm, formData);
+      } catch (err) {
+        console.warn('[BookWalkthrough] Marketo submission failed, continuing:', err);
+      }
+    } else {
+      console.warn('[BookWalkthrough] Marketo form not loaded — submission logged only');
+    }
+
     setStatus('success');
   };
 
@@ -77,6 +105,7 @@ export default function BookWalkthroughModal({ isOpen, onClose, ctaSource, goalI
       setCompany('');
       setRole('');
       setMessage('');
+      setEmailError(null);
       setStatus('idle');
     }, 200);
   };
@@ -201,10 +230,11 @@ export default function BookWalkthroughModal({ isOpen, onClose, ctaSource, goalI
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); setEmailError(null); }}
                 placeholder="jane@company.com"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${emailError ? 'border-red-400' : 'border-gray-200'}`}
               />
+              {emailError && <p className="text-xs text-red-500 mt-1">{emailError}</p>}
             </div>
 
             {/* Company + Role */}
