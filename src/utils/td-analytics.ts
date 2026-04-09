@@ -7,7 +7,7 @@ import Treasure from 'td-js-sdk';
 
 const TD_DATABASE = import.meta.env.VITE_TD_DATABASE || '';
 const TD_WRITE_KEY = import.meta.env.VITE_TD_WRITE_KEY || '';
-const TD_HOST = import.meta.env.VITE_TD_HOST || 'in.treasuredata.com';
+const TD_HOST = import.meta.env.VITE_TD_HOST || 'us01.records.in.treasuredata.com';
 
 let td: Treasure | null = null;
 
