@@ -6,5 +6,7 @@ services:
     envVars:
       - key: VITE_SANDBOX_API_KEY
         sync: false
+      - key: VITE_GA_MEASUREMENT_ID
+        sync: false
       - key: NODE_ENV
         value: production
