@@ -320,7 +320,7 @@ export default function ExperienceCenterWorkflowPage() {
         hasAutoPromptedShareRef.current = true;
         setShowShareModal(true);
       }
-    }, 5000);
+    }, 20000);
 
     return () => clearTimeout(timer);
   }, [wfActive, wfStepHistory.length, wfIsExecuting, showShareModal]);

@@ -33,6 +33,60 @@ export function buildSegmentOpportunityPrompt(scenario: ScenarioConfig, industry
 - Cite buyer penetration and lapsed rate for lifecycle segments
 - Use promo rate for deal-sensitivity segments
 - Reference coupon redeemer count for promotional responsiveness segments`;
+    } else if (industry.id === 'automotive') {
+      dataInstructions = `
+
+### Data-Driven Segment Requirements
+- Use vehicle segment distribution (Sedan, SUV, Truck, EV, Luxury) for product-affinity segments
+- Reference ownership status (Owner, Lessee, Prospect) for lifecycle segmentation
+- Cite service retention rate and avg service visit value for value-tier sizing
+- Use test drive conversion rate to identify high-intent behavioral segments
+- Reference churn risk distribution for at-risk segment identification`;
+    } else if (industry.id === 'media') {
+      dataInstructions = `
+
+### Data-Driven Segment Requirements
+- Use subscription plan distribution (Free, Basic, Standard, Premium) for tier-based segments
+- Reference subscription status (Active, Cancelled, Paused, Trial) for lifecycle segmentation
+- Cite session duration and content plays for engagement-based segment sizing
+- Use premium upgrade rate to identify upsell-ready behavioral segments
+- Reference churn risk distribution for at-risk segment identification`;
+    } else if (industry.id === 'd2c') {
+      dataInstructions = `
+
+### Data-Driven Segment Requirements
+- Use customer segment distribution (VIP, Active, NewBuyer, AtRisk, Lapsed) for value-tier sizing
+- Reference AOV and repeat purchase rate for high-value segment identification
+- Cite signup channel distribution for acquisition-source segmentation
+- Use purchase frequency bands for behavioral lifecycle segments
+- Reference return rate and churn risk for at-risk segment sizing`;
+    } else if (industry.id === 'b2btech') {
+      dataInstructions = `
+
+### Data-Driven Segment Requirements
+- Use account status (Customer, Prospect, Churned) and company size for firmographic segments
+- Reference health score and expansion potential for value-tier segmentation
+- Cite pipeline stage and deal amount for opportunity-based segments
+- Use product usage metrics for adoption-based behavioral segments
+- Reference churn risk distribution for at-risk account segment sizing`;
+    } else if (industry.id === 'financial') {
+      dataInstructions = `
+
+### Data-Driven Segment Requirements
+- Use primary product distribution and income bracket for product-affinity segments
+- Reference AUM data and advisor assignment for wealth-tier segmentation
+- Cite transaction patterns for behavioral activity segments
+- Use account portfolio breadth for cross-sell opportunity segment sizing
+- Reference churn risk and satisfaction scores for at-risk segment identification`;
+    } else if (industry.id === 'healthcare') {
+      dataInstructions = `
+
+### Data-Driven Segment Requirements
+- Use engagement score distribution and insurance type for patient segmentation
+- Reference appointment completion rate and avg visits for engagement-tier sizing
+- Cite portal adoption rate for digital-readiness segments
+- Use chronic condition count and adherence status for care-need segments
+- Reference risk score distribution for clinical priority segment identification`;
     }
   }
 

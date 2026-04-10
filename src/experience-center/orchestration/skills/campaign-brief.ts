@@ -38,6 +38,72 @@ export function buildCampaignBriefPrompt(scenario: ScenarioConfig, industry: Ind
 - Ground channel strategy in email performance metrics
 - Reference price sensitivity distribution (Low, Medium, High) for pricing strategy
 - Set KPI targets based on actual baseline metrics, not generic industry benchmarks`;
+    } else if (industry.id === 'automotive') {
+      dataInstructions = `
+
+### Data-Driven Campaign Requirements
+- Define target audience using vehicle segment distribution (Sedan, SUV, Truck, EV, Luxury)
+- Use actual service retention rate and avg service visit value for service campaigns
+- Reference test drive conversion rate for acquisition campaigns
+- Use ownership status (Owner, Lessee, Prospect) for campaign segmentation
+- Ground channel strategy in email engagement metrics and dealer visit data
+- Reference churn risk distribution for retention campaign priorities
+- Set KPI targets based on actual baseline metrics, not generic industry benchmarks`;
+    } else if (industry.id === 'media') {
+      dataInstructions = `
+
+### Data-Driven Campaign Requirements
+- Define target audience using subscription plan distribution (Free, Basic, Standard, Premium)
+- Use actual premium upgrade rate and content engagement data for upsell campaigns
+- Reference session duration and content plays for engagement campaigns
+- Use subscription status (Active, Cancelled, Paused, Trial) for lifecycle targeting
+- Ground channel strategy in email engagement and in-app metrics
+- Reference churn risk distribution for retention campaign priorities
+- Set KPI targets based on actual baseline metrics, not generic industry benchmarks`;
+    } else if (industry.id === 'd2c') {
+      dataInstructions = `
+
+### Data-Driven Campaign Requirements
+- Define target audience using customer segment distribution (VIP, Active, NewBuyer, AtRisk, Lapsed)
+- Use actual AOV, repeat purchase rate, and lifetime value for revenue campaigns
+- Reference signup channel distribution for acquisition channel strategy
+- Use purchase frequency band data for lifecycle segmentation
+- Ground channel strategy in email + SMS + social engagement metrics
+- Reference return rate and churn risk for retention priorities
+- Set KPI targets based on actual baseline metrics, not generic industry benchmarks`;
+    } else if (industry.id === 'b2btech') {
+      dataInstructions = `
+
+### Data-Driven Campaign Requirements
+- Define target audience using account status (Customer, Prospect, Churned) and company size
+- Use actual health score and expansion potential for expansion campaigns
+- Reference deal amount and pipeline stage data for pipeline campaigns
+- Use product usage metrics for adoption and engagement campaigns
+- Ground channel strategy in email engagement and event attendance data
+- Reference churn risk distribution for renewal campaign priorities
+- Set KPI targets based on actual baseline metrics, not generic industry benchmarks`;
+    } else if (industry.id === 'financial') {
+      dataInstructions = `
+
+### Data-Driven Campaign Requirements
+- Define target audience using primary product distribution and income bracket
+- Use actual AUM data and advisor assignment rate for wealth campaigns
+- Reference transaction patterns and digital engagement for activation campaigns
+- Use account portfolio data for cross-sell campaign strategy
+- Ground channel strategy in email engagement and login event data
+- Reference churn risk and satisfaction scores for retention priorities
+- Set KPI targets based on actual baseline metrics, not generic industry benchmarks`;
+    } else if (industry.id === 'healthcare') {
+      dataInstructions = `
+
+### Data-Driven Campaign Requirements
+- Define target audience using engagement score distribution and insurance type
+- Use actual appointment completion rate and avg visits for outreach campaigns
+- Reference portal adoption rate for digital engagement campaigns
+- Use chronic condition count and adherence status for care program campaigns
+- Ground channel strategy in email engagement and portal login data
+- Reference risk score distribution for patient prioritization
+- Set KPI targets based on actual baseline metrics, not generic industry benchmarks`;
     }
   }
 

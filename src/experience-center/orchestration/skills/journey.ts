@@ -36,6 +36,66 @@ export function buildJourneyPrompt(scenario: ScenarioConfig, industry: IndustryC
 - Use brand loyalty levels as journey branching criteria
 - Reference CSAT score for post-purchase satisfaction touchpoints
 - Ground channel mix in email engagement metrics`;
+    } else if (industry.id === 'automotive') {
+      dataInstructions = `
+
+### Data-Driven Journey Requirements
+- Use ownership status (Owner, Lessee, Prospect) as journey entry criteria
+- Reference test drive conversion rate to design acquisition journey triggers
+- Design service reminder stages using service retention rate and avg visit value
+- Use vehicle segment preference as journey branching criteria
+- Reference churn risk distribution to set urgency on retention journey stages
+- Ground channel mix in email engagement metrics and dealer visit data`;
+    } else if (industry.id === 'media') {
+      dataInstructions = `
+
+### Data-Driven Journey Requirements
+- Use subscription status (Active, Cancelled, Paused, Trial) as journey entry criteria
+- Reference session duration and content plays for engagement journey triggers
+- Design upgrade stages using premium upgrade rate data
+- Use subscription plan tier as journey branching criteria
+- Reference churn risk distribution to set urgency on win-back stages
+- Ground channel mix in email engagement and in-app notification metrics`;
+    } else if (industry.id === 'd2c') {
+      dataInstructions = `
+
+### Data-Driven Journey Requirements
+- Use customer segment (VIP, Active, NewBuyer, AtRisk, Lapsed) as journey entry criteria
+- Reference repeat purchase rate and AOV for repurchase journey triggers
+- Design loyalty stages using purchase frequency band data
+- Use signup channel as journey branching for acquisition flows
+- Reference return rate and churn risk to set urgency on retention stages
+- Ground channel mix in email + SMS + social engagement metrics`;
+    } else if (industry.id === 'b2btech') {
+      dataInstructions = `
+
+### Data-Driven Journey Requirements
+- Use account status (Customer, Prospect, Churned) as journey entry criteria
+- Reference health score to trigger expansion or at-risk journey paths
+- Design onboarding stages using product usage metrics
+- Use pipeline stage and deal amount as journey branching for sales flows
+- Reference churn risk distribution to set urgency on renewal journey stages
+- Ground channel mix in email engagement and event attendance data`;
+    } else if (industry.id === 'financial') {
+      dataInstructions = `
+
+### Data-Driven Journey Requirements
+- Use primary product and account portfolio as journey entry criteria
+- Reference transaction patterns and digital engagement for activation triggers
+- Design cross-sell stages using product holding breadth data
+- Use income bracket and AUM as journey branching for wealth tiers
+- Reference churn risk and satisfaction scores to set urgency on retention stages
+- Ground channel mix in email engagement and login event data`;
+    } else if (industry.id === 'healthcare') {
+      dataInstructions = `
+
+### Data-Driven Journey Requirements
+- Use engagement score and insurance type as journey entry criteria
+- Reference appointment completion rate for care outreach triggers
+- Design wellness stages using chronic condition count and adherence status
+- Use portal adoption rate as journey branching for digital vs traditional paths
+- Reference risk score distribution to set urgency on intervention stages
+- Ground channel mix in email engagement and portal login data`;
     }
   }
 

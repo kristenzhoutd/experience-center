@@ -127,6 +127,12 @@ export async function executeScenarioSkill(scenarioConfig: ScenarioConfig): Prom
       retail: '1312648',  // Retail Demo on us01:13232
       travel: '1313380',  // Travel Demo on us01:13232
       cpg: '1313389',     // CPG Demo on us01:13232
+      automotive: '1316664',
+      media: '1316665',
+      d2c: '1316666',
+      b2btech: '1316667',
+      financial: '1316668',
+      healthcare: '1316669',
     };
     if (!parentSegmentId && import.meta.env.VITE_SANDBOX_API_KEY) {
       parentSegmentId = defaultParentSegments[scenarioConfig.industry] ?? null;
