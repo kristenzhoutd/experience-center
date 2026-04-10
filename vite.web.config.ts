@@ -6,6 +6,9 @@ export default defineConfig({
   plugins: [react()],
   root: '.',
   base: '/',
+  define: {
+    global: 'globalThis',
+  },
   build: {
     outDir: 'dist/client',
     emptyOutDir: true,
