@@ -338,3 +338,159 @@ button, a, input, select, textarea {
 body {
   cursor: url('/cursor.svg') 4 2, auto;
 }
+
+/* ============ Marketo Lightbox Overrides ============ */
+
+/* Modal overlay */
+.mktoModalOverlay {
+  background: rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(4px);
+}
+
+/* Modal container */
+.mktoModalContent {
+  border-radius: 16px !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+  overflow: hidden !important;
+  max-width: 480px !important;
+  border: none !important;
+}
+
+/* Close button */
+.mktoModalClose {
+  top: 16px !important;
+  right: 16px !important;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: background 0.15s !important;
+  cursor: pointer !important;
+}
+
+.mktoModalClose:hover {
+  background: #f3f4f6 !important;
+}
+
+/* Form container */
+.mktoForm {
+  font-family: 'Manrope', system-ui, sans-serif !important;
+  width: 100% !important;
+  padding: 24px 28px 28px !important;
+}
+
+/* Form rows */
+.mktoForm .mktoFormRow {
+  margin-bottom: 16px !important;
+}
+
+/* Labels */
+.mktoForm label.mktoLabel {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #6b7280 !important;
+  margin-bottom: 6px !important;
+}
+
+.mktoForm .mktoAsterix {
+  color: #ef4444 !important;
+  font-size: 12px !important;
+}
+
+/* Text inputs */
+.mktoForm input[type="text"],
+.mktoForm input[type="email"],
+.mktoForm input[type="tel"],
+.mktoForm input[type="url"],
+.mktoForm input[type="number"],
+.mktoForm textarea,
+.mktoForm select {
+  font-family: 'Manrope', system-ui, sans-serif !important;
+  font-size: 14px !important;
+  padding: 8px 12px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  background: #fff !important;
+  color: #1f2937 !important;
+  transition: border-color 0.15s, box-shadow 0.15s !important;
+  outline: none !important;
+}
+
+.mktoForm input:focus,
+.mktoForm textarea:focus,
+.mktoForm select:focus {
+  border-color: #818cf8 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+}
+
+.mktoForm input::placeholder,
+.mktoForm textarea::placeholder {
+  color: #d1d5db !important;
+}
+
+/* Select dropdowns */
+.mktoForm select {
+  appearance: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  padding-right: 36px !important;
+}
+
+/* Submit button */
+.mktoForm .mktoButton,
+.mktoForm button[type="submit"] {
+  font-family: 'Manrope', system-ui, sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  background: #1f2937 !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 9999px !important;
+  padding: 10px 24px !important;
+  cursor: pointer !important;
+  transition: background 0.15s !important;
+  width: auto !important;
+}
+
+.mktoForm .mktoButton:hover,
+.mktoForm button[type="submit"]:hover {
+  background: #111827 !important;
+}
+
+/* Error messages */
+.mktoForm .mktoError {
+  font-family: 'Manrope', system-ui, sans-serif !important;
+}
+
+.mktoForm .mktoError .mktoErrorMsg {
+  font-size: 11px !important;
+  color: #ef4444 !important;
+  background: #fef2f2 !important;
+  border: 1px solid #fecaca !important;
+  border-radius: 6px !important;
+  padding: 4px 8px !important;
+  box-shadow: none !important;
+}
+
+/* Hide Marketo branding/footer */
+.mktoForm .mktoOffset,
+.mktoForm .mktoGutter {
+  display: none !important;
+}
+
+/* Required asterisk positioning */
+.mktoForm .mktoRequiredField .mktoAsterix {
+  padding-right: 3px !important;
+}
+
+/* Checkbox and radio styling */
+.mktoForm input[type="checkbox"],
+.mktoForm input[type="radio"] {
+  accent-color: #4f46e5 !important;
+}

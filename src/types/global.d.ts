@@ -7,8 +7,14 @@ declare global {
     submittable(canSubmit: boolean): void;
   }
 
+  interface MktoLightbox {
+    show(): MktoLightbox;
+    close(): void;
+  }
+
   interface MktoForms2Static {
     loadForm(baseUrl: string, munchkinId: string, formId: number, callback?: (form: MktoForm) => void): void;
+    lightbox(form: MktoForm): MktoLightbox;
     setOptions(options: Record<string, string>): void;
     whenReady(callback: (form: MktoForm) => void): void;
   }
