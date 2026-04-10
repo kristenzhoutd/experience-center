@@ -278,6 +278,7 @@ export default function ExperienceCenterWorkflowPage() {
   const activeArtifact = artifacts.find(a => a.id === activeArtifactId) || artifacts[0];
   const [showSlidePreview, setShowSlidePreview] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const hasAutoPromptedShareRef = useRef(false);
   const [generatingSlides, setGeneratingSlides] = useState(false);
   const [usedScenarios, setUsedScenarios] = useState<Set<string>>(new Set());
   const [collapsed, setCollapsed] = useState(false);
@@ -307,6 +308,22 @@ export default function ExperienceCenterWorkflowPage() {
       setTimeout(() => workflowOutputEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 300);
     }
   }, [wfStepHistory.length, wfActive]);
+
+  // Auto-prompt share modal after any workflow step completes if user is idle for 5s
+  // Only triggers once per session. Resets the timer each time a new step completes.
+  useEffect(() => {
+    if (!wfActive || wfStepHistory.length === 0 || wfIsExecuting || hasAutoPromptedShareRef.current) return;
+
+    const timer = setTimeout(() => {
+      // Only show if user hasn't already been prompted and modal isn't already open
+      if (!hasAutoPromptedShareRef.current && !showShareModal) {
+        hasAutoPromptedShareRef.current = true;
+        setShowShareModal(true);
+      }
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [wfActive, wfStepHistory.length, wfIsExecuting, showShareModal]);
 
   // Track which step cards have scrolled above the viewport
   useEffect(() => {
