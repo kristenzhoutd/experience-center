@@ -75,7 +75,17 @@ export async function resolveWorkflowStepContext(
 ): Promise<{ industry: import('./types').IndustryContext; parentSegmentId: string | null }> {
   const settingsJson = storage.getItem('ai-suites:settings');
   const selectedParentSegmentId = settingsJson ? JSON.parse(settingsJson).selectedParentSegmentId : null;
-  const defaultSegments: Record<string, string> = { retail: '1312648', travel: '1313380', cpg: '1313389' };
+  const defaultSegments: Record<string, string> = {
+    retail: '1312648',
+    travel: '1313380',
+    cpg: '1313389',
+    automotive: '1316664',
+    media: '1316665',
+    d2c: '1316666',
+    b2btech: '1316667',
+    financial: '1316668',
+    healthcare: '1316669',
+  };
   const apiKey = getApiKey();
   const isSandbox = apiKey.startsWith('13232/');
   const parentSegmentId = selectedParentSegmentId || (isSandbox ? defaultSegments[baseScenarioConfig.industry] : null);

@@ -36,6 +36,66 @@ export function buildPerformanceAnalysisPrompt(scenario: ScenarioConfig, industr
 - Cite lapsed rate as retention performance concern
 - Reference CSAT score for customer satisfaction diagnosis
 - Ground recommendations in buyer penetration and email rates`;
+    } else if (industry.id === 'automotive') {
+      dataInstructions = `
+
+### Data-Driven Performance Requirements
+- Use test drive conversion rate as acquisition performance baseline
+- Compare service retention rate against churn risk distribution for retention diagnosis
+- Reference avg service visit value for service revenue performance analysis
+- Use vehicle segment distribution to identify high-performing vs underperforming segments
+- Cite email engagement metrics and dealer visit data for channel efficiency analysis
+- Ground optimization recommendations in ownership status conversion rates`;
+    } else if (industry.id === 'media') {
+      dataInstructions = `
+
+### Data-Driven Performance Requirements
+- Use premium upgrade rate as upsell performance baseline
+- Compare session duration and content plays across subscription tiers for engagement diagnosis
+- Reference churn risk distribution against subscription status for retention performance
+- Use subscription plan distribution to identify conversion bottlenecks between tiers
+- Cite email engagement and in-app metrics for channel efficiency analysis
+- Ground optimization recommendations in content engagement and renewal rates`;
+    } else if (industry.id === 'd2c') {
+      dataInstructions = `
+
+### Data-Driven Performance Requirements
+- Use AOV and repeat purchase rate as revenue performance baselines
+- Compare customer segment distribution (VIP, Active, NewBuyer, AtRisk, Lapsed) for lifecycle health diagnosis
+- Reference return rate alongside churn risk for retention performance concerns
+- Use signup channel distribution for acquisition channel efficiency analysis
+- Cite email + SMS + social engagement metrics for channel performance comparison
+- Ground optimization recommendations in purchase frequency and lifetime value data`;
+    } else if (industry.id === 'b2btech') {
+      dataInstructions = `
+
+### Data-Driven Performance Requirements
+- Use health score distribution as account performance baseline
+- Compare expansion potential against pipeline stage for growth performance diagnosis
+- Reference deal amount and win rate for pipeline efficiency analysis
+- Use product usage metrics for adoption performance measurement
+- Cite email engagement and event attendance for channel efficiency analysis
+- Ground optimization recommendations in churn risk and renewal rate data`;
+    } else if (industry.id === 'financial') {
+      dataInstructions = `
+
+### Data-Driven Performance Requirements
+- Use AUM growth and advisor assignment rate as wealth management performance baselines
+- Compare transaction patterns across product types for cross-sell performance diagnosis
+- Reference digital engagement and login events for channel adoption efficiency
+- Use account portfolio breadth for product penetration performance analysis
+- Cite churn risk and satisfaction scores for retention performance measurement
+- Ground optimization recommendations in income bracket conversion and activation rates`;
+    } else if (industry.id === 'healthcare') {
+      dataInstructions = `
+
+### Data-Driven Performance Requirements
+- Use appointment completion rate as care delivery performance baseline
+- Compare engagement score distribution across insurance types for outreach effectiveness diagnosis
+- Reference portal adoption rate for digital channel performance analysis
+- Use chronic condition count and adherence status for care program performance measurement
+- Cite risk score distribution for patient outcome performance tracking
+- Ground optimization recommendations in email engagement and portal login conversion rates`;
     }
   }
 

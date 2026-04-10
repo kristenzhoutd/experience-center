@@ -36,6 +36,66 @@ export function buildInsightSummaryPrompt(scenario: ScenarioConfig, industry: In
 - Cite lapsed rate alongside brand switcher rate for at-risk patterns
 - Compare email engagement to coupon source distribution for channel effectiveness
 - Present CSAT alongside support category distribution for VoC insights`;
+    } else if (industry.id === 'automotive') {
+      dataInstructions = `
+
+### Data-Driven Insight Requirements
+- Surface gap between test drive volume and conversion rate as an acquisition efficiency insight
+- Reference service retention rate against churn risk for lifecycle health patterns
+- Use vehicle segment distribution to identify cross-sell opportunities between segments
+- Cite ownership status transitions (Prospect to Owner, Owner to repeat) for loyalty trends
+- Compare email engagement to dealer visit patterns for channel preference insights
+- Present avg service visit value trends across vehicle segments for revenue opportunity patterns`;
+    } else if (industry.id === 'media') {
+      dataInstructions = `
+
+### Data-Driven Insight Requirements
+- Surface gap between free tier size and premium upgrade rate as a conversion opportunity insight
+- Reference session duration patterns across subscription tiers for engagement depth trends
+- Use content plays distribution to identify content-type affinity patterns
+- Cite subscription status transitions (Trial to Active, Active to Cancelled) for lifecycle trends
+- Compare email engagement to in-app metrics for channel effectiveness insights
+- Present churn risk alongside content engagement for predictive retention patterns`;
+    } else if (industry.id === 'd2c') {
+      dataInstructions = `
+
+### Data-Driven Insight Requirements
+- Surface gap between NewBuyer segment size and repeat purchase rate as a conversion opportunity
+- Reference AOV trends across customer segments for value migration patterns
+- Use signup channel distribution to identify highest-quality acquisition sources
+- Cite return rate alongside purchase frequency for product-market fit signals
+- Compare email + SMS + social engagement for cross-channel effectiveness insights
+- Present churn risk alongside lifetime value for high-impact retention opportunities`;
+    } else if (industry.id === 'b2btech') {
+      dataInstructions = `
+
+### Data-Driven Insight Requirements
+- Surface gap between health score and expansion potential as a growth opportunity insight
+- Reference pipeline stage distribution to identify conversion bottleneck patterns
+- Use product usage metrics to discover adoption depth trends across account segments
+- Cite churn risk alongside deal amount for revenue-at-risk prioritization
+- Compare email engagement to event attendance for multi-touch attribution insights
+- Present account status transitions for customer lifecycle velocity patterns`;
+    } else if (industry.id === 'financial') {
+      dataInstructions = `
+
+### Data-Driven Insight Requirements
+- Surface gap between product holdings and cross-sell potential as a wallet share opportunity
+- Reference AUM distribution across income brackets for wealth tier migration patterns
+- Use transaction patterns to identify digital adoption behavioral trends
+- Cite churn risk alongside satisfaction scores for early warning signal insights
+- Compare email engagement to login event patterns for channel preference insights
+- Present advisor assignment rate alongside account portfolio for service model effectiveness patterns`;
+    } else if (industry.id === 'healthcare') {
+      dataInstructions = `
+
+### Data-Driven Insight Requirements
+- Surface gap between appointment scheduling and completion rate as a care gap insight
+- Reference engagement score distribution to identify patient activation patterns
+- Use portal adoption rate alongside insurance type for digital readiness trends
+- Cite chronic condition count alongside adherence status for care intervention opportunities
+- Compare email engagement to portal login patterns for outreach effectiveness insights
+- Present risk score distribution alongside engagement for proactive care prioritization patterns`;
     }
   }
 
