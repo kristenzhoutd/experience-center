@@ -53,17 +53,3 @@ export const AnalyticsEvents = {
   WALKTHROUGH_CTA_CLICK: 'walkthrough_cta_click',
   WALKTHROUGH_FORM_SUBMIT: 'walkthrough_form_submit',
 } as const;
-
-const DEMO_BASE_URL = 'https://www.treasuredata.com/custom-demo/?utm_source=experience-center&utm_medium=product&utm_campaign=plg';
-
-/** Opens the TD custom-demo page in a new tab, appending the GA client ID. */
-export const openDemoPage = async () => {
-  let url = DEMO_BASE_URL;
-  try {
-    const clientId = await getClientId();
-    url += `&EC_GC_ID=${encodeURIComponent(clientId)}`;
-  } catch {
-    // GA not initialized — open without client ID
-  }
-  window.open(url, '_blank');
-};

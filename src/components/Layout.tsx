@@ -1,7 +1,7 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { storage } from '../utils/storage'
 import { usePageTracking } from '@/hooks/usePageTracking'
-import { trackEvent, AnalyticsEvents, openDemoPage } from '../utils/analytics'
+import { trackEvent, AnalyticsEvents } from '../utils/analytics'
 
 export default function Layout() {
   const location = useLocation()
@@ -69,7 +69,7 @@ export default function Layout() {
                 cta_source: 'top_nav',
                 page: isHomepage ? 'landing' : 'other',
               });
-              openDemoPage();
+              window.dispatchEvent(new CustomEvent('open-booking-modal', { detail: { source: 'top_nav' } }));
             }}
             className={`flex-shrink-0 flex items-center gap-1.5 px-3 md:px-4 py-1.5 text-[11px] md:text-xs font-semibold rounded-full transition-colors shadow-sm window-no-drag cursor-pointer ${
               isHomepage

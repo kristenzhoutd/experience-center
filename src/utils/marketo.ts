@@ -76,7 +76,7 @@ export function loadMarketoScript(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// Hidden form loader
+// Hidden form loader (cached — single instance reused across submissions)
 // ---------------------------------------------------------------------------
 
 let formPromise: Promise<MktoForm> | null = null;
@@ -92,32 +92,20 @@ export function loadHiddenForm(): Promise<MktoForm> {
           return;
         }
 
-        // Required for cross-domain form submission on non-Marketo domains
+        // Required for cross-domain form submission
         window.MktoForms2.setOptions({
           formXDPath: '/rs/714-XIJ-402/images/marketo-xdframe-relative.html',
         });
 
-        // Container must NOT use display:none — the cross-domain iframe
-        // won't initialise if the parent element is hidden that way.
-        // Instead push it offscreen so it's in the DOM but invisible.
+        // Hidden container so Marketo has a DOM target but nothing is visible
         const container = document.createElement('div');
-        container.style.position = 'fixed';
-        container.style.left = '-9999px';
-        container.style.top = '-9999px';
-        container.style.width = '1px';
-        container.style.height = '1px';
-        container.style.overflow = 'hidden';
+        container.style.display = 'none';
         const formEl = document.createElement('form');
         formEl.id = `mktoForm_${MARKETO_FORM_ID}`;
         container.appendChild(formEl);
         document.body.appendChild(container);
 
-        window.MktoForms2.loadForm(MARKETO_BASE_URL, MARKETO_MUNCHKIN_ID, MARKETO_FORM_ID);
-
-        // whenReady fires after the form AND cross-domain iframe are fully set up.
-        // The loadForm callback only means the form DOM is ready, not the XD bridge.
-        window.MktoForms2.whenReady((form) => {
-          console.log('[Marketo] Form ready (whenReady)');
+        window.MktoForms2.loadForm(MARKETO_BASE_URL, MARKETO_MUNCHKIN_ID, MARKETO_FORM_ID, (form) => {
           resolve(form);
         });
       }),
@@ -130,29 +118,22 @@ export function loadHiddenForm(): Promise<MktoForm> {
 // Submit helper
 // ---------------------------------------------------------------------------
 
-const SUBMIT_TIMEOUT_MS = 15_000;
+const SUBMIT_TIMEOUT_MS = 10_000;
 
 export function submitMarketoForm(form: MktoForm, data: Record<string, string>): Promise<void> {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      console.warn('[Marketo] Submission timed out after', SUBMIT_TIMEOUT_MS, 'ms');
-      reject(new Error('Marketo submission timed out'));
-    }, SUBMIT_TIMEOUT_MS);
+    const timer = setTimeout(() => reject(new Error('Marketo submission timed out')), SUBMIT_TIMEOUT_MS);
 
-    // Register onSuccess BEFORE setting values / submitting
     form.onSuccess(() => {
-      console.log('[Marketo] onSuccess fired — submission successful');
       clearTimeout(timer);
       resolve();
       return false; // prevent Marketo redirect
     });
 
-    // Populate field values
+    // Set field values on the form (not just hidden fields)
     form.vals(data);
     form.addHiddenFields(data);
     form.submittable(true);
-
-    console.log('[Marketo] Calling form.submit() with data:', Object.keys(data));
     form.submit();
   });
 }

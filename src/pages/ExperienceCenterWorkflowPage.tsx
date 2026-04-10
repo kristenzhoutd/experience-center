@@ -101,7 +101,7 @@ import SlideOutput from '../experience-center/output-formats/slides/SlideOutput'
 import type { DeckConfig, DeckData } from '../experience-center/output-formats/slides/types';
 import ApiKeySetupModal from '../components/ApiKeySetupModal';
 import BookWalkthroughModal from '../components/BookWalkthroughModal';
-import { trackEvent, AnalyticsEvents, openDemoPage } from '../utils/analytics';
+import { trackEvent, AnalyticsEvents } from '../utils/analytics';
 import { getWorkflowDef } from '../experience-center/registry/workflows';
 import { useWorkflowSessionStore } from '../stores/workflowSessionStore';
 import { executeWorkflowStep, resolveWorkflowStepContext } from '../experience-center/orchestration/workflowEngine';
@@ -1215,7 +1215,7 @@ export default function ExperienceCenterWorkflowPage() {
             <button
               onClick={() => {
                 trackEvent(AnalyticsEvents.WALKTHROUGH_CTA_CLICK, { cta_source: 'workflow_nav', page: 'workflow', goal_id: goal, industry_id: industry, scenario_id: scenario });
-                openDemoPage();
+                setShowBookingModal(true);
               }}
               className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-white bg-gray-900 rounded-full hover:bg-gray-800 transition-colors shadow-sm cursor-pointer"
             >
@@ -1336,7 +1336,7 @@ export default function ExperienceCenterWorkflowPage() {
                   </div>
                   {wfComplete && (
                     <div className="absolute bottom-1 right-3 z-10">
-                      <FloatingContextCard output={wfStepHistory[wfStepHistory.length - 1].output as unknown as OutputData} onBook={() => openDemoPage()} goalId={goal} industryId={industry} scenarioId={scenario} />
+                      <FloatingContextCard output={wfStepHistory[wfStepHistory.length - 1].output as unknown as OutputData} onBook={() => setShowBookingModal(true)} goalId={goal} industryId={industry} scenarioId={scenario} />
                     </div>
                   )}
                 </div>
@@ -1438,7 +1438,7 @@ export default function ExperienceCenterWorkflowPage() {
                   </div>
                   {((!wfActive && visibleOutputSections >= 8 && output) || wfComplete) && (
                     <div className="absolute bottom-1 right-4 z-10">
-                      <FloatingContextCard output={wfComplete ? wfStepHistory[wfStepHistory.length - 1].output as unknown as OutputData : output} onBook={() => openDemoPage()} goalId={goal} industryId={industry} scenarioId={scenario} />
+                      <FloatingContextCard output={wfComplete ? wfStepHistory[wfStepHistory.length - 1].output as unknown as OutputData : output} onBook={() => setShowBookingModal(true)} goalId={goal} industryId={industry} scenarioId={scenario} />
                     </div>
                   )}
                 </div>
@@ -2204,7 +2204,7 @@ function EmailCaptureCard({ output, deckData, wfStepHistory, onDone }: { output?
               <p className="text-[13px] font-semibold text-white mb-1">Ready to see this with your real data?</p>
               <p className="text-[11px] text-indigo-200 leading-relaxed mb-3">Book a personalized walkthrough and we'll show you exactly how Treasure AI works with your goals, your audience, and your stack.</p>
               <button
-                onClick={() => { if (onDone) onDone(); openDemoPage(); }}
+                onClick={() => { if (onDone) onDone(); setTimeout(() => window.dispatchEvent(new Event('open-booking-modal')), 200); }}
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-white text-indigo-700 rounded-lg text-xs font-semibold hover:bg-indigo-50 transition-colors cursor-pointer shadow-sm"
               >
                 Book a walkthrough
