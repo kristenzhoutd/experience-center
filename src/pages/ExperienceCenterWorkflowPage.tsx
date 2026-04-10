@@ -141,47 +141,60 @@ function stepIndex(step: FlowStep | 'goal'): number {
 // ============================================================
 type ProgressEntry = { message: string; stage: 'intent' | 'route' | 'skill_call' | 'skill_result' | 'ui_update' };
 
+// Outcome-relevant metric keywords — metrics matching these surface first
+const outcomeMetricPriority: Record<string, string[]> = {
+  'retention': ['churn', 'retention', 'attrition', 'lapsed', 'repeat', 'engagement', 'renewal'],
+  'revenue': ['clv', 'lifetime', 'order', 'revenue', 'basket', 'aov', 'cross', 'upsell', 'booking', 'contract', 'expansion'],
+  'campaign-performance': ['conversion', 'roas', 'response', 'click', 'open', 'ctr', 'acquisition', 'cost', 'pipeline'],
+  'insights': ['segment', 'penetration', 'adoption', 'satisfaction', 'score', 'rate'],
+};
+
+// Format a metric key into a readable label (e.g., 'avgOrderValue' → 'Avg order value')
+function formatMetricLabel(key: string): string {
+  return key
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, c => c.toUpperCase())
+    .replace(/ {2,}/g, ' ')
+    .trim();
+}
+
 function getWorkflowProgressSteps(
   stepType: StepType,
   industry: IndustryContext,
   stepLabel: string,
   priorStepCount: number,
+  outcome?: string,
 ): ProgressEntry[] {
   const m = industry.sampleMetrics;
   const label = industry.label;
   const segCount = industry.sampleSegments.length;
-  const totalCust = m.totalCustomers || 'unknown';
+  const totalCust = m.totalCustomers || m.totalGuests || m.totalHouseholds || m.totalAccounts || 'unknown';
   const channels = industry.channelPreferences.slice(0, 4).join(', ');
-  const audienceLabel = label === 'Retail' ? 'customers' : label === 'Travel' ? 'guests' : 'households';
+  const audienceLabel = industry.verticalTerminology?.customer
+    ? `${industry.verticalTerminology.customer}s`
+    : 'customers';
   const sandboxName = `${label} Demo`;
 
   const priorContext = priorStepCount > 0
     ? `Building on ${priorStepCount} prior analysis step${priorStepCount > 1 ? 's' : ''}`
     : `Reviewing scenario: ${stepLabel}`;
 
-  // Build industry-specific metric lines for the sandbox load step
-  const metricLines: string[] = [];
-  if (label === 'Retail') {
-    if (m.customerLifetimeValue) metricLines.push(`Avg CLV: ${m.customerLifetimeValue}`);
-    if (m.repeatPurchaseRate) metricLines.push(`Repeat purchase rate: ${m.repeatPurchaseRate}`);
-    if (m.avgOrderValueOnline || m.avgOrderValueInStore) metricLines.push(`Online AOV: ${m.avgOrderValueOnline || 'N/A'} | In-store AOV: ${m.avgOrderValueInStore || 'N/A'}`);
-    if (m.loyaltyMembers) metricLines.push(`Loyalty members: ${m.loyaltyMembers} across tiers`);
-    if (m.churnRiskHigh) metricLines.push(`Churn risk: ${m.churnRiskHigh} High | ${m.churnRiskMedium} Medium | ${m.churnRiskLow} Low`);
-  } else if (label === 'Travel') {
-    if (m.avgBookingValue || m.avgOrderValueOnline) metricLines.push(`Avg booking value: ${m.avgBookingValue || m.avgOrderValueOnline}`);
-    if (m.rebookingRate || m.repeatPurchaseRate) metricLines.push(`Rebooking rate: ${m.rebookingRate || m.repeatPurchaseRate}`);
-    if (m.emailOpenRate) metricLines.push(`Email open rate: ${m.emailOpenRate} | Click rate: ${m.emailClickRate || 'N/A'}`);
-    if (m.loyaltyMembers) metricLines.push(`Loyalty members: ${m.loyaltyMembers} across tiers`);
-    if (m.churnRiskHigh) metricLines.push(`Churn risk: ${m.churnRiskHigh} High | ${m.churnRiskMedium} Medium | ${m.churnRiskLow} Low`);
-    if (m.ancillaryAttachRate) metricLines.push(`Ancillary attach rate: ${m.ancillaryAttachRate}`);
-  } else {
-    if (m.avgBasketSize) metricLines.push(`Avg basket size: ${m.avgBasketSize}`);
-    if (m.avgPurchaseAmount) metricLines.push(`Avg purchase amount: ${m.avgPurchaseAmount}`);
-    if (m.buyerPenetration) metricLines.push(`Buyer penetration: ${m.buyerPenetration}`);
-    if (m.brandLoyaltyHigh) metricLines.push(`Brand loyalty: ${m.brandLoyaltyHigh} High | ${m.brandLoyaltyMedium} Medium | ${m.brandLoyaltyLow} Low`);
-    if (m.promoRate) metricLines.push(`Promo purchase rate: ${m.promoRate}`);
-    if (m.emailOpenRate) metricLines.push(`Email open rate: ${m.emailOpenRate} | Click rate: ${m.emailClickRate || 'N/A'}`);
-  }
+  // Build metric lines prioritized by outcome relevance
+  const allMetrics = Object.entries(m).filter(([k]) => k !== 'totalCustomers' && k !== 'totalGuests' && k !== 'totalHouseholds' && k !== 'totalAccounts');
+  const priorityKeywords = outcome ? (outcomeMetricPriority[outcome] || []) : [];
+
+  // Score each metric by outcome relevance
+  const scored = allMetrics.map(([key, value]) => {
+    const lower = key.toLowerCase();
+    const relevance = priorityKeywords.some(kw => lower.includes(kw)) ? 1 : 0;
+    return { key, value, relevance };
+  });
+
+  // Sort: outcome-relevant first, then original order
+  scored.sort((a, b) => b.relevance - a.relevance);
+
+  // Take top 3-4 metrics
+  const metricLines = scored.slice(0, 4).map(({ key, value }) => `${formatMetricLabel(key)}: ${value}`);
 
   // Combine sandbox load + metrics into one multi-line step
   const sandboxLoadMessage = [`Loaded ${sandboxName} sandbox — ${totalCust} ${audienceLabel}`, ...metricLines].join('\n');
@@ -572,8 +585,8 @@ export default function ExperienceCenterWorkflowPage() {
 
     // Build dynamic progress steps with real sandbox data
     const progressQueue = resolvedIndustry
-      ? getWorkflowProgressSteps(stepDef.stepType, resolvedIndustry, stepDef.label, stepHistory.length)
-      : getWorkflowProgressSteps(stepDef.stepType, { id: scenarioConfig.industry, label: scenarioConfig.industry, sampleSegments: [], sampleMetrics: {}, channelPreferences: [], verticalTerminology: {}, sampleDataContext: '' } as IndustryContext, stepDef.label, stepHistory.length);
+      ? getWorkflowProgressSteps(stepDef.stepType, resolvedIndustry, stepDef.label, stepHistory.length, scenarioConfig.outcome)
+      : getWorkflowProgressSteps(stepDef.stepType, { id: scenarioConfig.industry, label: scenarioConfig.industry, sampleSegments: [], sampleMetrics: {}, channelPreferences: [], verticalTerminology: {}, sampleDataContext: '' } as IndustryContext, stepDef.label, stepHistory.length, scenarioConfig.outcome);
 
     // Skip first step (already shown above) and start interval for the rest
     let phase = 1; // start from 1 since step 0 is already shown
