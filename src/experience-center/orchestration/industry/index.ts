@@ -2,6 +2,12 @@ import type { IndustryContext } from '../types';
 import { retailContext } from './retail';
 import { cpgContext } from './cpg';
 import { travelContext } from './travel';
+import { automotiveContext } from './automotive';
+import { mediaContext } from './media';
+import { d2cContext } from './d2c';
+import { b2btechContext } from './b2btech';
+import { financialContext } from './financial';
+import { healthcareContext } from './healthcare';
 import { fetchParentSegmentDetail, fetchChildSegments } from '../../../services/cdp-api';
 import type { ParentSegmentDetail } from '../../../services/cdp-api';
 import { fetchRetailMetrics, fetchTravelMetrics, fetchCpgMetrics } from '../../../services/llm-chat-api';
@@ -11,6 +17,12 @@ const industryContexts: Record<string, IndustryContext> = {
   retail: retailContext,
   cpg: cpgContext,
   travel: travelContext,
+  automotive: automotiveContext,
+  media: mediaContext,
+  d2c: d2cContext,
+  b2btech: b2btechContext,
+  financial: financialContext,
+  healthcare: healthcareContext,
 };
 
 export function getIndustryContext(industryId: string): IndustryContext {

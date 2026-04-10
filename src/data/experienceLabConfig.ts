@@ -30,17 +30,20 @@ export const industries: IndustryOption[] = [
   { id: 'retail', label: 'Retail', description: 'E-commerce, brick-and-mortar, and omnichannel retail brands', icon: 'shopping-bag', enabled: true },
   { id: 'travel', label: 'Travel & Hospitality', description: 'Airlines, hotels, OTAs, cruise lines, and travel experience providers', icon: 'plane', enabled: true },
   { id: 'cpg', label: 'CPG', description: 'Consumer packaged goods, FMCG, and consumer brands', icon: 'package', enabled: true },
-  { id: 'automotive', label: 'Automotive', description: 'Auto manufacturers, dealers, and mobility services', icon: 'car', enabled: false },
-  { id: 'media', label: 'Media & Entertainment', description: 'Streaming, publishing, and content platforms', icon: 'film', enabled: false },
-  { id: 'financial', label: 'Financial Services', description: 'Banking, insurance, fintech, and wealth management', icon: 'landmark', enabled: false },
+  { id: 'automotive', label: 'Automotive', description: 'Auto manufacturers, dealers, and mobility services', icon: 'car', enabled: true },
+  { id: 'media', label: 'Media & Entertainment', description: 'Streaming, publishing, and content platforms', icon: 'film', enabled: true },
+  { id: 'financial', label: 'Financial Services', description: 'Banking, insurance, fintech, and wealth management', icon: 'landmark', enabled: true },
+  { id: 'd2c', label: 'D2C', description: 'Direct-to-consumer brands and digitally native retailers', icon: 'shopping-cart', enabled: true },
+  { id: 'b2btech', label: 'B2B Tech', description: 'SaaS, enterprise software, and technology platforms', icon: 'cpu', enabled: true },
+  { id: 'healthcare', label: 'Healthcare', description: 'Health systems, payers, pharma, and wellness brands', icon: 'heart-pulse', enabled: true },
 ];
 
 // --- Outcome → Industry availability ---
 export const outcomeIndustries: Record<string, string[]> = {
-  'revenue': ['retail', 'cpg', 'travel'],
-  'campaign-performance': ['retail', 'cpg', 'travel'],
-  'retention': ['retail', 'travel', 'cpg'],
-  'insights': ['cpg', 'retail', 'travel'],
+  'revenue': ['retail', 'cpg', 'travel', 'automotive', 'media', 'd2c', 'b2btech', 'financial', 'healthcare'],
+  'campaign-performance': ['retail', 'cpg', 'travel', 'automotive', 'media', 'd2c', 'b2btech', 'financial', 'healthcare'],
+  'retention': ['retail', 'travel', 'cpg', 'automotive', 'media', 'd2c', 'b2btech', 'financial', 'healthcare'],
+  'insights': ['cpg', 'retail', 'travel', 'automotive', 'media', 'd2c', 'b2btech', 'financial', 'healthcare'],
 };
 
 // --- Scenarios (Screen 3) ---
@@ -81,6 +84,30 @@ export const scenarioMatrix: Record<string, Record<string, ScenarioOption[]>> = 
       { id: 'rev-travel-2', label: 'Identify premium guests', description: 'Find the guests most likely to respond to upgrades and premium offers.', kpi: 'Upgrade conversion rate', estimatedTime: '3 min', previewLines: [] },
       { id: 'rev-travel-3', label: 'Create a targeted offer strategy for seasonal travelers', description: 'Build a campaign strategy for travelers whose demand is driven by seasonality and timing.', kpi: 'Booking rate', estimatedTime: '3 min', previewLines: [] },
     ],
+    automotive: [
+      { id: 'rev-automotive-1', label: 'Re-engage owners nearing service lapse', description: 'Target vehicle owners approaching overdue service intervals with timely outreach to retain service revenue.', kpi: 'Service retention rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'rev-automotive-2', label: 'Increase upsell of service plans and warranties', description: 'Identify owners most likely to add extended service plans or warranty coverage at key lifecycle moments.', kpi: 'Service plan attach rate', estimatedTime: '3 min', previewLines: [] },
+    ],
+    media: [
+      { id: 'rev-media-1', label: 'Increase subscription upgrades to premium tiers', description: 'Find subscribers with high engagement who are most likely to convert to a higher-value plan.', kpi: 'Premium upgrade rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'rev-media-2', label: 'Drive add-on revenue through bundle offers', description: 'Identify subscribers most receptive to content bundles and add-on packages based on viewing behavior.', kpi: 'Bundle attach rate', estimatedTime: '3 min', previewLines: [] },
+    ],
+    d2c: [
+      { id: 'rev-d2c-1', label: 'Increase repeat purchase from existing customers', description: 'Build a strategy to drive second and third purchases from recent first-time buyers.', kpi: 'Repeat purchase rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'rev-d2c-2', label: 'Drive basket expansion through cross-sell', description: 'Recommend complementary products to increase average order value at checkout and post-purchase.', kpi: 'Average order value', estimatedTime: '3 min', previewLines: [] },
+    ],
+    b2btech: [
+      { id: 'rev-b2btech-1', label: 'Drive expansion within existing accounts', description: 'Identify accounts with the highest potential for seat expansion or tier upgrades based on usage patterns.', kpi: 'Net revenue retention', estimatedTime: '3 min', previewLines: [] },
+      { id: 'rev-b2btech-2', label: 'Increase cross-sell of adjacent products', description: 'Find customers using one product line who are most likely to adopt complementary solutions.', kpi: 'Cross-sell adoption rate', estimatedTime: '3 min', previewLines: [] },
+    ],
+    financial: [
+      { id: 'rev-financial-1', label: 'Increase cross-sell to next-best financial products', description: 'Identify customers most likely to adopt additional financial products based on their current portfolio.', kpi: 'Cross-sell rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'rev-financial-2', label: 'Drive activation among under-engaged product holders', description: 'Target customers who hold products but rarely use them with personalized activation campaigns.', kpi: 'Product activation rate', estimatedTime: '3 min', previewLines: [] },
+    ],
+    healthcare: [
+      { id: 'rev-healthcare-1', label: 'Increase utilization of additional service lines', description: 'Identify patients who would benefit from additional services and drive awareness and scheduling.', kpi: 'Service line utilization rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'rev-healthcare-2', label: 'Drive repeat visit and follow-up care conversion', description: 'Encourage patients to complete recommended follow-up visits and ongoing care plans.', kpi: 'Follow-up completion rate', estimatedTime: '3 min', previewLines: [] },
+    ],
   },
   // ── Improve campaign performance ──
   'campaign-performance': {
@@ -98,6 +125,30 @@ export const scenarioMatrix: Record<string, Record<string, ScenarioOption[]>> = 
       { id: 'perf-travel-1', label: 'Optimize channel mix by traveler type', description: 'Match traveler segments to the channels most likely to drive efficient bookings and engagement.', kpi: 'ROAS', estimatedTime: '3 min', previewLines: [] },
       { id: 'perf-travel-2', label: 'Personalize post-booking communications', description: 'Improve post-booking communications to drive stronger upsell and add-on conversion.', kpi: 'Upsell rate', estimatedTime: '3 min', previewLines: [] },
       { id: 'perf-travel-3', label: 'Create a destination-based content strategy', description: 'Develop a campaign strategy aligned to traveler interests and destination relevance.', kpi: 'Click-through rate', estimatedTime: '3 min', previewLines: [] },
+    ],
+    automotive: [
+      { id: 'perf-automotive-1', label: 'Improve dealer campaign efficiency', description: 'Optimize dealer-level campaigns to reduce cost per lead while maintaining volume and quality.', kpi: 'Cost per lead', estimatedTime: '3 min', previewLines: [] },
+      { id: 'perf-automotive-2', label: 'Optimize model-specific acquisition campaigns', description: 'Improve targeting and messaging for campaigns promoting specific vehicle models to in-market shoppers.', kpi: 'Test drive conversion rate', estimatedTime: '3 min', previewLines: [] },
+    ],
+    media: [
+      { id: 'perf-media-1', label: 'Improve subscriber acquisition campaign efficiency', description: 'Reduce cost per acquisition by refining audience targeting and channel allocation for subscriber growth campaigns.', kpi: 'Cost per acquisition', estimatedTime: '3 min', previewLines: [] },
+      { id: 'perf-media-2', label: 'Optimize content promotion by audience segment', description: 'Match content promotion strategies to audience preferences to drive higher engagement rates.', kpi: 'Content engagement rate', estimatedTime: '3 min', previewLines: [] },
+    ],
+    d2c: [
+      { id: 'perf-d2c-1', label: 'Improve paid social campaign ROAS', description: 'Analyze and optimize paid social campaigns to improve return on ad spend across audience segments.', kpi: 'ROAS', estimatedTime: '3 min', previewLines: [] },
+      { id: 'perf-d2c-2', label: 'Optimize lifecycle marketing across email and SMS', description: 'Improve the performance of email and SMS campaigns by optimizing timing, content, and audience selection.', kpi: 'Revenue per message', estimatedTime: '3 min', previewLines: [] },
+    ],
+    b2btech: [
+      { id: 'perf-b2btech-1', label: 'Improve pipeline-driving campaign efficiency', description: 'Optimize demand generation campaigns to increase the rate at which marketing engagement converts to pipeline.', kpi: 'Pipeline conversion rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'perf-b2btech-2', label: 'Optimize ABM audience targeting and channel mix', description: 'Refine account-based marketing targeting and channel allocation to improve account engagement.', kpi: 'Account engagement score', estimatedTime: '3 min', previewLines: [] },
+    ],
+    financial: [
+      { id: 'perf-financial-1', label: 'Improve conversion across financial product campaigns', description: 'Optimize acquisition campaigns for financial products to increase application and approval rates.', kpi: 'Application conversion rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'perf-financial-2', label: 'Optimize acquisition funnel performance', description: 'Identify and address drop-off points in the acquisition funnel to improve end-to-end completion rates.', kpi: 'Funnel completion rate', estimatedTime: '3 min', previewLines: [] },
+    ],
+    healthcare: [
+      { id: 'perf-healthcare-1', label: 'Improve patient outreach campaign performance', description: 'Optimize patient communication campaigns to improve response rates and appointment scheduling.', kpi: 'Outreach response rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'perf-healthcare-2', label: 'Optimize appointment and enrollment conversion', description: 'Improve conversion rates for appointment booking and program enrollment campaigns.', kpi: 'Appointment completion rate', estimatedTime: '3 min', previewLines: [] },
     ],
   },
   // ── Improve customer retention ──
@@ -117,6 +168,30 @@ export const scenarioMatrix: Record<string, Record<string, ScenarioOption[]>> = 
       { id: 'ret-cpg-2', label: 'Build a loyalty journey for valuable households', description: 'Design a retention journey to deepen loyalty among high-value household segments.', kpi: 'Retention rate', estimatedTime: '3 min', previewLines: [] },
       { id: 'ret-cpg-3', label: 'Create a reactivation campaign for promo-driven buyers', description: 'Develop a campaign to bring back buyers who primarily engage through offers and discounts.', kpi: 'Repeat purchase rate', estimatedTime: '3 min', previewLines: [] },
     ],
+    automotive: [
+      { id: 'ret-automotive-1', label: 'Win back lease customers approaching renewal', description: 'Target lease holders nearing contract end with personalized renewal offers to prevent defection.', kpi: 'Lease renewal rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'ret-automotive-2', label: 'Re-engage lapsed service customers', description: 'Bring back vehicle owners who have stopped visiting for scheduled maintenance and service.', kpi: 'Service visit rate', estimatedTime: '3 min', previewLines: [] },
+    ],
+    media: [
+      { id: 'ret-media-1', label: 'Reduce churn among engaged-but-at-risk subscribers', description: 'Identify subscribers showing early warning signs of churn despite recent engagement and intervene proactively.', kpi: 'Churn rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'ret-media-2', label: 'Win back recently lapsed subscribers', description: 'Create a reactivation strategy for subscribers who recently cancelled to bring them back.', kpi: 'Reactivation rate', estimatedTime: '3 min', previewLines: [] },
+    ],
+    d2c: [
+      { id: 'ret-d2c-1', label: 'Re-activate high-value customers with declining frequency', description: 'Identify top customers whose purchase frequency is dropping and re-engage them before they churn.', kpi: 'Purchase frequency', estimatedTime: '3 min', previewLines: [] },
+      { id: 'ret-d2c-2', label: 'Win back first-time buyers who never returned', description: 'Develop a win-back strategy for one-time purchasers who have not made a second purchase.', kpi: 'Second purchase rate', estimatedTime: '3 min', previewLines: [] },
+    ],
+    b2btech: [
+      { id: 'ret-b2btech-1', label: 'Reduce engagement decline in existing accounts', description: 'Detect accounts with declining product usage and launch targeted re-engagement campaigns.', kpi: 'Product adoption score', estimatedTime: '3 min', previewLines: [] },
+      { id: 'ret-b2btech-2', label: 'Re-engage users in at-risk expansion accounts', description: 'Identify users in expansion-stage accounts showing disengagement and intervene to protect renewal.', kpi: 'Renewal rate', estimatedTime: '3 min', previewLines: [] },
+    ],
+    financial: [
+      { id: 'ret-financial-1', label: 'Reduce attrition among high-value disengaging clients', description: 'Identify high-value clients showing signs of disengagement and prioritize them for retention outreach.', kpi: 'Attrition rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'ret-financial-2', label: 'Re-engage dormant cardholders', description: 'Create a reactivation campaign for cardholders who have stopped transacting to restore active usage.', kpi: 'Card reactivation rate', estimatedTime: '3 min', previewLines: [] },
+    ],
+    healthcare: [
+      { id: 'ret-healthcare-1', label: 'Re-engage patients with declining activity', description: 'Identify patients whose visit frequency or engagement is declining and reach out with personalized care reminders.', kpi: 'Patient retention rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'ret-healthcare-2', label: 'Reduce churn in care and wellness programs', description: 'Target participants in care and wellness programs who are at risk of dropping out.', kpi: 'Program retention rate', estimatedTime: '3 min', previewLines: [] },
+    ],
   },
   // ── Generate faster business insights ──
   insights: {
@@ -134,6 +209,30 @@ export const scenarioMatrix: Record<string, Record<string, ScenarioOption[]>> = 
       { id: 'ins-travel-1', label: 'Identify premium guest segments with highest upgrade potential', description: 'Find the guest groups most likely to respond to premium offers and upgrades.', kpi: 'Upgrade conversion rate', estimatedTime: '3 min', previewLines: [] },
       { id: 'ins-travel-2', label: 'Surface booking patterns by traveler type', description: 'Analyze how different traveler groups behave to improve strategic planning and targeting.', kpi: 'Marketing efficiency', estimatedTime: '3 min', previewLines: [] },
       { id: 'ins-travel-3', label: 'Analyze loyalty engagement patterns', description: 'Understand which loyalty engagement signals are most associated with long-term retention.', kpi: 'Retention rate', estimatedTime: '3 min', previewLines: [] },
+    ],
+    automotive: [
+      { id: 'ins-automotive-1', label: 'Identify high-intent in-market vehicle shoppers', description: 'Surface behavioral signals that indicate a consumer is actively researching and ready to purchase a vehicle.', kpi: 'Purchase intent score', estimatedTime: '3 min', previewLines: [] },
+      { id: 'ins-automotive-2', label: 'Find likely EV buyers from behavior signals', description: 'Analyze browsing and engagement patterns to identify consumers most likely to consider an electric vehicle.', kpi: 'EV consideration rate', estimatedTime: '3 min', previewLines: [] },
+    ],
+    media: [
+      { id: 'ins-media-1', label: 'Convert high-propensity anonymous visitors', description: 'Identify anonymous site visitors with the highest likelihood of converting to paid subscribers.', kpi: 'Visitor-to-subscriber rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'ins-media-2', label: 'Acquire subscribers for premium content bundles', description: 'Find audience segments most likely to subscribe to premium content bundles based on consumption patterns.', kpi: 'Bundle conversion rate', estimatedTime: '3 min', previewLines: [] },
+    ],
+    d2c: [
+      { id: 'ins-d2c-1', label: 'Find lookalike audiences for top-performing cohorts', description: 'Build lookalike models from your best customer cohorts to find new high-potential prospects.', kpi: 'Lookalike match rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'ins-d2c-2', label: 'Identify likely buyers for new product launch', description: 'Analyze existing customer data to predict which audiences are most likely to adopt a newly launched product.', kpi: 'Launch conversion rate', estimatedTime: '3 min', previewLines: [] },
+    ],
+    b2btech: [
+      { id: 'ins-b2btech-1', label: 'Identify high-fit target accounts and buying groups', description: 'Score and prioritize target accounts and their buying committees based on firmographic and behavioral fit.', kpi: 'Account fit score', estimatedTime: '3 min', previewLines: [] },
+      { id: 'ins-b2btech-2', label: 'Find pipeline-generating audiences for core solutions', description: 'Discover which audience segments are most likely to generate qualified pipeline for key product lines.', kpi: 'Pipeline velocity', estimatedTime: '3 min', previewLines: [] },
+    ],
+    financial: [
+      { id: 'ins-financial-1', label: 'Identify high-propensity applicants for target products', description: 'Find prospects most likely to apply for and be approved for specific financial products.', kpi: 'Application rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'ins-financial-2', label: 'Find converters for premium banking offerings', description: 'Identify customer segments with the highest likelihood of upgrading to premium banking products.', kpi: 'Premium conversion rate', estimatedTime: '3 min', previewLines: [] },
+    ],
+    healthcare: [
+      { id: 'ins-healthcare-1', label: 'Identify likely patients for target service lines', description: 'Use patient data signals to find individuals most likely to need and respond to outreach for specific service lines.', kpi: 'Service line match rate', estimatedTime: '3 min', previewLines: [] },
+      { id: 'ins-healthcare-2', label: 'Find audiences for preventative care campaigns', description: 'Identify patient populations most likely to participate in preventative screenings and wellness programs.', kpi: 'Screening participation rate', estimatedTime: '3 min', previewLines: [] },
     ],
   },
 };
