@@ -5,6 +5,7 @@
 
 import { Search, BarChart3, FileText, Zap, Target, TrendingUp, Users, Clock, GitBranch, Circle, Send, Mail, Smartphone, Monitor, Globe } from 'lucide-react';
 import type { StepType } from '../../orchestration/types';
+import { ComparisonBarChart, MetricComparisonBars, JourneySankeyDiagram } from './ChartComponents';
 
 interface StepCardProps {
   output: Record<string, any>;
@@ -105,6 +106,9 @@ function AnalysisCard({ output, stepLabel, stepNumber }: StepCardProps) {
       )}
 
       <MetricRow metrics={metrics} />
+
+      {/* Visual Metric Comparison */}
+      {metrics.length > 0 && <MetricComparisonBars metrics={metrics} />}
 
       {output.rationale && (
         <p className="text-xs text-gray-500 mt-3 leading-relaxed">{output.rationale}</p>
@@ -231,6 +235,9 @@ function ComparisonCard({ output, stepLabel, stepNumber }: StepCardProps) {
   return (
     <CardShell icon={<BarChart3 className="w-4 h-4 text-blue-500" />} typeLabel="Comparison" stepNumber={stepNumber} stepLabel={stepLabel}>
       <Headline text={output.headline || 'Comparison complete'} />
+
+      {/* Visual Bar Chart Comparison */}
+      <ComparisonBarChart options={options} />
 
       {options.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4">
@@ -480,6 +487,9 @@ function JourneyCard({ output, stepLabel, stepNumber }: StepCardProps) {
       stepLabel={stepLabel}
     >
       <Headline text={output.headline || stepLabel} />
+
+      {/* Journey Flow Visualization */}
+      <JourneySankeyDiagram stages={stages} />
 
       {/* Dotted background container */}
       <div className="relative rounded-xl overflow-hidden bg-white">
